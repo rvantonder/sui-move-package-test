@@ -1,0 +1,913 @@
+// Move bytecode v6
+module 3.staking_pool {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000002::bag;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::math;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::transfer;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct StakingPool has store, key {
+	id: UID,
+	activation_epoch: Option<u64>,
+	deactivation_epoch: Option<u64>,
+	sui_balance: u64,
+	rewards_pool: Balance<SUI>,
+	pool_token_balance: u64,
+	exchange_rates: Table<u64, PoolTokenExchangeRate>,
+	pending_stake: u64,
+	pending_total_sui_withdraw: u64,
+	pending_pool_token_withdraw: u64,
+	extra_fields: Bag
+}
+struct PoolTokenExchangeRate has copy, drop, store {
+	sui_amount: u64,
+	pool_token_amount: u64
+}
+struct StakedSui has key {
+	id: UID,
+	pool_id: ID,
+	stake_activation_epoch: u64,
+	principal: Balance<SUI>
+}
+
+public(friend) new(ctx#0#0: &mut TxContext): StakingPool {
+B0:
+	0: CopyLoc[0](ctx#0#0: &mut TxContext)
+	1: Call table::new<u64, PoolTokenExchangeRate>(&mut TxContext): Table<u64, PoolTokenExchangeRate>
+	2: StLoc[1](exchange_rates#1#0: Table<u64, PoolTokenExchangeRate>)
+	3: CopyLoc[0](ctx#0#0: &mut TxContext)
+	4: Call object::new(&mut TxContext): UID
+	5: Call option::none<u64>(): Option<u64>
+	6: Call option::none<u64>(): Option<u64>
+	7: LdU64(0)
+	8: Call balance::zero<SUI>(): Balance<SUI>
+	9: LdU64(0)
+	10: MoveLoc[1](exchange_rates#1#0: Table<u64, PoolTokenExchangeRate>)
+	11: LdU64(0)
+	12: LdU64(0)
+	13: LdU64(0)
+	14: MoveLoc[0](ctx#0#0: &mut TxContext)
+	15: Call bag::new(&mut TxContext): Bag
+	16: Pack[0](StakingPool)
+	17: Ret
+}
+public(friend) request_add_stake(pool#0#0: &mut StakingPool, stake#0#0: Balance<SUI>, staker#0#0: address, stake_activation_epoch#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[1](stake#0#0: Balance<SUI>)
+	1: Call balance::value<SUI>(&Balance<SUI>): u64
+	2: StLoc[6](sui_amount#1#0: u64)
+	3: CopyLoc[0](pool#0#0: &mut StakingPool)
+	4: FreezeRef
+	5: Call is_inactive(&StakingPool): bool
+	6: Not
+	7: BrFalse(9)
+B1:
+	8: Branch(15)
+B2:
+	9: MoveLoc[0](pool#0#0: &mut StakingPool)
+	10: Pop
+	11: MoveLoc[4](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: LdConst[11](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: CopyLoc[6](sui_amount#1#0: u64)
+	16: LdU64(0)
+	17: Gt
+	18: BrFalse(20)
+B4:
+	19: Branch(26)
+B5:
+	20: MoveLoc[0](pool#0#0: &mut StakingPool)
+	21: Pop
+	22: MoveLoc[4](ctx#0#0: &mut TxContext)
+	23: Pop
+	24: LdConst[18](U64: [17, 0, 0, 0, 0, 0, 0, 0])
+	25: Abort
+B6:
+	26: MoveLoc[4](ctx#0#0: &mut TxContext)
+	27: Call object::new(&mut TxContext): UID
+	28: CopyLoc[0](pool#0#0: &mut StakingPool)
+	29: FreezeRef
+	30: Call object::id<StakingPool>(&StakingPool): ID
+	31: MoveLoc[3](stake_activation_epoch#0#0: u64)
+	32: MoveLoc[1](stake#0#0: Balance<SUI>)
+	33: Pack[2](StakedSui)
+	34: StLoc[5](staked_sui#1#0: StakedSui)
+	35: CopyLoc[0](pool#0#0: &mut StakingPool)
+	36: ImmBorrowField[0](StakingPool.pending_stake: u64)
+	37: ReadRef
+	38: MoveLoc[6](sui_amount#1#0: u64)
+	39: Add
+	40: MoveLoc[0](pool#0#0: &mut StakingPool)
+	41: MutBorrowField[0](StakingPool.pending_stake: u64)
+	42: WriteRef
+	43: MoveLoc[5](staked_sui#1#0: StakedSui)
+	44: MoveLoc[2](staker#0#0: address)
+	45: Call transfer::transfer<StakedSui>(StakedSui, address)
+	46: Ret
+}
+public(friend) request_withdraw_stake(pool#0#0: &mut StakingPool, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext): u64 {
+L0:	rewards_withdraw#1#0: Balance<SUI>
+L1:	staker#1#0: address
+L2:	total_sui_withdraw_amount#1#0: u64
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: MoveLoc[1](staked_sui#0#0: StakedSui)
+	2: Call withdraw_from_principal(&mut StakingPool, StakedSui): u64 * Balance<SUI>
+	3: StLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	4: StLoc[3](pool_token_withdraw_amount#1#0: u64)
+	5: CopyLoc[2](ctx#0#0: &mut TxContext)
+	6: FreezeRef
+	7: Call tx_context::sender(&TxContext): address
+	8: StLoc[7](staker#1#0: address)
+	9: ImmBorrowLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	10: Call balance::value<SUI>(&Balance<SUI>): u64
+	11: StLoc[5](principal_withdraw_amount#1#0: u64)
+	12: CopyLoc[0](pool#0#0: &mut StakingPool)
+	13: CopyLoc[5](principal_withdraw_amount#1#0: u64)
+	14: CopyLoc[3](pool_token_withdraw_amount#1#0: u64)
+	15: CopyLoc[2](ctx#0#0: &mut TxContext)
+	16: FreezeRef
+	17: Call tx_context::epoch(&TxContext): u64
+	18: Call withdraw_rewards(&mut StakingPool, u64, u64, u64): Balance<SUI>
+	19: StLoc[6](rewards_withdraw#1#0: Balance<SUI>)
+	20: MoveLoc[5](principal_withdraw_amount#1#0: u64)
+	21: ImmBorrowLoc[6](rewards_withdraw#1#0: Balance<SUI>)
+	22: Call balance::value<SUI>(&Balance<SUI>): u64
+	23: Add
+	24: StLoc[8](total_sui_withdraw_amount#1#0: u64)
+	25: CopyLoc[0](pool#0#0: &mut StakingPool)
+	26: ImmBorrowField[1](StakingPool.pending_total_sui_withdraw: u64)
+	27: ReadRef
+	28: CopyLoc[8](total_sui_withdraw_amount#1#0: u64)
+	29: Add
+	30: CopyLoc[0](pool#0#0: &mut StakingPool)
+	31: MutBorrowField[1](StakingPool.pending_total_sui_withdraw: u64)
+	32: WriteRef
+	33: CopyLoc[0](pool#0#0: &mut StakingPool)
+	34: ImmBorrowField[2](StakingPool.pending_pool_token_withdraw: u64)
+	35: ReadRef
+	36: MoveLoc[3](pool_token_withdraw_amount#1#0: u64)
+	37: Add
+	38: CopyLoc[0](pool#0#0: &mut StakingPool)
+	39: MutBorrowField[2](StakingPool.pending_pool_token_withdraw: u64)
+	40: WriteRef
+	41: CopyLoc[0](pool#0#0: &mut StakingPool)
+	42: FreezeRef
+	43: Call is_inactive(&StakingPool): bool
+	44: BrFalse(48)
+B1:
+	45: MoveLoc[0](pool#0#0: &mut StakingPool)
+	46: Call process_pending_stake_withdraw(&mut StakingPool)
+	47: Branch(50)
+B2:
+	48: MoveLoc[0](pool#0#0: &mut StakingPool)
+	49: Pop
+B3:
+	50: MutBorrowLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	51: MoveLoc[6](rewards_withdraw#1#0: Balance<SUI>)
+	52: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	53: Pop
+	54: MoveLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	55: MoveLoc[2](ctx#0#0: &mut TxContext)
+	56: Call coin::from_balance<SUI>(Balance<SUI>, &mut TxContext): Coin<SUI>
+	57: MoveLoc[7](staker#1#0: address)
+	58: Call transfer::public_transfer<Coin<SUI>>(Coin<SUI>, address)
+	59: MoveLoc[8](total_sui_withdraw_amount#1#0: u64)
+	60: Ret
+}
+public(friend) withdraw_from_principal(pool#0#0: &mut StakingPool, staked_sui#0#0: StakedSui): u64 * Balance<SUI> {
+L0:	principal_withdraw#1#0: Balance<SUI>
+B0:
+	0: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	1: ImmBorrowField[3](StakedSui.pool_id: ID)
+	2: ReadRef
+	3: CopyLoc[0](pool#0#0: &mut StakingPool)
+	4: FreezeRef
+	5: Call object::id<StakingPool>(&StakingPool): ID
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](pool#0#0: &mut StakingPool)
+	10: Pop
+	11: LdConst[2](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MoveLoc[0](pool#0#0: &mut StakingPool)
+	14: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	15: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	16: ReadRef
+	17: StLoc[2](%#2: u64)
+	18: FreezeRef
+	19: MoveLoc[2](%#2: u64)
+	20: Call pool_token_exchange_rate_at_epoch(&StakingPool, u64): PoolTokenExchangeRate
+	21: StLoc[3](exchange_rate_at_staking_epoch#1#0: PoolTokenExchangeRate)
+	22: MoveLoc[1](staked_sui#0#0: StakedSui)
+	23: Call unwrap_staked_sui(StakedSui): Balance<SUI>
+	24: StLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	25: ImmBorrowLoc[3](exchange_rate_at_staking_epoch#1#0: PoolTokenExchangeRate)
+	26: ImmBorrowLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	27: Call balance::value<SUI>(&Balance<SUI>): u64
+	28: Call get_token_amount(&PoolTokenExchangeRate, u64): u64
+	29: MoveLoc[4](principal_withdraw#1#0: Balance<SUI>)
+	30: Ret
+}
+unwrap_staked_sui(staked_sui#0#0: StakedSui): Balance<SUI> {
+B0:
+	0: MoveLoc[0](staked_sui#0#0: StakedSui)
+	1: Unpack[2](StakedSui)
+	2: StLoc[1](principal#1#0: Balance<SUI>)
+	3: Pop
+	4: Pop
+	5: Call object::delete(UID)
+	6: MoveLoc[1](principal#1#0: Balance<SUI>)
+	7: Ret
+}
+public(friend) deposit_rewards(pool#0#0: &mut StakingPool, rewards#0#0: Balance<SUI>) {
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	2: ReadRef
+	3: ImmBorrowLoc[1](rewards#0#0: Balance<SUI>)
+	4: Call balance::value<SUI>(&Balance<SUI>): u64
+	5: Add
+	6: CopyLoc[0](pool#0#0: &mut StakingPool)
+	7: MutBorrowField[5](StakingPool.sui_balance: u64)
+	8: WriteRef
+	9: MoveLoc[0](pool#0#0: &mut StakingPool)
+	10: MutBorrowField[6](StakingPool.rewards_pool: Balance<SUI>)
+	11: MoveLoc[1](rewards#0#0: Balance<SUI>)
+	12: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	13: Pop
+	14: Ret
+}
+public(friend) process_pending_stakes_and_withdraws(pool#0#0: &mut StakingPool, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[1](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::epoch(&TxContext): u64
+	3: LdU64(1)
+	4: Add
+	5: StLoc[3](new_epoch#1#0: u64)
+	6: CopyLoc[0](pool#0#0: &mut StakingPool)
+	7: Call process_pending_stake_withdraw(&mut StakingPool)
+	8: CopyLoc[0](pool#0#0: &mut StakingPool)
+	9: Call process_pending_stake(&mut StakingPool)
+	10: CopyLoc[0](pool#0#0: &mut StakingPool)
+	11: MutBorrowField[7](StakingPool.exchange_rates: Table<u64, PoolTokenExchangeRate>)
+	12: CopyLoc[3](new_epoch#1#0: u64)
+	13: CopyLoc[0](pool#0#0: &mut StakingPool)
+	14: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	15: ReadRef
+	16: CopyLoc[0](pool#0#0: &mut StakingPool)
+	17: ImmBorrowField[8](StakingPool.pool_token_balance: u64)
+	18: ReadRef
+	19: Pack[1](PoolTokenExchangeRate)
+	20: Call table::add<u64, PoolTokenExchangeRate>(&mut Table<u64, PoolTokenExchangeRate>, u64, PoolTokenExchangeRate)
+	21: MoveLoc[0](pool#0#0: &mut StakingPool)
+	22: MoveLoc[3](new_epoch#1#0: u64)
+	23: StLoc[2](%#2: u64)
+	24: FreezeRef
+	25: MoveLoc[2](%#2: u64)
+	26: Call check_balance_invariants(&StakingPool, u64)
+	27: Ret
+}
+process_pending_stake_withdraw(pool#0#0: &mut StakingPool) {
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	2: ReadRef
+	3: CopyLoc[0](pool#0#0: &mut StakingPool)
+	4: ImmBorrowField[1](StakingPool.pending_total_sui_withdraw: u64)
+	5: ReadRef
+	6: Sub
+	7: CopyLoc[0](pool#0#0: &mut StakingPool)
+	8: MutBorrowField[5](StakingPool.sui_balance: u64)
+	9: WriteRef
+	10: CopyLoc[0](pool#0#0: &mut StakingPool)
+	11: ImmBorrowField[8](StakingPool.pool_token_balance: u64)
+	12: ReadRef
+	13: CopyLoc[0](pool#0#0: &mut StakingPool)
+	14: ImmBorrowField[2](StakingPool.pending_pool_token_withdraw: u64)
+	15: ReadRef
+	16: Sub
+	17: CopyLoc[0](pool#0#0: &mut StakingPool)
+	18: MutBorrowField[8](StakingPool.pool_token_balance: u64)
+	19: WriteRef
+	20: LdU64(0)
+	21: CopyLoc[0](pool#0#0: &mut StakingPool)
+	22: MutBorrowField[1](StakingPool.pending_total_sui_withdraw: u64)
+	23: WriteRef
+	24: LdU64(0)
+	25: MoveLoc[0](pool#0#0: &mut StakingPool)
+	26: MutBorrowField[2](StakingPool.pending_pool_token_withdraw: u64)
+	27: WriteRef
+	28: Ret
+}
+public(friend) process_pending_stake(pool#0#0: &mut StakingPool) {
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	2: ReadRef
+	3: CopyLoc[0](pool#0#0: &mut StakingPool)
+	4: ImmBorrowField[8](StakingPool.pool_token_balance: u64)
+	5: ReadRef
+	6: Pack[1](PoolTokenExchangeRate)
+	7: StLoc[1](latest_exchange_rate#1#0: PoolTokenExchangeRate)
+	8: CopyLoc[0](pool#0#0: &mut StakingPool)
+	9: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	10: ReadRef
+	11: CopyLoc[0](pool#0#0: &mut StakingPool)
+	12: ImmBorrowField[0](StakingPool.pending_stake: u64)
+	13: ReadRef
+	14: Add
+	15: CopyLoc[0](pool#0#0: &mut StakingPool)
+	16: MutBorrowField[5](StakingPool.sui_balance: u64)
+	17: WriteRef
+	18: ImmBorrowLoc[1](latest_exchange_rate#1#0: PoolTokenExchangeRate)
+	19: CopyLoc[0](pool#0#0: &mut StakingPool)
+	20: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	21: ReadRef
+	22: Call get_token_amount(&PoolTokenExchangeRate, u64): u64
+	23: CopyLoc[0](pool#0#0: &mut StakingPool)
+	24: MutBorrowField[8](StakingPool.pool_token_balance: u64)
+	25: WriteRef
+	26: LdU64(0)
+	27: MoveLoc[0](pool#0#0: &mut StakingPool)
+	28: MutBorrowField[0](StakingPool.pending_stake: u64)
+	29: WriteRef
+	30: Ret
+}
+withdraw_rewards(pool#0#0: &mut StakingPool, principal_withdraw_amount#0#0: u64, pool_token_withdraw_amount#0#0: u64, epoch#0#0: u64): Balance<SUI> {
+L0:	total_sui_withdraw_amount#1#0: u64
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: MoveLoc[3](epoch#0#0: u64)
+	2: StLoc[4](%#2: u64)
+	3: FreezeRef
+	4: MoveLoc[4](%#2: u64)
+	5: Call pool_token_exchange_rate_at_epoch(&StakingPool, u64): PoolTokenExchangeRate
+	6: StLoc[6](exchange_rate#1#0: PoolTokenExchangeRate)
+	7: ImmBorrowLoc[6](exchange_rate#1#0: PoolTokenExchangeRate)
+	8: MoveLoc[2](pool_token_withdraw_amount#0#0: u64)
+	9: Call get_sui_amount(&PoolTokenExchangeRate, u64): u64
+	10: StLoc[8](total_sui_withdraw_amount#1#0: u64)
+	11: CopyLoc[8](total_sui_withdraw_amount#1#0: u64)
+	12: CopyLoc[1](principal_withdraw_amount#0#0: u64)
+	13: Ge
+	14: BrFalse(20)
+B1:
+	15: MoveLoc[8](total_sui_withdraw_amount#1#0: u64)
+	16: MoveLoc[1](principal_withdraw_amount#0#0: u64)
+	17: Sub
+	18: StLoc[5](%#3: u64)
+	19: Branch(22)
+B2:
+	20: LdU64(0)
+	21: StLoc[5](%#3: u64)
+B3:
+	22: MoveLoc[5](%#3: u64)
+	23: CopyLoc[0](pool#0#0: &mut StakingPool)
+	24: ImmBorrowField[6](StakingPool.rewards_pool: Balance<SUI>)
+	25: Call balance::value<SUI>(&Balance<SUI>): u64
+	26: Call math::min(u64, u64): u64
+	27: StLoc[7](reward_withdraw_amount#1#0: u64)
+	28: MoveLoc[0](pool#0#0: &mut StakingPool)
+	29: MutBorrowField[6](StakingPool.rewards_pool: Balance<SUI>)
+	30: MoveLoc[7](reward_withdraw_amount#1#0: u64)
+	31: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	32: Ret
+}
+public(friend) activate_staking_pool(pool#0#0: &mut StakingPool, activation_epoch#0#0: u64) {
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: MutBorrowField[7](StakingPool.exchange_rates: Table<u64, PoolTokenExchangeRate>)
+	2: CopyLoc[1](activation_epoch#0#0: u64)
+	3: Call initial_exchange_rate(): PoolTokenExchangeRate
+	4: Call table::add<u64, PoolTokenExchangeRate>(&mut Table<u64, PoolTokenExchangeRate>, u64, PoolTokenExchangeRate)
+	5: CopyLoc[0](pool#0#0: &mut StakingPool)
+	6: FreezeRef
+	7: Call is_preactive(&StakingPool): bool
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](pool#0#0: &mut StakingPool)
+	11: Pop
+	12: LdConst[15](U64: [14, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: CopyLoc[0](pool#0#0: &mut StakingPool)
+	15: FreezeRef
+	16: Call is_inactive(&StakingPool): bool
+	17: Not
+	18: BrFalse(20)
+B4:
+	19: Branch(24)
+B5:
+	20: MoveLoc[0](pool#0#0: &mut StakingPool)
+	21: Pop
+	22: LdConst[17](U64: [16, 0, 0, 0, 0, 0, 0, 0])
+	23: Abort
+B6:
+	24: MoveLoc[0](pool#0#0: &mut StakingPool)
+	25: MutBorrowField[9](StakingPool.activation_epoch: Option<u64>)
+	26: MoveLoc[1](activation_epoch#0#0: u64)
+	27: Call option::fill<u64>(&mut Option<u64>, u64)
+	28: Ret
+}
+public(friend) request_withdraw_stake_preactive(pool#0#0: &mut StakingPool, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext): u64 {
+B0:
+	0: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	1: ImmBorrowField[3](StakedSui.pool_id: ID)
+	2: ReadRef
+	3: CopyLoc[0](pool#0#0: &mut StakingPool)
+	4: FreezeRef
+	5: Call object::id<StakingPool>(&StakingPool): ID
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(15)
+B2:
+	9: MoveLoc[0](pool#0#0: &mut StakingPool)
+	10: Pop
+	11: MoveLoc[2](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: LdConst[2](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: CopyLoc[0](pool#0#0: &mut StakingPool)
+	16: FreezeRef
+	17: Call is_preactive(&StakingPool): bool
+	18: BrFalse(20)
+B4:
+	19: Branch(26)
+B5:
+	20: MoveLoc[0](pool#0#0: &mut StakingPool)
+	21: Pop
+	22: MoveLoc[2](ctx#0#0: &mut TxContext)
+	23: Pop
+	24: LdConst[16](U64: [15, 0, 0, 0, 0, 0, 0, 0])
+	25: Abort
+B6:
+	26: CopyLoc[2](ctx#0#0: &mut TxContext)
+	27: FreezeRef
+	28: Call tx_context::sender(&TxContext): address
+	29: StLoc[4](staker#1#0: address)
+	30: MoveLoc[1](staked_sui#0#0: StakedSui)
+	31: Call unwrap_staked_sui(StakedSui): Balance<SUI>
+	32: StLoc[3](principal#1#0: Balance<SUI>)
+	33: ImmBorrowLoc[3](principal#1#0: Balance<SUI>)
+	34: Call balance::value<SUI>(&Balance<SUI>): u64
+	35: StLoc[5](withdraw_amount#1#0: u64)
+	36: CopyLoc[0](pool#0#0: &mut StakingPool)
+	37: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	38: ReadRef
+	39: CopyLoc[5](withdraw_amount#1#0: u64)
+	40: Sub
+	41: CopyLoc[0](pool#0#0: &mut StakingPool)
+	42: MutBorrowField[5](StakingPool.sui_balance: u64)
+	43: WriteRef
+	44: CopyLoc[0](pool#0#0: &mut StakingPool)
+	45: ImmBorrowField[8](StakingPool.pool_token_balance: u64)
+	46: ReadRef
+	47: CopyLoc[5](withdraw_amount#1#0: u64)
+	48: Sub
+	49: MoveLoc[0](pool#0#0: &mut StakingPool)
+	50: MutBorrowField[8](StakingPool.pool_token_balance: u64)
+	51: WriteRef
+	52: MoveLoc[3](principal#1#0: Balance<SUI>)
+	53: MoveLoc[2](ctx#0#0: &mut TxContext)
+	54: Call coin::from_balance<SUI>(Balance<SUI>, &mut TxContext): Coin<SUI>
+	55: MoveLoc[4](staker#1#0: address)
+	56: Call transfer::public_transfer<Coin<SUI>>(Coin<SUI>, address)
+	57: MoveLoc[5](withdraw_amount#1#0: u64)
+	58: Ret
+}
+public(friend) deactivate_staking_pool(pool#0#0: &mut StakingPool, deactivation_epoch#0#0: u64) {
+B0:
+	0: CopyLoc[0](pool#0#0: &mut StakingPool)
+	1: FreezeRef
+	2: Call is_inactive(&StakingPool): bool
+	3: Not
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](pool#0#0: &mut StakingPool)
+	7: Pop
+	8: LdConst[12](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](deactivation_epoch#0#0: u64)
+	11: Call option::some<u64>(u64): Option<u64>
+	12: MoveLoc[0](pool#0#0: &mut StakingPool)
+	13: MutBorrowField[10](StakingPool.deactivation_epoch: Option<u64>)
+	14: WriteRef
+	15: Ret
+}
+public sui_balance(pool#0#0: &StakingPool): u64 {
+B0:
+	0: MoveLoc[0](pool#0#0: &StakingPool)
+	1: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	2: ReadRef
+	3: Ret
+}
+public pool_id(staked_sui#0#0: &StakedSui): ID {
+B0:
+	0: MoveLoc[0](staked_sui#0#0: &StakedSui)
+	1: ImmBorrowField[3](StakedSui.pool_id: ID)
+	2: ReadRef
+	3: Ret
+}
+public staked_sui_amount(staked_sui#0#0: &StakedSui): u64 {
+B0:
+	0: MoveLoc[0](staked_sui#0#0: &StakedSui)
+	1: ImmBorrowField[11](StakedSui.principal: Balance<SUI>)
+	2: Call balance::value<SUI>(&Balance<SUI>): u64
+	3: Ret
+}
+public stake_activation_epoch(staked_sui#0#0: &StakedSui): u64 {
+B0:
+	0: MoveLoc[0](staked_sui#0#0: &StakedSui)
+	1: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	2: ReadRef
+	3: Ret
+}
+public is_preactive(pool#0#0: &StakingPool): bool {
+B0:
+	0: MoveLoc[0](pool#0#0: &StakingPool)
+	1: ImmBorrowField[9](StakingPool.activation_epoch: Option<u64>)
+	2: Call option::is_none<u64>(&Option<u64>): bool
+	3: Ret
+}
+public is_inactive(pool#0#0: &StakingPool): bool {
+B0:
+	0: MoveLoc[0](pool#0#0: &StakingPool)
+	1: ImmBorrowField[10](StakingPool.deactivation_epoch: Option<u64>)
+	2: Call option::is_some<u64>(&Option<u64>): bool
+	3: Ret
+}
+public split(self#0#0: &mut StakedSui, split_amount#0#0: u64, ctx#0#0: &mut TxContext): StakedSui {
+B0:
+	0: MoveLoc[2](ctx#0#0: &mut TxContext)
+	1: Call object::new(&mut TxContext): UID
+	2: CopyLoc[0](self#0#0: &mut StakedSui)
+	3: ImmBorrowField[3](StakedSui.pool_id: ID)
+	4: ReadRef
+	5: CopyLoc[0](self#0#0: &mut StakedSui)
+	6: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	7: ReadRef
+	8: MoveLoc[0](self#0#0: &mut StakedSui)
+	9: MutBorrowField[11](StakedSui.principal: Balance<SUI>)
+	10: MoveLoc[1](split_amount#0#0: u64)
+	11: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	12: Pack[2](StakedSui)
+	13: Ret
+}
+entry public split_staked_sui(stake#0#0: &mut StakedSui, split_amount#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](stake#0#0: &mut StakedSui)
+	1: ImmBorrowField[11](StakedSui.principal: Balance<SUI>)
+	2: Call balance::value<SUI>(&Balance<SUI>): u64
+	3: StLoc[3](original_amount#1#0: u64)
+	4: CopyLoc[1](split_amount#0#0: u64)
+	5: CopyLoc[3](original_amount#1#0: u64)
+	6: Le
+	7: BrFalse(9)
+B1:
+	8: Branch(15)
+B2:
+	9: MoveLoc[0](stake#0#0: &mut StakedSui)
+	10: Pop
+	11: MoveLoc[2](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: LdConst[4](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: MoveLoc[3](original_amount#1#0: u64)
+	16: CopyLoc[1](split_amount#0#0: u64)
+	17: Sub
+	18: LdConst[0](U64: [0, 202, 154, 59, 0, 0, 0, 0])
+	19: Ge
+	20: BrFalse(22)
+B4:
+	21: Branch(28)
+B5:
+	22: MoveLoc[0](stake#0#0: &mut StakedSui)
+	23: Pop
+	24: MoveLoc[2](ctx#0#0: &mut TxContext)
+	25: Pop
+	26: LdConst[19](U64: [18, 0, 0, 0, 0, 0, 0, 0])
+	27: Abort
+B6:
+	28: CopyLoc[1](split_amount#0#0: u64)
+	29: LdConst[0](U64: [0, 202, 154, 59, 0, 0, 0, 0])
+	30: Ge
+	31: BrFalse(33)
+B7:
+	32: Branch(39)
+B8:
+	33: MoveLoc[0](stake#0#0: &mut StakedSui)
+	34: Pop
+	35: MoveLoc[2](ctx#0#0: &mut TxContext)
+	36: Pop
+	37: LdConst[19](U64: [18, 0, 0, 0, 0, 0, 0, 0])
+	38: Abort
+B9:
+	39: MoveLoc[0](stake#0#0: &mut StakedSui)
+	40: MoveLoc[1](split_amount#0#0: u64)
+	41: CopyLoc[2](ctx#0#0: &mut TxContext)
+	42: Call split(&mut StakedSui, u64, &mut TxContext): StakedSui
+	43: MoveLoc[2](ctx#0#0: &mut TxContext)
+	44: FreezeRef
+	45: Call tx_context::sender(&TxContext): address
+	46: Call transfer::transfer<StakedSui>(StakedSui, address)
+	47: Ret
+}
+entry public join_staked_sui(self#0#0: &mut StakedSui, other#0#0: StakedSui) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut StakedSui)
+	1: ImmBorrowLoc[1](other#0#0: StakedSui)
+	2: StLoc[2](%#2: &StakedSui)
+	3: FreezeRef
+	4: MoveLoc[2](%#2: &StakedSui)
+	5: Call is_equal_staking_metadata(&StakedSui, &StakedSui): bool
+	6: BrFalse(8)
+B1:
+	7: Branch(12)
+B2:
+	8: MoveLoc[0](self#0#0: &mut StakedSui)
+	9: Pop
+	10: LdConst[13](U64: [12, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: MoveLoc[1](other#0#0: StakedSui)
+	13: Unpack[2](StakedSui)
+	14: StLoc[3](principal#1#0: Balance<SUI>)
+	15: Pop
+	16: Pop
+	17: Call object::delete(UID)
+	18: MoveLoc[0](self#0#0: &mut StakedSui)
+	19: MutBorrowField[11](StakedSui.principal: Balance<SUI>)
+	20: MoveLoc[3](principal#1#0: Balance<SUI>)
+	21: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	22: Pop
+	23: Ret
+}
+public is_equal_staking_metadata(self#0#0: &StakedSui, other#0#0: &StakedSui): bool {
+B0:
+	0: CopyLoc[0](self#0#0: &StakedSui)
+	1: ImmBorrowField[3](StakedSui.pool_id: ID)
+	2: ReadRef
+	3: CopyLoc[1](other#0#0: &StakedSui)
+	4: ImmBorrowField[3](StakedSui.pool_id: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(17)
+B1:
+	8: MoveLoc[0](self#0#0: &StakedSui)
+	9: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	10: ReadRef
+	11: MoveLoc[1](other#0#0: &StakedSui)
+	12: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	13: ReadRef
+	14: Eq
+	15: StLoc[2](%#1: bool)
+	16: Branch(23)
+B2:
+	17: MoveLoc[0](self#0#0: &StakedSui)
+	18: Pop
+	19: MoveLoc[1](other#0#0: &StakedSui)
+	20: Pop
+	21: LdFalse
+	22: StLoc[2](%#1: bool)
+B3:
+	23: MoveLoc[2](%#1: bool)
+	24: Ret
+}
+public pool_token_exchange_rate_at_epoch(pool#0#0: &StakingPool, epoch#0#0: u64): PoolTokenExchangeRate {
+B0:
+	0: CopyLoc[0](pool#0#0: &StakingPool)
+	1: CopyLoc[1](epoch#0#0: u64)
+	2: Call is_preactive_at_epoch(&StakingPool, u64): bool
+	3: BrFalse(8)
+B1:
+	4: MoveLoc[0](pool#0#0: &StakingPool)
+	5: Pop
+	6: Call initial_exchange_rate(): PoolTokenExchangeRate
+	7: Ret
+B2:
+	8: CopyLoc[0](pool#0#0: &StakingPool)
+	9: ImmBorrowField[10](StakingPool.deactivation_epoch: Option<u64>)
+	10: CopyLoc[1](epoch#0#0: u64)
+	11: Call option::get_with_default<u64>(&Option<u64>, u64): u64
+	12: MoveLoc[1](epoch#0#0: u64)
+	13: Call math::min(u64, u64): u64
+	14: StLoc[3](epoch#1#0: u64)
+	15: CopyLoc[0](pool#0#0: &StakingPool)
+	16: ImmBorrowField[9](StakingPool.activation_epoch: Option<u64>)
+	17: Call option::borrow<u64>(&Option<u64>): &u64
+	18: ReadRef
+	19: StLoc[2](activation_epoch#1#0: u64)
+B3:
+	20: CopyLoc[3](epoch#1#0: u64)
+	21: CopyLoc[2](activation_epoch#1#0: u64)
+	22: Ge
+	23: BrFalse(41)
+B4:
+	24: Branch(25)
+B5:
+	25: CopyLoc[0](pool#0#0: &StakingPool)
+	26: ImmBorrowField[7](StakingPool.exchange_rates: Table<u64, PoolTokenExchangeRate>)
+	27: CopyLoc[3](epoch#1#0: u64)
+	28: Call table::contains<u64, PoolTokenExchangeRate>(&Table<u64, PoolTokenExchangeRate>, u64): bool
+	29: BrFalse(36)
+B6:
+	30: MoveLoc[0](pool#0#0: &StakingPool)
+	31: ImmBorrowField[7](StakingPool.exchange_rates: Table<u64, PoolTokenExchangeRate>)
+	32: MoveLoc[3](epoch#1#0: u64)
+	33: Call table::borrow<u64, PoolTokenExchangeRate>(&Table<u64, PoolTokenExchangeRate>, u64): &PoolTokenExchangeRate
+	34: ReadRef
+	35: Ret
+B7:
+	36: MoveLoc[3](epoch#1#0: u64)
+	37: LdU64(1)
+	38: Sub
+	39: StLoc[3](epoch#1#0: u64)
+	40: Branch(20)
+B8:
+	41: MoveLoc[0](pool#0#0: &StakingPool)
+	42: Pop
+	43: Call initial_exchange_rate(): PoolTokenExchangeRate
+	44: Ret
+}
+public pending_stake_amount(staking_pool#0#0: &StakingPool): u64 {
+B0:
+	0: MoveLoc[0](staking_pool#0#0: &StakingPool)
+	1: ImmBorrowField[0](StakingPool.pending_stake: u64)
+	2: ReadRef
+	3: Ret
+}
+public pending_stake_withdraw_amount(staking_pool#0#0: &StakingPool): u64 {
+B0:
+	0: MoveLoc[0](staking_pool#0#0: &StakingPool)
+	1: ImmBorrowField[1](StakingPool.pending_total_sui_withdraw: u64)
+	2: ReadRef
+	3: Ret
+}
+is_preactive_at_epoch(pool#0#0: &StakingPool, epoch#0#0: u64): bool {
+B0:
+	0: CopyLoc[0](pool#0#0: &StakingPool)
+	1: Call is_preactive(&StakingPool): bool
+	2: BrFalse(8)
+B1:
+	3: MoveLoc[0](pool#0#0: &StakingPool)
+	4: Pop
+	5: LdTrue
+	6: StLoc[2](%#1: bool)
+	7: Branch(15)
+B2:
+	8: MoveLoc[0](pool#0#0: &StakingPool)
+	9: ImmBorrowField[9](StakingPool.activation_epoch: Option<u64>)
+	10: Call option::borrow<u64>(&Option<u64>): &u64
+	11: ReadRef
+	12: MoveLoc[1](epoch#0#0: u64)
+	13: Gt
+	14: StLoc[2](%#1: bool)
+B3:
+	15: MoveLoc[2](%#1: bool)
+	16: Ret
+}
+get_sui_amount(exchange_rate#0#0: &PoolTokenExchangeRate, token_amount#0#0: u64): u64 {
+B0:
+	0: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	1: ImmBorrowField[12](PoolTokenExchangeRate.sui_amount: u64)
+	2: ReadRef
+	3: LdU64(0)
+	4: Eq
+	5: BrFalse(9)
+B1:
+	6: LdTrue
+	7: StLoc[2](%#1: bool)
+	8: Branch(15)
+B2:
+	9: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	10: ImmBorrowField[13](PoolTokenExchangeRate.pool_token_amount: u64)
+	11: ReadRef
+	12: LdU64(0)
+	13: Eq
+	14: StLoc[2](%#1: bool)
+B3:
+	15: MoveLoc[2](%#1: bool)
+	16: BrFalse(21)
+B4:
+	17: MoveLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	18: Pop
+	19: MoveLoc[1](token_amount#0#0: u64)
+	20: Ret
+B5:
+	21: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	22: ImmBorrowField[12](PoolTokenExchangeRate.sui_amount: u64)
+	23: ReadRef
+	24: CastU128
+	25: MoveLoc[1](token_amount#0#0: u64)
+	26: CastU128
+	27: Mul
+	28: MoveLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	29: ImmBorrowField[13](PoolTokenExchangeRate.pool_token_amount: u64)
+	30: ReadRef
+	31: CastU128
+	32: Div
+	33: CastU64
+	34: Ret
+}
+get_token_amount(exchange_rate#0#0: &PoolTokenExchangeRate, sui_amount#0#0: u64): u64 {
+B0:
+	0: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	1: ImmBorrowField[12](PoolTokenExchangeRate.sui_amount: u64)
+	2: ReadRef
+	3: LdU64(0)
+	4: Eq
+	5: BrFalse(9)
+B1:
+	6: LdTrue
+	7: StLoc[2](%#1: bool)
+	8: Branch(15)
+B2:
+	9: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	10: ImmBorrowField[13](PoolTokenExchangeRate.pool_token_amount: u64)
+	11: ReadRef
+	12: LdU64(0)
+	13: Eq
+	14: StLoc[2](%#1: bool)
+B3:
+	15: MoveLoc[2](%#1: bool)
+	16: BrFalse(21)
+B4:
+	17: MoveLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	18: Pop
+	19: MoveLoc[1](sui_amount#0#0: u64)
+	20: Ret
+B5:
+	21: CopyLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	22: ImmBorrowField[13](PoolTokenExchangeRate.pool_token_amount: u64)
+	23: ReadRef
+	24: CastU128
+	25: MoveLoc[1](sui_amount#0#0: u64)
+	26: CastU128
+	27: Mul
+	28: MoveLoc[0](exchange_rate#0#0: &PoolTokenExchangeRate)
+	29: ImmBorrowField[12](PoolTokenExchangeRate.sui_amount: u64)
+	30: ReadRef
+	31: CastU128
+	32: Div
+	33: CastU64
+	34: Ret
+}
+initial_exchange_rate(): PoolTokenExchangeRate {
+B0:
+	0: LdU64(0)
+	1: LdU64(0)
+	2: Pack[1](PoolTokenExchangeRate)
+	3: Ret
+}
+check_balance_invariants(pool#0#0: &StakingPool, epoch#0#0: u64) {
+L0:	expected#1#0: u64
+B0:
+	0: CopyLoc[0](pool#0#0: &StakingPool)
+	1: MoveLoc[1](epoch#0#0: u64)
+	2: Call pool_token_exchange_rate_at_epoch(&StakingPool, u64): PoolTokenExchangeRate
+	3: StLoc[3](exchange_rate#1#0: PoolTokenExchangeRate)
+	4: ImmBorrowLoc[3](exchange_rate#1#0: PoolTokenExchangeRate)
+	5: CopyLoc[0](pool#0#0: &StakingPool)
+	6: ImmBorrowField[5](StakingPool.sui_balance: u64)
+	7: ReadRef
+	8: Call get_token_amount(&PoolTokenExchangeRate, u64): u64
+	9: StLoc[4](expected#1#0: u64)
+	10: MoveLoc[0](pool#0#0: &StakingPool)
+	11: ImmBorrowField[8](StakingPool.pool_token_balance: u64)
+	12: ReadRef
+	13: StLoc[2](actual#1#0: u64)
+	14: MoveLoc[4](expected#1#0: u64)
+	15: MoveLoc[2](actual#1#0: u64)
+	16: Eq
+	17: BrFalse(19)
+B1:
+	18: Branch(21)
+B2:
+	19: LdConst[10](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	20: Abort
+B3:
+	21: Ret
+}
+}

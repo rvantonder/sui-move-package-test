@@ -1,0 +1,7 @@
+// Move bytecode v6
+module 2.bls12381 {
+
+
+native public bls12381_min_sig_verify(signature#0#0: &vector<u8>, public_key#0#0: &vector<u8>, msg#0#0: &vector<u8>): bool
+native public bls12381_min_pk_verify(signature#0#0: &vector<u8>, public_key#0#0: &vector<u8>, msg#0#0: &vector<u8>): bool
+}

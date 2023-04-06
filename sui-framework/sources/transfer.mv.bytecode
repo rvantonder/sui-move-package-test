@@ -1,0 +1,46 @@
+// Move bytecode v6
+module 2.transfer {
+
+
+public transfer<T: key>(obj#0#0: T, recipient#0#0: address) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: MoveLoc[1](recipient#0#0: address)
+	2: Call transfer_impl<T>(T, address)
+	3: Ret
+}
+public public_transfer<T: store + key>(obj#0#0: T, recipient#0#0: address) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: MoveLoc[1](recipient#0#0: address)
+	2: Call transfer_impl<T>(T, address)
+	3: Ret
+}
+public freeze_object<T: key>(obj#0#0: T) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: Call freeze_object_impl<T>(T)
+	2: Ret
+}
+public public_freeze_object<T: store + key>(obj#0#0: T) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: Call freeze_object_impl<T>(T)
+	2: Ret
+}
+public share_object<T: key>(obj#0#0: T) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: Call share_object_impl<T>(T)
+	2: Ret
+}
+public public_share_object<T: store + key>(obj#0#0: T) {
+B0:
+	0: MoveLoc[0](obj#0#0: T)
+	1: Call share_object_impl<T>(T)
+	2: Ret
+}
+native public(friend) freeze_object_impl<T: key>(obj#0#0: T)
+native public(friend) share_object_impl<T: key>(obj#0#0: T)
+native public(friend) transfer_impl<T: key>(obj#0#0: T, recipient#0#0: address)
+}

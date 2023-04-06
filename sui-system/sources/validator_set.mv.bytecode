@@ -1,0 +1,2555 @@
+// Move bytecode v6
+module 3.validator_set {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000001::vector;
+use 0000000000000000000000000000000000000000000000000000000000000002::bag;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::event;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::priority_queue;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::table_vec;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000002::vec_map;
+use 0000000000000000000000000000000000000000000000000000000000000002::vec_set;
+use 0000000000000000000000000000000000000000000000000000000000000003::staking_pool;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_cap;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_wrapper;
+use 0000000000000000000000000000000000000000000000000000000000000003::voting_power;
+
+
+struct ValidatorSet has store {
+	total_stake: u64,
+	active_validators: vector<Validator>,
+	pending_active_validators: TableVec<Validator>,
+	pending_removals: vector<u64>,
+	staking_pool_mappings: Table<ID, address>,
+	inactive_validators: Table<ID, ValidatorWrapper>,
+	validator_candidates: Table<address, ValidatorWrapper>,
+	at_risk_validators: VecMap<address, u64>,
+	extra_fields: Bag
+}
+struct ValidatorEpochInfoEvent has copy, drop {
+	epoch: u64,
+	validator_address: address,
+	reference_gas_survey_quote: u64,
+	stake: u64,
+	commission_rate: u64,
+	pool_staking_reward: u64,
+	storage_fund_staking_reward: u64,
+	pool_token_exchange_rate: PoolTokenExchangeRate,
+	tallying_rule_reporters: vector<address>,
+	tallying_rule_global_score: u64
+}
+struct ValidatorEpochInfoEventV2 has copy, drop {
+	epoch: u64,
+	validator_address: address,
+	reference_gas_survey_quote: u64,
+	stake: u64,
+	voting_power: u64,
+	commission_rate: u64,
+	pool_staking_reward: u64,
+	storage_fund_staking_reward: u64,
+	pool_token_exchange_rate: PoolTokenExchangeRate,
+	tallying_rule_reporters: vector<address>,
+	tallying_rule_global_score: u64
+}
+struct ValidatorJoinEvent has copy, drop {
+	epoch: u64,
+	validator_address: address,
+	staking_pool_id: ID
+}
+struct ValidatorLeaveEvent has copy, drop {
+	epoch: u64,
+	validator_address: address,
+	staking_pool_id: ID,
+	is_voluntary: bool
+}
+
+public(friend) new(init_active_validators#0#0: vector<Validator>, ctx#0#0: &mut TxContext): ValidatorSet {
+L0:	staking_pool_mappings#1#0: Table<ID, address>
+L1:	total_stake#1#0: u64
+L2:	validator#1#0: &Validator
+L3:	validators#1#0: ValidatorSet
+B0:
+	0: ImmBorrowLoc[0](init_active_validators#0#0: vector<Validator>)
+	1: Call calculate_total_stakes(&vector<Validator>): u64
+	2: StLoc[5](total_stake#1#0: u64)
+	3: CopyLoc[1](ctx#0#0: &mut TxContext)
+	4: Call table::new<ID, address>(&mut TxContext): Table<ID, address>
+	5: StLoc[4](staking_pool_mappings#1#0: Table<ID, address>)
+	6: ImmBorrowLoc[0](init_active_validators#0#0: vector<Validator>)
+	7: VecLen(58)
+	8: StLoc[3](num_validators#1#0: u64)
+	9: LdU64(0)
+	10: StLoc[2](i#1#0: u64)
+B1:
+	11: CopyLoc[2](i#1#0: u64)
+	12: CopyLoc[3](num_validators#1#0: u64)
+	13: Lt
+	14: BrFalse(31)
+B2:
+	15: Branch(16)
+B3:
+	16: ImmBorrowLoc[0](init_active_validators#0#0: vector<Validator>)
+	17: CopyLoc[2](i#1#0: u64)
+	18: VecImmBorrow(58)
+	19: StLoc[6](validator#1#0: &Validator)
+	20: MutBorrowLoc[4](staking_pool_mappings#1#0: Table<ID, address>)
+	21: CopyLoc[6](validator#1#0: &Validator)
+	22: Call validator::staking_pool_id(&Validator): ID
+	23: MoveLoc[6](validator#1#0: &Validator)
+	24: Call validator::sui_address(&Validator): address
+	25: Call table::add<ID, address>(&mut Table<ID, address>, ID, address)
+	26: MoveLoc[2](i#1#0: u64)
+	27: LdU64(1)
+	28: Add
+	29: StLoc[2](i#1#0: u64)
+	30: Branch(11)
+B4:
+	31: MoveLoc[5](total_stake#1#0: u64)
+	32: MoveLoc[0](init_active_validators#0#0: vector<Validator>)
+	33: CopyLoc[1](ctx#0#0: &mut TxContext)
+	34: Call table_vec::empty<Validator>(&mut TxContext): TableVec<Validator>
+	35: VecPack(14, 0)
+	36: MoveLoc[4](staking_pool_mappings#1#0: Table<ID, address>)
+	37: CopyLoc[1](ctx#0#0: &mut TxContext)
+	38: Call table::new<ID, ValidatorWrapper>(&mut TxContext): Table<ID, ValidatorWrapper>
+	39: CopyLoc[1](ctx#0#0: &mut TxContext)
+	40: Call table::new<address, ValidatorWrapper>(&mut TxContext): Table<address, ValidatorWrapper>
+	41: Call vec_map::empty<address, u64>(): VecMap<address, u64>
+	42: MoveLoc[1](ctx#0#0: &mut TxContext)
+	43: Call bag::new(&mut TxContext): Bag
+	44: Pack[0](ValidatorSet)
+	45: StLoc[7](validators#1#0: ValidatorSet)
+	46: MutBorrowLoc[7](validators#1#0: ValidatorSet)
+	47: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	48: Call voting_power::set_voting_power(&mut vector<Validator>)
+	49: MoveLoc[7](validators#1#0: ValidatorSet)
+	50: Ret
+}
+public(friend) request_add_validator_candidate(self#0#0: &mut ValidatorSet, validator#0#0: Validator, ctx#0#0: &mut TxContext) {
+L0:	validator_address#1#0: address
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowLoc[1](validator#0#0: Validator)
+	2: StLoc[3](%#2: &Validator)
+	3: FreezeRef
+	4: MoveLoc[3](%#2: &Validator)
+	5: Call is_duplicate_with_active_validator(&ValidatorSet, &Validator): bool
+	6: Not
+	7: BrFalse(17)
+B1:
+	8: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	9: ImmBorrowLoc[1](validator#0#0: Validator)
+	10: StLoc[4](%#4: &Validator)
+	11: FreezeRef
+	12: MoveLoc[4](%#4: &Validator)
+	13: Call is_duplicate_with_pending_validator(&ValidatorSet, &Validator): bool
+	14: Not
+	15: StLoc[5](%#5: bool)
+	16: Branch(19)
+B2:
+	17: LdFalse
+	18: StLoc[5](%#5: bool)
+B3:
+	19: MoveLoc[5](%#5: bool)
+	20: BrFalse(22)
+B4:
+	21: Branch(28)
+B5:
+	22: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	23: Pop
+	24: MoveLoc[2](ctx#0#0: &mut TxContext)
+	25: Pop
+	26: LdConst[7](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	27: Abort
+B6:
+	28: ImmBorrowLoc[1](validator#0#0: Validator)
+	29: Call validator::sui_address(&Validator): address
+	30: StLoc[6](validator_address#1#0: address)
+	31: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	32: ImmBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	33: CopyLoc[6](validator_address#1#0: address)
+	34: Call table::contains<address, ValidatorWrapper>(&Table<address, ValidatorWrapper>, address): bool
+	35: Not
+	36: BrFalse(38)
+B7:
+	37: Branch(44)
+B8:
+	38: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	39: Pop
+	40: MoveLoc[2](ctx#0#0: &mut TxContext)
+	41: Pop
+	42: LdConst[11](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	43: Abort
+B9:
+	44: ImmBorrowLoc[1](validator#0#0: Validator)
+	45: Call validator::is_preactive(&Validator): bool
+	46: BrFalse(48)
+B10:
+	47: Branch(54)
+B11:
+	48: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	49: Pop
+	50: MoveLoc[2](ctx#0#0: &mut TxContext)
+	51: Pop
+	52: LdConst[12](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	53: Abort
+B12:
+	54: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	55: MutBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	56: ImmBorrowLoc[1](validator#0#0: Validator)
+	57: Call validator::staking_pool_id(&Validator): ID
+	58: MoveLoc[6](validator_address#1#0: address)
+	59: Call table::add<ID, address>(&mut Table<ID, address>, ID, address)
+	60: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	61: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	62: ImmBorrowLoc[1](validator#0#0: Validator)
+	63: Call validator::sui_address(&Validator): address
+	64: MoveLoc[1](validator#0#0: Validator)
+	65: MoveLoc[2](ctx#0#0: &mut TxContext)
+	66: Call validator_wrapper::create_v1(Validator, &mut TxContext): ValidatorWrapper
+	67: Call table::add<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address, ValidatorWrapper)
+	68: Ret
+}
+public(friend) request_remove_validator_candidate(self#0#0: &mut ValidatorSet, ctx#0#0: &mut TxContext) {
+L0:	validator_address#1#0: address
+B0:
+	0: CopyLoc[1](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::sender(&TxContext): address
+	3: StLoc[4](validator_address#1#0: address)
+	4: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	5: ImmBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	6: CopyLoc[4](validator_address#1#0: address)
+	7: Call table::contains<address, ValidatorWrapper>(&Table<address, ValidatorWrapper>, address): bool
+	8: BrFalse(10)
+B1:
+	9: Branch(16)
+B2:
+	10: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	11: Pop
+	12: MoveLoc[1](ctx#0#0: &mut TxContext)
+	13: Pop
+	14: LdConst[13](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	15: Abort
+B3:
+	16: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	17: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	18: MoveLoc[4](validator_address#1#0: address)
+	19: Call table::remove<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address): ValidatorWrapper
+	20: Call validator_wrapper::destroy(ValidatorWrapper): Validator
+	21: StLoc[3](validator#1#0: Validator)
+	22: ImmBorrowLoc[3](validator#1#0: Validator)
+	23: Call validator::is_preactive(&Validator): bool
+	24: BrFalse(26)
+B4:
+	25: Branch(32)
+B5:
+	26: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	27: Pop
+	28: MoveLoc[1](ctx#0#0: &mut TxContext)
+	29: Pop
+	30: LdConst[12](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	31: Abort
+B6:
+	32: ImmBorrowLoc[3](validator#1#0: Validator)
+	33: Call validator::staking_pool_id(&Validator): ID
+	34: StLoc[2](staking_pool_id#1#0: ID)
+	35: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	36: MutBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	37: CopyLoc[2](staking_pool_id#1#0: ID)
+	38: Call table::remove<ID, address>(&mut Table<ID, address>, ID): address
+	39: Pop
+	40: MutBorrowLoc[3](validator#1#0: Validator)
+	41: CopyLoc[1](ctx#0#0: &mut TxContext)
+	42: FreezeRef
+	43: Call tx_context::epoch(&TxContext): u64
+	44: Call validator::deactivate(&mut Validator, u64)
+	45: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	46: MutBorrowField[3](ValidatorSet.inactive_validators: Table<ID, ValidatorWrapper>)
+	47: MoveLoc[2](staking_pool_id#1#0: ID)
+	48: MoveLoc[3](validator#1#0: Validator)
+	49: MoveLoc[1](ctx#0#0: &mut TxContext)
+	50: Call validator_wrapper::create_v1(Validator, &mut TxContext): ValidatorWrapper
+	51: Call table::add<ID, ValidatorWrapper>(&mut Table<ID, ValidatorWrapper>, ID, ValidatorWrapper)
+	52: Ret
+}
+public(friend) request_add_validator(self#0#0: &mut ValidatorSet, min_joining_stake_amount#0#0: u64, ctx#0#0: &mut TxContext) {
+L0:	validator#1#0: Validator
+L1:	validator_address#1#0: address
+B0:
+	0: MoveLoc[2](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::sender(&TxContext): address
+	3: StLoc[7](validator_address#1#0: address)
+	4: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	5: ImmBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	6: CopyLoc[7](validator_address#1#0: address)
+	7: Call table::contains<address, ValidatorWrapper>(&Table<address, ValidatorWrapper>, address): bool
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	11: Pop
+	12: LdConst[13](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	15: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	16: MoveLoc[7](validator_address#1#0: address)
+	17: Call table::remove<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address): ValidatorWrapper
+	18: Call validator_wrapper::destroy(ValidatorWrapper): Validator
+	19: StLoc[6](validator#1#0: Validator)
+	20: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	21: ImmBorrowLoc[6](validator#1#0: Validator)
+	22: StLoc[3](%#2: &Validator)
+	23: FreezeRef
+	24: MoveLoc[3](%#2: &Validator)
+	25: Call is_duplicate_with_active_validator(&ValidatorSet, &Validator): bool
+	26: Not
+	27: BrFalse(37)
+B4:
+	28: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	29: ImmBorrowLoc[6](validator#1#0: Validator)
+	30: StLoc[4](%#4: &Validator)
+	31: FreezeRef
+	32: MoveLoc[4](%#4: &Validator)
+	33: Call is_duplicate_with_pending_validator(&ValidatorSet, &Validator): bool
+	34: Not
+	35: StLoc[5](%#5: bool)
+	36: Branch(39)
+B5:
+	37: LdFalse
+	38: StLoc[5](%#5: bool)
+B6:
+	39: MoveLoc[5](%#5: bool)
+	40: BrFalse(42)
+B7:
+	41: Branch(46)
+B8:
+	42: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	43: Pop
+	44: LdConst[7](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	45: Abort
+B9:
+	46: ImmBorrowLoc[6](validator#1#0: Validator)
+	47: Call validator::is_preactive(&Validator): bool
+	48: BrFalse(50)
+B10:
+	49: Branch(54)
+B11:
+	50: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	51: Pop
+	52: LdConst[12](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	53: Abort
+B12:
+	54: ImmBorrowLoc[6](validator#1#0: Validator)
+	55: Call validator::total_stake_amount(&Validator): u64
+	56: MoveLoc[1](min_joining_stake_amount#0#0: u64)
+	57: Ge
+	58: BrFalse(60)
+B13:
+	59: Branch(64)
+B14:
+	60: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	61: Pop
+	62: LdConst[10](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	63: Abort
+B15:
+	64: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	65: MutBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	66: MoveLoc[6](validator#1#0: Validator)
+	67: Call table_vec::push_back<Validator>(&mut TableVec<Validator>, Validator)
+	68: Ret
+}
+public(friend) assert_no_pending_or_active_duplicates(self#0#0: &ValidatorSet, validator#0#0: &Validator) {
+B0:
+	0: CopyLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: CopyLoc[1](validator#0#0: &Validator)
+	3: Call count_duplicates_vec(&vector<Validator>, &Validator): u64
+	4: MoveLoc[0](self#0#0: &ValidatorSet)
+	5: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	6: MoveLoc[1](validator#0#0: &Validator)
+	7: Call count_duplicates_tablevec(&TableVec<Validator>, &Validator): u64
+	8: Add
+	9: LdU64(1)
+	10: Eq
+	11: BrFalse(13)
+B1:
+	12: Branch(15)
+B2:
+	13: LdConst[7](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: Ret
+}
+public(friend) request_remove_validator(self#0#0: &mut ValidatorSet, ctx#0#0: &mut TxContext) {
+L0:	validator_index_opt#1#0: Option<u64>
+B0:
+	0: MoveLoc[1](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::sender(&TxContext): address
+	3: StLoc[2](validator_address#1#0: address)
+	4: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	5: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	6: MoveLoc[2](validator_address#1#0: address)
+	7: Call find_validator(&vector<Validator>, address): Option<u64>
+	8: StLoc[4](validator_index_opt#1#0: Option<u64>)
+	9: ImmBorrowLoc[4](validator_index_opt#1#0: Option<u64>)
+	10: Call option::is_some<u64>(&Option<u64>): bool
+	11: BrFalse(13)
+B1:
+	12: Branch(17)
+B2:
+	13: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	14: Pop
+	15: LdConst[9](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	16: Abort
+B3:
+	17: MutBorrowLoc[4](validator_index_opt#1#0: Option<u64>)
+	18: Call option::extract<u64>(&mut Option<u64>): u64
+	19: StLoc[3](validator_index#1#0: u64)
+	20: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	21: ImmBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	22: ImmBorrowLoc[3](validator_index#1#0: u64)
+	23: Call vector::contains<u64>(&vector<u64>, &u64): bool
+	24: Not
+	25: BrFalse(27)
+B4:
+	26: Branch(31)
+B5:
+	27: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	28: Pop
+	29: LdConst[16](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	30: Abort
+B6:
+	31: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	32: MutBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	33: MoveLoc[3](validator_index#1#0: u64)
+	34: VecPushBack(14)
+	35: Ret
+}
+public(friend) request_add_stake(self#0#0: &mut ValidatorSet, validator_address#0#0: address, stake#0#0: Balance<SUI>, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[2](stake#0#0: Balance<SUI>)
+	1: Call balance::value<SUI>(&Balance<SUI>): u64
+	2: LdConst[4](U64: [0, 202, 154, 59, 0, 0, 0, 0])
+	3: Ge
+	4: BrFalse(6)
+B1:
+	5: Branch(12)
+B2:
+	6: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	7: Pop
+	8: MoveLoc[3](ctx#0#0: &mut TxContext)
+	9: Pop
+	10: LdConst[15](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	13: MoveLoc[1](validator_address#0#0: address)
+	14: Call get_candidate_or_active_validator_mut(&mut ValidatorSet, address): &mut Validator
+	15: MoveLoc[2](stake#0#0: Balance<SUI>)
+	16: CopyLoc[3](ctx#0#0: &mut TxContext)
+	17: FreezeRef
+	18: Call tx_context::sender(&TxContext): address
+	19: MoveLoc[3](ctx#0#0: &mut TxContext)
+	20: Call validator::request_add_stake(&mut Validator, Balance<SUI>, address, &mut TxContext)
+	21: Ret
+}
+public(friend) request_withdraw_stake(self#0#0: &mut ValidatorSet, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	1: Call staking_pool::pool_id(&StakedSui): ID
+	2: StLoc[3](staking_pool_id#1#0: ID)
+	3: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	4: ImmBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	5: CopyLoc[3](staking_pool_id#1#0: ID)
+	6: Call table::contains<ID, address>(&Table<ID, address>, ID): bool
+	7: BrFalse(22)
+B1:
+	8: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	9: ImmBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	10: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	11: Call staking_pool::pool_id(&StakedSui): ID
+	12: Call table::borrow<ID, address>(&Table<ID, address>, ID): &address
+	13: ReadRef
+	14: StLoc[4](validator_address#1#0: address)
+	15: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	16: MoveLoc[4](validator_address#1#0: address)
+	17: Call get_candidate_or_active_validator_mut(&mut ValidatorSet, address): &mut Validator
+	18: MoveLoc[1](staked_sui#0#0: StakedSui)
+	19: MoveLoc[2](ctx#0#0: &mut TxContext)
+	20: Call validator::request_withdraw_stake(&mut Validator, StakedSui, &mut TxContext)
+	21: Branch(42)
+B2:
+	22: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	23: ImmBorrowField[3](ValidatorSet.inactive_validators: Table<ID, ValidatorWrapper>)
+	24: CopyLoc[3](staking_pool_id#1#0: ID)
+	25: Call table::contains<ID, ValidatorWrapper>(&Table<ID, ValidatorWrapper>, ID): bool
+	26: BrFalse(28)
+B3:
+	27: Branch(34)
+B4:
+	28: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	29: Pop
+	30: MoveLoc[2](ctx#0#0: &mut TxContext)
+	31: Pop
+	32: LdConst[8](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	33: Abort
+B5:
+	34: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	35: MutBorrowField[3](ValidatorSet.inactive_validators: Table<ID, ValidatorWrapper>)
+	36: MoveLoc[3](staking_pool_id#1#0: ID)
+	37: Call table::borrow_mut<ID, ValidatorWrapper>(&mut Table<ID, ValidatorWrapper>, ID): &mut ValidatorWrapper
+	38: Call validator_wrapper::load_validator_maybe_upgrade(&mut ValidatorWrapper): &mut Validator
+	39: MoveLoc[1](staked_sui#0#0: StakedSui)
+	40: MoveLoc[2](ctx#0#0: &mut TxContext)
+	41: Call validator::request_withdraw_stake(&mut Validator, StakedSui, &mut TxContext)
+B6:
+	42: Ret
+}
+public(friend) request_set_commission_rate(self#0#0: &mut ValidatorSet, new_commission_rate#0#0: u64, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[2](ctx#0#0: &TxContext)
+	1: Call tx_context::sender(&TxContext): address
+	2: StLoc[3](validator_address#1#0: address)
+	3: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	4: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	5: MoveLoc[3](validator_address#1#0: address)
+	6: Call get_validator_mut(&mut vector<Validator>, address): &mut Validator
+	7: MoveLoc[1](new_commission_rate#0#0: u64)
+	8: Call validator::request_set_commission_rate(&mut Validator, u64)
+	9: Ret
+}
+public(friend) advance_epoch(self#0#0: &mut ValidatorSet, computation_reward#0#0: &mut Balance<SUI>, storage_fund_reward#0#0: &mut Balance<SUI>, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>, reward_slashing_rate#0#0: u64, low_stake_threshold#0#0: u64, very_low_stake_threshold#0#0: u64, low_stake_grace_period#0#0: u64, ctx#0#0: &mut TxContext) {
+L0:	total_staking_reward_adjustment#1#0: u64
+L1:	total_storage_fund_reward_adjustment#1#0: u64
+L2:	total_voting_power#1#0: u64
+L3:	unadjusted_staking_reward_amounts#1#0: vector<u64>
+L4:	unadjusted_storage_fund_reward_amounts#1#0: vector<u64>
+B0:
+	0: CopyLoc[8](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::epoch(&TxContext): u64
+	3: LdU64(1)
+	4: Add
+	5: StLoc[15](new_epoch#1#0: u64)
+	6: Call voting_power::total_voting_power(): u64
+	7: StLoc[20](total_voting_power#1#0: u64)
+	8: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	9: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	10: CopyLoc[20](total_voting_power#1#0: u64)
+	11: CopyLoc[1](computation_reward#0#0: &mut Balance<SUI>)
+	12: FreezeRef
+	13: Call balance::value<SUI>(&Balance<SUI>): u64
+	14: CopyLoc[2](storage_fund_reward#0#0: &mut Balance<SUI>)
+	15: FreezeRef
+	16: Call balance::value<SUI>(&Balance<SUI>): u64
+	17: Call compute_unadjusted_reward_distribution(&vector<Validator>, u64, u64, u64): vector<u64> * vector<u64>
+	18: StLoc[22](unadjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	19: StLoc[21](unadjusted_staking_reward_amounts#1#0: vector<u64>)
+	20: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	21: CopyLoc[3](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	22: ReadRef
+	23: StLoc[9](%#2: VecMap<address, VecSet<address>>)
+	24: FreezeRef
+	25: MoveLoc[9](%#2: VecMap<address, VecSet<address>>)
+	26: Call compute_slashed_validators(&ValidatorSet, VecMap<address, VecSet<address>>): vector<address>
+	27: StLoc[16](slashed_validators#1#0: vector<address>)
+	28: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	29: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	30: ImmBorrowLoc[16](slashed_validators#1#0: vector<address>)
+	31: Call sum_voting_power_by_addresses(&vector<Validator>, &vector<address>): u64
+	32: StLoc[17](total_slashed_validator_voting_power#1#0: u64)
+	33: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	34: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	35: ImmBorrowLoc[16](slashed_validators#1#0: vector<address>)
+	36: Call get_validator_indices(&vector<Validator>, &vector<address>): vector<u64>
+	37: MoveLoc[4](reward_slashing_rate#0#0: u64)
+	38: ImmBorrowLoc[21](unadjusted_staking_reward_amounts#1#0: vector<u64>)
+	39: ImmBorrowLoc[22](unadjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	40: Call compute_reward_adjustments(vector<u64>, u64, &vector<u64>, &vector<u64>): u64 * VecMap<u64, u64> * u64 * VecMap<u64, u64>
+	41: StLoc[14](individual_storage_fund_reward_adjustments#1#0: VecMap<u64, u64>)
+	42: StLoc[19](total_storage_fund_reward_adjustment#1#0: u64)
+	43: StLoc[13](individual_staking_reward_adjustments#1#0: VecMap<u64, u64>)
+	44: StLoc[18](total_staking_reward_adjustment#1#0: u64)
+	45: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	46: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	47: MoveLoc[20](total_voting_power#1#0: u64)
+	48: MoveLoc[17](total_slashed_validator_voting_power#1#0: u64)
+	49: MoveLoc[21](unadjusted_staking_reward_amounts#1#0: vector<u64>)
+	50: MoveLoc[22](unadjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	51: MoveLoc[18](total_staking_reward_adjustment#1#0: u64)
+	52: MoveLoc[13](individual_staking_reward_adjustments#1#0: VecMap<u64, u64>)
+	53: MoveLoc[19](total_storage_fund_reward_adjustment#1#0: u64)
+	54: MoveLoc[14](individual_storage_fund_reward_adjustments#1#0: VecMap<u64, u64>)
+	55: Call compute_adjusted_reward_distribution(&vector<Validator>, u64, u64, vector<u64>, vector<u64>, u64, VecMap<u64, u64>, u64, VecMap<u64, u64>): vector<u64> * vector<u64>
+	56: StLoc[12](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	57: StLoc[11](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	58: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	59: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	60: ImmBorrowLoc[11](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	61: ImmBorrowLoc[12](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	62: MoveLoc[1](computation_reward#0#0: &mut Balance<SUI>)
+	63: MoveLoc[2](storage_fund_reward#0#0: &mut Balance<SUI>)
+	64: CopyLoc[8](ctx#0#0: &mut TxContext)
+	65: Call distribute_reward(&mut vector<Validator>, &vector<u64>, &vector<u64>, &mut Balance<SUI>, &mut Balance<SUI>, &mut TxContext)
+	66: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	67: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	68: Call adjust_stake_and_gas_price(&mut vector<Validator>)
+	69: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	70: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	71: CopyLoc[8](ctx#0#0: &mut TxContext)
+	72: Call process_pending_stakes_and_withdraws(&mut vector<Validator>, &mut TxContext)
+	73: CopyLoc[15](new_epoch#1#0: u64)
+	74: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	75: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	76: ImmBorrowLoc[11](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	77: ImmBorrowLoc[12](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	78: CopyLoc[3](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	79: ImmBorrowLoc[16](slashed_validators#1#0: vector<address>)
+	80: StLoc[10](%#8: &vector<address>)
+	81: FreezeRef
+	82: MoveLoc[10](%#8: &vector<address>)
+	83: Call emit_validator_epoch_events(u64, &vector<Validator>, &vector<u64>, &vector<u64>, &VecMap<address, VecSet<address>>, &vector<address>)
+	84: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	85: MoveLoc[15](new_epoch#1#0: u64)
+	86: Call process_pending_validators(&mut ValidatorSet, u64)
+	87: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	88: CopyLoc[3](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	89: CopyLoc[8](ctx#0#0: &mut TxContext)
+	90: Call process_pending_removals(&mut ValidatorSet, &mut VecMap<address, VecSet<address>>, &mut TxContext)
+	91: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	92: MoveLoc[5](low_stake_threshold#0#0: u64)
+	93: MoveLoc[6](very_low_stake_threshold#0#0: u64)
+	94: MoveLoc[7](low_stake_grace_period#0#0: u64)
+	95: MoveLoc[3](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	96: MoveLoc[8](ctx#0#0: &mut TxContext)
+	97: Call update_and_process_low_stake_departures(&mut ValidatorSet, u64, u64, u64, &mut VecMap<address, VecSet<address>>, &mut TxContext)
+	98: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	99: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	100: Call calculate_total_stakes(&vector<Validator>): u64
+	101: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	102: MutBorrowField[6](ValidatorSet.total_stake: u64)
+	103: WriteRef
+	104: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	105: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	106: Call voting_power::set_voting_power(&mut vector<Validator>)
+	107: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	108: Call effectuate_staged_metadata(&mut ValidatorSet)
+	109: Ret
+}
+update_and_process_low_stake_departures(self#0#0: &mut ValidatorSet, low_stake_threshold#0#0: u64, very_low_stake_threshold#0#0: u64, low_stake_grace_period#0#0: u64, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>, ctx#0#0: &mut TxContext) {
+L0:	validator_address#1#0: address
+L1:	validator_ref#1#0: &Validator
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: VecLen(58)
+	3: StLoc[7](i#1#0: u64)
+B1:
+	4: CopyLoc[7](i#1#0: u64)
+	5: LdU64(0)
+	6: Gt
+	7: BrFalse(99)
+B2:
+	8: Branch(9)
+B3:
+	9: MoveLoc[7](i#1#0: u64)
+	10: LdU64(1)
+	11: Sub
+	12: StLoc[7](i#1#0: u64)
+	13: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	14: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	15: CopyLoc[7](i#1#0: u64)
+	16: VecImmBorrow(58)
+	17: StLoc[13](validator_ref#1#0: &Validator)
+	18: CopyLoc[13](validator_ref#1#0: &Validator)
+	19: Call validator::sui_address(&Validator): address
+	20: StLoc[12](validator_address#1#0: address)
+	21: MoveLoc[13](validator_ref#1#0: &Validator)
+	22: Call validator::total_stake_amount(&Validator): u64
+	23: StLoc[9](stake#1#0: u64)
+	24: CopyLoc[9](stake#1#0: u64)
+	25: CopyLoc[1](low_stake_threshold#0#0: u64)
+	26: Ge
+	27: BrFalse(40)
+B4:
+	28: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	29: ImmBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	30: ImmBorrowLoc[12](validator_address#1#0: address)
+	31: Call vec_map::contains<address, u64>(&VecMap<address, u64>, &address): bool
+	32: BrFalse(39)
+B5:
+	33: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	34: MutBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	35: ImmBorrowLoc[12](validator_address#1#0: address)
+	36: Call vec_map::remove<address, u64>(&mut VecMap<address, u64>, &address): address * u64
+	37: Pop
+	38: Pop
+B6:
+	39: Branch(98)
+B7:
+	40: MoveLoc[9](stake#1#0: u64)
+	41: CopyLoc[2](very_low_stake_threshold#0#0: u64)
+	42: Ge
+	43: BrFalse(87)
+B8:
+	44: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	45: ImmBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	46: ImmBorrowLoc[12](validator_address#1#0: address)
+	47: Call vec_map::contains<address, u64>(&VecMap<address, u64>, &address): bool
+	48: BrFalse(64)
+B9:
+	49: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	50: MutBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	51: ImmBorrowLoc[12](validator_address#1#0: address)
+	52: Call vec_map::get_mut<address, u64>(&mut VecMap<address, u64>, &address): &mut u64
+	53: StLoc[8](num_epochs#1#0: &mut u64)
+	54: CopyLoc[8](num_epochs#1#0: &mut u64)
+	55: ReadRef
+	56: LdU64(1)
+	57: Add
+	58: CopyLoc[8](num_epochs#1#0: &mut u64)
+	59: WriteRef
+	60: MoveLoc[8](num_epochs#1#0: &mut u64)
+	61: ReadRef
+	62: StLoc[6](%#1: u64)
+	63: Branch(71)
+B10:
+	64: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	65: MutBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	66: MoveLoc[12](validator_address#1#0: address)
+	67: LdU64(1)
+	68: Call vec_map::insert<address, u64>(&mut VecMap<address, u64>, address, u64)
+	69: LdU64(1)
+	70: StLoc[6](%#1: u64)
+B11:
+	71: MoveLoc[6](%#1: u64)
+	72: CopyLoc[3](low_stake_grace_period#0#0: u64)
+	73: Gt
+	74: BrFalse(86)
+B12:
+	75: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	76: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	77: CopyLoc[7](i#1#0: u64)
+	78: Call vector::remove<Validator>(&mut vector<Validator>, u64): Validator
+	79: StLoc[10](validator#1#0: Validator)
+	80: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	81: MoveLoc[10](validator#1#0: Validator)
+	82: CopyLoc[4](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	83: LdFalse
+	84: CopyLoc[5](ctx#0#0: &mut TxContext)
+	85: Call process_validator_departure(&mut ValidatorSet, Validator, &mut VecMap<address, VecSet<address>>, bool, &mut TxContext)
+B13:
+	86: Branch(98)
+B14:
+	87: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	88: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	89: CopyLoc[7](i#1#0: u64)
+	90: Call vector::remove<Validator>(&mut vector<Validator>, u64): Validator
+	91: StLoc[11](validator#2#0: Validator)
+	92: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	93: MoveLoc[11](validator#2#0: Validator)
+	94: CopyLoc[4](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	95: LdFalse
+	96: CopyLoc[5](ctx#0#0: &mut TxContext)
+	97: Call process_validator_departure(&mut ValidatorSet, Validator, &mut VecMap<address, VecSet<address>>, bool, &mut TxContext)
+B15:
+	98: Branch(4)
+B16:
+	99: MoveLoc[4](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	100: Pop
+	101: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	102: Pop
+	103: MoveLoc[5](ctx#0#0: &mut TxContext)
+	104: Pop
+	105: Ret
+}
+effectuate_staged_metadata(self#0#0: &mut ValidatorSet) {
+L0:	num_validators#1#0: u64
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: VecLen(58)
+	3: StLoc[2](num_validators#1#0: u64)
+	4: LdU64(0)
+	5: StLoc[1](i#1#0: u64)
+B1:
+	6: CopyLoc[1](i#1#0: u64)
+	7: CopyLoc[2](num_validators#1#0: u64)
+	8: Lt
+	9: BrFalse(21)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	12: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	13: CopyLoc[1](i#1#0: u64)
+	14: VecMutBorrow(58)
+	15: Call validator::effectuate_staged_metadata(&mut Validator)
+	16: MoveLoc[1](i#1#0: u64)
+	17: LdU64(1)
+	18: Add
+	19: StLoc[1](i#1#0: u64)
+	20: Branch(6)
+B4:
+	21: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	22: Pop
+	23: Ret
+}
+public derive_reference_gas_price(self#0#0: &ValidatorSet): u64 {
+L0:	i#1#0: u64
+L1:	num_validators#1#0: u64
+L2:	pq#1#0: PriorityQueue<u64>
+L3:	result#1#0: u64
+L4:	stake#1#0: u64
+L5:	sum#1#0: u64
+L6:	threshold#1#0: u64
+L7:	v#1#0: &Validator
+L8:	vs#1#0: &vector<Validator>
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: StLoc[10](vs#1#0: &vector<Validator>)
+	3: CopyLoc[10](vs#1#0: &vector<Validator>)
+	4: VecLen(58)
+	5: StLoc[3](num_validators#1#0: u64)
+	6: VecPack(100, 0)
+	7: StLoc[1](entries#1#0: vector<Entry<u64>>)
+	8: LdU64(0)
+	9: StLoc[2](i#1#0: u64)
+B1:
+	10: CopyLoc[2](i#1#0: u64)
+	11: CopyLoc[3](num_validators#1#0: u64)
+	12: Lt
+	13: BrFalse(31)
+B2:
+	14: Branch(15)
+B3:
+	15: CopyLoc[10](vs#1#0: &vector<Validator>)
+	16: CopyLoc[2](i#1#0: u64)
+	17: VecImmBorrow(58)
+	18: StLoc[9](v#1#0: &Validator)
+	19: MutBorrowLoc[1](entries#1#0: vector<Entry<u64>>)
+	20: CopyLoc[9](v#1#0: &Validator)
+	21: Call validator::gas_price(&Validator): u64
+	22: MoveLoc[9](v#1#0: &Validator)
+	23: Call validator::voting_power(&Validator): u64
+	24: Call priority_queue::new_entry<u64>(u64, u64): Entry<u64>
+	25: VecPushBack(100)
+	26: MoveLoc[2](i#1#0: u64)
+	27: LdU64(1)
+	28: Add
+	29: StLoc[2](i#1#0: u64)
+	30: Branch(10)
+B4:
+	31: MoveLoc[10](vs#1#0: &vector<Validator>)
+	32: Pop
+	33: MoveLoc[1](entries#1#0: vector<Entry<u64>>)
+	34: Call priority_queue::new<u64>(vector<Entry<u64>>): PriorityQueue<u64>
+	35: StLoc[4](pq#1#0: PriorityQueue<u64>)
+	36: LdU64(0)
+	37: StLoc[7](sum#1#0: u64)
+	38: Call voting_power::total_voting_power(): u64
+	39: Call voting_power::quorum_threshold(): u64
+	40: Sub
+	41: StLoc[8](threshold#1#0: u64)
+	42: LdU64(0)
+	43: StLoc[5](result#1#0: u64)
+B5:
+	44: CopyLoc[7](sum#1#0: u64)
+	45: CopyLoc[8](threshold#1#0: u64)
+	46: Lt
+	47: BrFalse(58)
+B6:
+	48: Branch(49)
+B7:
+	49: MutBorrowLoc[4](pq#1#0: PriorityQueue<u64>)
+	50: Call priority_queue::pop_max<u64>(&mut PriorityQueue<u64>): u64 * u64
+	51: StLoc[6](stake#1#0: u64)
+	52: StLoc[5](result#1#0: u64)
+	53: MoveLoc[7](sum#1#0: u64)
+	54: MoveLoc[6](stake#1#0: u64)
+	55: Add
+	56: StLoc[7](sum#1#0: u64)
+	57: Branch(44)
+B8:
+	58: MoveLoc[5](result#1#0: u64)
+	59: Ret
+}
+public total_stake(self#0#0: &ValidatorSet): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[6](ValidatorSet.total_stake: u64)
+	2: ReadRef
+	3: Ret
+}
+public validator_total_stake_amount(self#0#0: &ValidatorSet, validator_address#0#0: address): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call get_validator_ref(&vector<Validator>, address): &Validator
+	4: Call validator::total_stake_amount(&Validator): u64
+	5: Ret
+}
+public validator_stake_amount(self#0#0: &ValidatorSet, validator_address#0#0: address): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call get_validator_ref(&vector<Validator>, address): &Validator
+	4: Call validator::stake_amount(&Validator): u64
+	5: Ret
+}
+public validator_staking_pool_id(self#0#0: &ValidatorSet, validator_address#0#0: address): ID {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call get_validator_ref(&vector<Validator>, address): &Validator
+	4: Call validator::staking_pool_id(&Validator): ID
+	5: Ret
+}
+public staking_pool_mappings(self#0#0: &ValidatorSet): &Table<ID, address> {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	2: Ret
+}
+public(friend) next_epoch_validator_count(self#0#0: &ValidatorSet): u64 {
+B0:
+	0: CopyLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: VecLen(58)
+	3: CopyLoc[0](self#0#0: &ValidatorSet)
+	4: ImmBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	5: VecLen(14)
+	6: Sub
+	7: MoveLoc[0](self#0#0: &ValidatorSet)
+	8: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	9: Call table_vec::length<Validator>(&TableVec<Validator>): u64
+	10: Add
+	11: Ret
+}
+public(friend) is_active_validator_by_sui_address(self#0#0: &ValidatorSet, validator_address#0#0: address): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call find_validator(&vector<Validator>, address): Option<u64>
+	4: StLoc[2](%#1: Option<u64>)
+	5: ImmBorrowLoc[2](%#1: Option<u64>)
+	6: Call option::is_some<u64>(&Option<u64>): bool
+	7: Ret
+}
+is_duplicate_with_active_validator(self#0#0: &ValidatorSet, new_validator#0#0: &Validator): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](new_validator#0#0: &Validator)
+	3: Call is_duplicate_validator(&vector<Validator>, &Validator): bool
+	4: Ret
+}
+public(friend) is_duplicate_validator(validators#0#0: &vector<Validator>, new_validator#0#0: &Validator): bool {
+B0:
+	0: MoveLoc[0](validators#0#0: &vector<Validator>)
+	1: MoveLoc[1](new_validator#0#0: &Validator)
+	2: Call count_duplicates_vec(&vector<Validator>, &Validator): u64
+	3: LdU64(0)
+	4: Gt
+	5: Ret
+}
+count_duplicates_vec(validators#0#0: &vector<Validator>, validator#0#0: &Validator): u64 {
+L0:	result#1#0: u64
+B0:
+	0: CopyLoc[0](validators#0#0: &vector<Validator>)
+	1: VecLen(58)
+	2: StLoc[3](len#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[2](i#1#0: u64)
+	5: LdU64(0)
+	6: StLoc[4](result#1#0: u64)
+B1:
+	7: CopyLoc[2](i#1#0: u64)
+	8: CopyLoc[3](len#1#0: u64)
+	9: Lt
+	10: BrFalse(27)
+B2:
+	11: Branch(12)
+B3:
+	12: CopyLoc[0](validators#0#0: &vector<Validator>)
+	13: CopyLoc[2](i#1#0: u64)
+	14: VecImmBorrow(58)
+	15: CopyLoc[1](validator#0#0: &Validator)
+	16: Call validator::is_duplicate(&Validator, &Validator): bool
+	17: BrFalse(22)
+B4:
+	18: MoveLoc[4](result#1#0: u64)
+	19: LdU64(1)
+	20: Add
+	21: StLoc[4](result#1#0: u64)
+B5:
+	22: MoveLoc[2](i#1#0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](i#1#0: u64)
+	26: Branch(7)
+B6:
+	27: MoveLoc[0](validators#0#0: &vector<Validator>)
+	28: Pop
+	29: MoveLoc[1](validator#0#0: &Validator)
+	30: Pop
+	31: MoveLoc[4](result#1#0: u64)
+	32: Ret
+}
+is_duplicate_with_pending_validator(self#0#0: &ValidatorSet, new_validator#0#0: &Validator): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	2: MoveLoc[1](new_validator#0#0: &Validator)
+	3: Call count_duplicates_tablevec(&TableVec<Validator>, &Validator): u64
+	4: LdU64(0)
+	5: Gt
+	6: Ret
+}
+count_duplicates_tablevec(validators#0#0: &TableVec<Validator>, validator#0#0: &Validator): u64 {
+L0:	result#1#0: u64
+B0:
+	0: CopyLoc[0](validators#0#0: &TableVec<Validator>)
+	1: Call table_vec::length<Validator>(&TableVec<Validator>): u64
+	2: StLoc[3](len#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[2](i#1#0: u64)
+	5: LdU64(0)
+	6: StLoc[4](result#1#0: u64)
+B1:
+	7: CopyLoc[2](i#1#0: u64)
+	8: CopyLoc[3](len#1#0: u64)
+	9: Lt
+	10: BrFalse(27)
+B2:
+	11: Branch(12)
+B3:
+	12: CopyLoc[0](validators#0#0: &TableVec<Validator>)
+	13: CopyLoc[2](i#1#0: u64)
+	14: Call table_vec::borrow<Validator>(&TableVec<Validator>, u64): &Validator
+	15: CopyLoc[1](validator#0#0: &Validator)
+	16: Call validator::is_duplicate(&Validator, &Validator): bool
+	17: BrFalse(22)
+B4:
+	18: MoveLoc[4](result#1#0: u64)
+	19: LdU64(1)
+	20: Add
+	21: StLoc[4](result#1#0: u64)
+B5:
+	22: MoveLoc[2](i#1#0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](i#1#0: u64)
+	26: Branch(7)
+B6:
+	27: MoveLoc[0](validators#0#0: &TableVec<Validator>)
+	28: Pop
+	29: MoveLoc[1](validator#0#0: &Validator)
+	30: Pop
+	31: MoveLoc[4](result#1#0: u64)
+	32: Ret
+}
+get_candidate_or_active_validator_mut(self#0#0: &mut ValidatorSet, validator_address#0#0: address): &mut Validator {
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	2: CopyLoc[1](validator_address#0#0: address)
+	3: Call table::contains<address, ValidatorWrapper>(&Table<address, ValidatorWrapper>, address): bool
+	4: BrFalse(11)
+B1:
+	5: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	6: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	7: MoveLoc[1](validator_address#0#0: address)
+	8: Call table::borrow_mut<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address): &mut ValidatorWrapper
+	9: Call validator_wrapper::load_validator_maybe_upgrade(&mut ValidatorWrapper): &mut Validator
+	10: Ret
+B2:
+	11: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	12: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	13: MoveLoc[1](validator_address#0#0: address)
+	14: Call get_validator_mut(&mut vector<Validator>, address): &mut Validator
+	15: Ret
+}
+find_validator(validators#0#0: &vector<Validator>, validator_address#0#0: address): Option<u64> {
+B0:
+	0: CopyLoc[0](validators#0#0: &vector<Validator>)
+	1: VecLen(58)
+	2: StLoc[3](length#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[2](i#1#0: u64)
+B1:
+	5: CopyLoc[2](i#1#0: u64)
+	6: CopyLoc[3](length#1#0: u64)
+	7: Lt
+	8: BrFalse(27)
+B2:
+	9: Branch(10)
+B3:
+	10: CopyLoc[0](validators#0#0: &vector<Validator>)
+	11: CopyLoc[2](i#1#0: u64)
+	12: VecImmBorrow(58)
+	13: Call validator::sui_address(&Validator): address
+	14: CopyLoc[1](validator_address#0#0: address)
+	15: Eq
+	16: BrFalse(22)
+B4:
+	17: MoveLoc[0](validators#0#0: &vector<Validator>)
+	18: Pop
+	19: MoveLoc[2](i#1#0: u64)
+	20: Call option::some<u64>(u64): Option<u64>
+	21: Ret
+B5:
+	22: MoveLoc[2](i#1#0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](i#1#0: u64)
+	26: Branch(5)
+B6:
+	27: MoveLoc[0](validators#0#0: &vector<Validator>)
+	28: Pop
+	29: Call option::none<u64>(): Option<u64>
+	30: Ret
+}
+find_validator_from_table_vec(validators#0#0: &TableVec<Validator>, validator_address#0#0: address): Option<u64> {
+B0:
+	0: CopyLoc[0](validators#0#0: &TableVec<Validator>)
+	1: Call table_vec::length<Validator>(&TableVec<Validator>): u64
+	2: StLoc[3](length#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[2](i#1#0: u64)
+B1:
+	5: CopyLoc[2](i#1#0: u64)
+	6: CopyLoc[3](length#1#0: u64)
+	7: Lt
+	8: BrFalse(27)
+B2:
+	9: Branch(10)
+B3:
+	10: CopyLoc[0](validators#0#0: &TableVec<Validator>)
+	11: CopyLoc[2](i#1#0: u64)
+	12: Call table_vec::borrow<Validator>(&TableVec<Validator>, u64): &Validator
+	13: Call validator::sui_address(&Validator): address
+	14: CopyLoc[1](validator_address#0#0: address)
+	15: Eq
+	16: BrFalse(22)
+B4:
+	17: MoveLoc[0](validators#0#0: &TableVec<Validator>)
+	18: Pop
+	19: MoveLoc[2](i#1#0: u64)
+	20: Call option::some<u64>(u64): Option<u64>
+	21: Ret
+B5:
+	22: MoveLoc[2](i#1#0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](i#1#0: u64)
+	26: Branch(5)
+B6:
+	27: MoveLoc[0](validators#0#0: &TableVec<Validator>)
+	28: Pop
+	29: Call option::none<u64>(): Option<u64>
+	30: Ret
+}
+get_validator_indices(validators#0#0: &vector<Validator>, validator_addresses#0#0: &vector<address>): vector<u64> {
+L0:	index_opt#1#0: Option<u64>
+L1:	length#1#0: u64
+L2:	res#1#0: vector<u64>
+B0:
+	0: CopyLoc[1](validator_addresses#0#0: &vector<address>)
+	1: VecLen(59)
+	2: StLoc[5](length#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[3](i#1#0: u64)
+	5: LdConst[20](Vector(U64): [0])
+	6: StLoc[6](res#1#0: vector<u64>)
+B1:
+	7: CopyLoc[3](i#1#0: u64)
+	8: CopyLoc[5](length#1#0: u64)
+	9: Lt
+	10: BrFalse(40)
+B2:
+	11: Branch(12)
+B3:
+	12: CopyLoc[1](validator_addresses#0#0: &vector<address>)
+	13: CopyLoc[3](i#1#0: u64)
+	14: VecImmBorrow(59)
+	15: ReadRef
+	16: StLoc[2](addr#1#0: address)
+	17: CopyLoc[0](validators#0#0: &vector<Validator>)
+	18: MoveLoc[2](addr#1#0: address)
+	19: Call find_validator(&vector<Validator>, address): Option<u64>
+	20: StLoc[4](index_opt#1#0: Option<u64>)
+	21: ImmBorrowLoc[4](index_opt#1#0: Option<u64>)
+	22: Call option::is_some<u64>(&Option<u64>): bool
+	23: BrFalse(25)
+B4:
+	24: Branch(31)
+B5:
+	25: MoveLoc[0](validators#0#0: &vector<Validator>)
+	26: Pop
+	27: MoveLoc[1](validator_addresses#0#0: &vector<address>)
+	28: Pop
+	29: LdConst[9](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	30: Abort
+B6:
+	31: MutBorrowLoc[6](res#1#0: vector<u64>)
+	32: MoveLoc[4](index_opt#1#0: Option<u64>)
+	33: Call option::destroy_some<u64>(Option<u64>): u64
+	34: VecPushBack(14)
+	35: MoveLoc[3](i#1#0: u64)
+	36: LdU64(1)
+	37: Add
+	38: StLoc[3](i#1#0: u64)
+	39: Branch(7)
+B7:
+	40: MoveLoc[0](validators#0#0: &vector<Validator>)
+	41: Pop
+	42: MoveLoc[1](validator_addresses#0#0: &vector<address>)
+	43: Pop
+	44: MoveLoc[6](res#1#0: vector<u64>)
+	45: Ret
+}
+public(friend) get_validator_mut(validators#0#0: &mut vector<Validator>, validator_address#0#0: address): &mut Validator {
+L0:	validator_index_opt#1#0: Option<u64>
+B0:
+	0: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	1: MoveLoc[1](validator_address#0#0: address)
+	2: StLoc[2](%#2: address)
+	3: FreezeRef
+	4: MoveLoc[2](%#2: address)
+	5: Call find_validator(&vector<Validator>, address): Option<u64>
+	6: StLoc[4](validator_index_opt#1#0: Option<u64>)
+	7: ImmBorrowLoc[4](validator_index_opt#1#0: Option<u64>)
+	8: Call option::is_some<u64>(&Option<u64>): bool
+	9: BrFalse(11)
+B1:
+	10: Branch(15)
+B2:
+	11: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	12: Pop
+	13: LdConst[9](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: MutBorrowLoc[4](validator_index_opt#1#0: Option<u64>)
+	16: Call option::extract<u64>(&mut Option<u64>): u64
+	17: StLoc[3](validator_index#1#0: u64)
+	18: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	19: MoveLoc[3](validator_index#1#0: u64)
+	20: VecMutBorrow(58)
+	21: Ret
+}
+get_active_or_pending_or_candidate_validator_mut(self#0#0: &mut ValidatorSet, validator_address#0#0: address, include_candidate#0#0: bool): &mut Validator {
+L0:	validator_index_opt#2#0: Option<u64>
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: CopyLoc[1](validator_address#0#0: address)
+	3: Call find_validator(&vector<Validator>, address): Option<u64>
+	4: StLoc[5](validator_index_opt#1#0: Option<u64>)
+	5: ImmBorrowLoc[5](validator_index_opt#1#0: Option<u64>)
+	6: Call option::is_some<u64>(&Option<u64>): bool
+	7: BrFalse(16)
+B1:
+	8: MutBorrowLoc[5](validator_index_opt#1#0: Option<u64>)
+	9: Call option::extract<u64>(&mut Option<u64>): u64
+	10: StLoc[3](validator_index#1#0: u64)
+	11: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	12: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	13: MoveLoc[3](validator_index#1#0: u64)
+	14: VecMutBorrow(58)
+	15: Ret
+B2:
+	16: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	17: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	18: CopyLoc[1](validator_address#0#0: address)
+	19: Call find_validator_from_table_vec(&TableVec<Validator>, address): Option<u64>
+	20: StLoc[6](validator_index_opt#2#0: Option<u64>)
+	21: ImmBorrowLoc[6](validator_index_opt#2#0: Option<u64>)
+	22: Call option::is_some<u64>(&Option<u64>): bool
+	23: BrFalse(32)
+B3:
+	24: MutBorrowLoc[6](validator_index_opt#2#0: Option<u64>)
+	25: Call option::extract<u64>(&mut Option<u64>): u64
+	26: StLoc[4](validator_index#2#0: u64)
+	27: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	28: MutBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	29: MoveLoc[4](validator_index#2#0: u64)
+	30: Call table_vec::borrow_mut<Validator>(&mut TableVec<Validator>, u64): &mut Validator
+	31: Ret
+B4:
+	32: MoveLoc[2](include_candidate#0#0: bool)
+	33: BrFalse(35)
+B5:
+	34: Branch(39)
+B6:
+	35: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	36: Pop
+	37: LdConst[14](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	38: Abort
+B7:
+	39: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	40: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	41: MoveLoc[1](validator_address#0#0: address)
+	42: Call table::borrow_mut<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address): &mut ValidatorWrapper
+	43: Call validator_wrapper::load_validator_maybe_upgrade(&mut ValidatorWrapper): &mut Validator
+	44: Ret
+}
+public(friend) get_validator_mut_with_verified_cap(self#0#0: &mut ValidatorSet, verified_cap#0#0: &ValidatorOperationCap, include_candidate#0#0: bool): &mut Validator {
+B0:
+	0: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	1: MoveLoc[1](verified_cap#0#0: &ValidatorOperationCap)
+	2: Call validator_cap::verified_operation_cap_address(&ValidatorOperationCap): &address
+	3: ReadRef
+	4: MoveLoc[2](include_candidate#0#0: bool)
+	5: Call get_active_or_pending_or_candidate_validator_mut(&mut ValidatorSet, address, bool): &mut Validator
+	6: Ret
+}
+public(friend) get_validator_mut_with_ctx(self#0#0: &mut ValidatorSet, ctx#0#0: &TxContext): &mut Validator {
+B0:
+	0: MoveLoc[1](ctx#0#0: &TxContext)
+	1: Call tx_context::sender(&TxContext): address
+	2: StLoc[2](validator_address#1#0: address)
+	3: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	4: MoveLoc[2](validator_address#1#0: address)
+	5: LdFalse
+	6: Call get_active_or_pending_or_candidate_validator_mut(&mut ValidatorSet, address, bool): &mut Validator
+	7: Ret
+}
+public(friend) get_validator_mut_with_ctx_including_candidates(self#0#0: &mut ValidatorSet, ctx#0#0: &TxContext): &mut Validator {
+B0:
+	0: MoveLoc[1](ctx#0#0: &TxContext)
+	1: Call tx_context::sender(&TxContext): address
+	2: StLoc[2](validator_address#1#0: address)
+	3: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	4: MoveLoc[2](validator_address#1#0: address)
+	5: LdTrue
+	6: Call get_active_or_pending_or_candidate_validator_mut(&mut ValidatorSet, address, bool): &mut Validator
+	7: Ret
+}
+get_validator_ref(validators#0#0: &vector<Validator>, validator_address#0#0: address): &Validator {
+B0:
+	0: CopyLoc[0](validators#0#0: &vector<Validator>)
+	1: MoveLoc[1](validator_address#0#0: address)
+	2: Call find_validator(&vector<Validator>, address): Option<u64>
+	3: StLoc[3](validator_index_opt#1#0: Option<u64>)
+	4: ImmBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	5: Call option::is_some<u64>(&Option<u64>): bool
+	6: BrFalse(8)
+B1:
+	7: Branch(12)
+B2:
+	8: MoveLoc[0](validators#0#0: &vector<Validator>)
+	9: Pop
+	10: LdConst[9](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: MutBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	13: Call option::extract<u64>(&mut Option<u64>): u64
+	14: StLoc[2](validator_index#1#0: u64)
+	15: MoveLoc[0](validators#0#0: &vector<Validator>)
+	16: MoveLoc[2](validator_index#1#0: u64)
+	17: VecImmBorrow(58)
+	18: Ret
+}
+public(friend) get_active_or_pending_or_candidate_validator_ref(self#0#0: &mut ValidatorSet, validator_address#0#0: address, which_validator#0#0: u8): &Validator {
+L0:	validator_index#2#0: u64
+L1:	validator_index_opt#1#0: Option<u64>
+L2:	validator_index_opt#2#0: Option<u64>
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: CopyLoc[1](validator_address#0#0: address)
+	3: Call find_validator(&vector<Validator>, address): Option<u64>
+	4: StLoc[7](validator_index_opt#1#0: Option<u64>)
+	5: ImmBorrowLoc[7](validator_index_opt#1#0: Option<u64>)
+	6: Call option::is_some<u64>(&Option<u64>): bool
+	7: BrFalse(11)
+B1:
+	8: LdTrue
+	9: StLoc[3](%#1: bool)
+	10: Branch(15)
+B2:
+	11: CopyLoc[2](which_validator#0#0: u8)
+	12: LdConst[0](U8: [1])
+	13: Eq
+	14: StLoc[3](%#1: bool)
+B3:
+	15: MoveLoc[3](%#1: bool)
+	16: BrFalse(25)
+B4:
+	17: MutBorrowLoc[7](validator_index_opt#1#0: Option<u64>)
+	18: Call option::extract<u64>(&mut Option<u64>): u64
+	19: StLoc[5](validator_index#1#0: u64)
+	20: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	21: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	22: MoveLoc[5](validator_index#1#0: u64)
+	23: VecImmBorrow(58)
+	24: Ret
+B5:
+	25: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	26: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	27: CopyLoc[1](validator_address#0#0: address)
+	28: Call find_validator_from_table_vec(&TableVec<Validator>, address): Option<u64>
+	29: StLoc[8](validator_index_opt#2#0: Option<u64>)
+	30: ImmBorrowLoc[8](validator_index_opt#2#0: Option<u64>)
+	31: Call option::is_some<u64>(&Option<u64>): bool
+	32: BrFalse(36)
+B6:
+	33: LdTrue
+	34: StLoc[4](%#2: bool)
+	35: Branch(40)
+B7:
+	36: MoveLoc[2](which_validator#0#0: u8)
+	37: LdConst[1](U8: [2])
+	38: Eq
+	39: StLoc[4](%#2: bool)
+B8:
+	40: MoveLoc[4](%#2: bool)
+	41: BrFalse(50)
+B9:
+	42: MutBorrowLoc[8](validator_index_opt#2#0: Option<u64>)
+	43: Call option::extract<u64>(&mut Option<u64>): u64
+	44: StLoc[6](validator_index#2#0: u64)
+	45: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	46: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	47: MoveLoc[6](validator_index#2#0: u64)
+	48: Call table_vec::borrow<Validator>(&TableVec<Validator>, u64): &Validator
+	49: Ret
+B10:
+	50: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	51: MutBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	52: MoveLoc[1](validator_address#0#0: address)
+	53: Call table::borrow_mut<address, ValidatorWrapper>(&mut Table<address, ValidatorWrapper>, address): &mut ValidatorWrapper
+	54: Call validator_wrapper::load_validator_maybe_upgrade(&mut ValidatorWrapper): &mut Validator
+	55: FreezeRef
+	56: Ret
+}
+public get_active_validator_ref(self#0#0: &ValidatorSet, validator_address#0#0: address): &Validator {
+B0:
+	0: CopyLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call find_validator(&vector<Validator>, address): Option<u64>
+	4: StLoc[3](validator_index_opt#1#0: Option<u64>)
+	5: ImmBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	6: Call option::is_some<u64>(&Option<u64>): bool
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &ValidatorSet)
+	10: Pop
+	11: LdConst[9](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MutBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	14: Call option::extract<u64>(&mut Option<u64>): u64
+	15: StLoc[2](validator_index#1#0: u64)
+	16: MoveLoc[0](self#0#0: &ValidatorSet)
+	17: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	18: MoveLoc[2](validator_index#1#0: u64)
+	19: VecImmBorrow(58)
+	20: Ret
+}
+public get_pending_validator_ref(self#0#0: &ValidatorSet, validator_address#0#0: address): &Validator {
+B0:
+	0: CopyLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	2: MoveLoc[1](validator_address#0#0: address)
+	3: Call find_validator_from_table_vec(&TableVec<Validator>, address): Option<u64>
+	4: StLoc[3](validator_index_opt#1#0: Option<u64>)
+	5: ImmBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	6: Call option::is_some<u64>(&Option<u64>): bool
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &ValidatorSet)
+	10: Pop
+	11: LdConst[17](U64: [12, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MutBorrowLoc[3](validator_index_opt#1#0: Option<u64>)
+	14: Call option::extract<u64>(&mut Option<u64>): u64
+	15: StLoc[2](validator_index#1#0: u64)
+	16: MoveLoc[0](self#0#0: &ValidatorSet)
+	17: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	18: MoveLoc[2](validator_index#1#0: u64)
+	19: Call table_vec::borrow<Validator>(&TableVec<Validator>, u64): &Validator
+	20: Ret
+}
+public(friend) verify_cap(self#0#0: &mut ValidatorSet, cap#0#0: &UnverifiedValidatorOperationCap, which_validator#0#0: u8): ValidatorOperationCap {
+L0:	cap_address#1#0: address
+L1:	validator#1#0: &Validator
+B0:
+	0: CopyLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	1: Call validator_cap::unverified_operation_cap_address(&UnverifiedValidatorOperationCap): &address
+	2: ReadRef
+	3: StLoc[6](cap_address#1#0: address)
+	4: CopyLoc[2](which_validator#0#0: u8)
+	5: LdConst[0](U8: [1])
+	6: Eq
+	7: BrFalse(16)
+B1:
+	8: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	9: MoveLoc[6](cap_address#1#0: address)
+	10: StLoc[3](%#2: address)
+	11: FreezeRef
+	12: MoveLoc[3](%#2: address)
+	13: Call get_active_validator_ref(&ValidatorSet, address): &Validator
+	14: StLoc[4](%#3: &Validator)
+	15: Branch(21)
+B2:
+	16: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	17: MoveLoc[6](cap_address#1#0: address)
+	18: MoveLoc[2](which_validator#0#0: u8)
+	19: Call get_active_or_pending_or_candidate_validator_ref(&mut ValidatorSet, address, u8): &Validator
+	20: StLoc[4](%#3: &Validator)
+B3:
+	21: MoveLoc[4](%#3: &Validator)
+	22: StLoc[7](validator#1#0: &Validator)
+	23: CopyLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	24: Call object::id<UnverifiedValidatorOperationCap>(&UnverifiedValidatorOperationCap): ID
+	25: StLoc[5](%#4: ID)
+	26: MoveLoc[7](validator#1#0: &Validator)
+	27: Call validator::operation_cap_id(&Validator): &ID
+	28: ImmBorrowLoc[5](%#4: ID)
+	29: Eq
+	30: BrFalse(32)
+B4:
+	31: Branch(36)
+B5:
+	32: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	33: Pop
+	34: LdConst[19](U64: [101, 0, 0, 0, 0, 0, 0, 0])
+	35: Abort
+B6:
+	36: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	37: Call validator_cap::new_from_unverified(&UnverifiedValidatorOperationCap): ValidatorOperationCap
+	38: Ret
+}
+process_pending_removals(self#0#0: &mut ValidatorSet, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: MutBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	2: Call sort_removal_list(&mut vector<u64>)
+B1:
+	3: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	4: ImmBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	5: Call vector::is_empty<u64>(&vector<u64>): bool
+	6: Not
+	7: BrFalse(25)
+B2:
+	8: Branch(9)
+B3:
+	9: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	10: MutBorrowField[5](ValidatorSet.pending_removals: vector<u64>)
+	11: VecPopBack(14)
+	12: StLoc[3](index#1#0: u64)
+	13: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	14: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	15: MoveLoc[3](index#1#0: u64)
+	16: Call vector::remove<Validator>(&mut vector<Validator>, u64): Validator
+	17: StLoc[4](validator#1#0: Validator)
+	18: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	19: MoveLoc[4](validator#1#0: Validator)
+	20: CopyLoc[1](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	21: LdTrue
+	22: CopyLoc[2](ctx#0#0: &mut TxContext)
+	23: Call process_validator_departure(&mut ValidatorSet, Validator, &mut VecMap<address, VecSet<address>>, bool, &mut TxContext)
+	24: Branch(3)
+B4:
+	25: MoveLoc[1](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	26: Pop
+	27: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	28: Pop
+	29: MoveLoc[2](ctx#0#0: &mut TxContext)
+	30: Pop
+	31: Ret
+}
+process_validator_departure(self#0#0: &mut ValidatorSet, validator#0#0: Validator, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>, is_voluntary#0#0: bool, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[4](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::epoch(&TxContext): u64
+	3: LdU64(1)
+	4: Add
+	5: StLoc[5](new_epoch#1#0: u64)
+	6: ImmBorrowLoc[1](validator#0#0: Validator)
+	7: Call validator::sui_address(&Validator): address
+	8: StLoc[6](validator_address#1#0: address)
+	9: ImmBorrowLoc[1](validator#0#0: Validator)
+	10: Call validator::staking_pool_id(&Validator): ID
+	11: StLoc[7](validator_pool_id#1#0: ID)
+	12: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	13: MutBorrowField[2](ValidatorSet.staking_pool_mappings: Table<ID, address>)
+	14: CopyLoc[7](validator_pool_id#1#0: ID)
+	15: Call table::remove<ID, address>(&mut Table<ID, address>, ID): address
+	16: Pop
+	17: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	18: ImmBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	19: ImmBorrowLoc[6](validator_address#1#0: address)
+	20: Call vec_map::contains<address, u64>(&VecMap<address, u64>, &address): bool
+	21: BrFalse(28)
+B1:
+	22: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	23: MutBorrowField[7](ValidatorSet.at_risk_validators: VecMap<address, u64>)
+	24: ImmBorrowLoc[6](validator_address#1#0: address)
+	25: Call vec_map::remove<address, u64>(&mut VecMap<address, u64>, &address): address * u64
+	26: Pop
+	27: Pop
+B2:
+	28: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	29: ImmBorrowField[6](ValidatorSet.total_stake: u64)
+	30: ReadRef
+	31: ImmBorrowLoc[1](validator#0#0: Validator)
+	32: Call validator::total_stake_amount(&Validator): u64
+	33: Sub
+	34: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	35: MutBorrowField[6](ValidatorSet.total_stake: u64)
+	36: WriteRef
+	37: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	38: CopyLoc[6](validator_address#1#0: address)
+	39: Call clean_report_records_leaving_validator(&mut VecMap<address, VecSet<address>>, address)
+	40: CopyLoc[5](new_epoch#1#0: u64)
+	41: MoveLoc[6](validator_address#1#0: address)
+	42: ImmBorrowLoc[1](validator#0#0: Validator)
+	43: Call validator::staking_pool_id(&Validator): ID
+	44: MoveLoc[3](is_voluntary#0#0: bool)
+	45: Pack[4](ValidatorLeaveEvent)
+	46: Call event::emit<ValidatorLeaveEvent>(ValidatorLeaveEvent)
+	47: MutBorrowLoc[1](validator#0#0: Validator)
+	48: MoveLoc[5](new_epoch#1#0: u64)
+	49: Call validator::deactivate(&mut Validator, u64)
+	50: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	51: MutBorrowField[3](ValidatorSet.inactive_validators: Table<ID, ValidatorWrapper>)
+	52: MoveLoc[7](validator_pool_id#1#0: ID)
+	53: MoveLoc[1](validator#0#0: Validator)
+	54: MoveLoc[4](ctx#0#0: &mut TxContext)
+	55: Call validator_wrapper::create_v1(Validator, &mut TxContext): ValidatorWrapper
+	56: Call table::add<ID, ValidatorWrapper>(&mut Table<ID, ValidatorWrapper>, ID, ValidatorWrapper)
+	57: Ret
+}
+clean_report_records_leaving_validator(validator_report_records#0#0: &mut VecMap<address, VecSet<address>>, leaving_validator_addr#0#0: address) {
+L0:	i#1#0: u64
+L1:	length#1#0: u64
+L2:	reported_validator_addr#1#0: &address
+L3:	reported_validators#1#0: vector<address>
+L4:	reporters#1#0: &mut VecSet<address>
+B0:
+	0: CopyLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	1: ImmBorrowLoc[1](leaving_validator_addr#0#0: address)
+	2: StLoc[2](%#2: &address)
+	3: FreezeRef
+	4: MoveLoc[2](%#2: &address)
+	5: Call vec_map::contains<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): bool
+	6: BrFalse(12)
+B1:
+	7: CopyLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	8: ImmBorrowLoc[1](leaving_validator_addr#0#0: address)
+	9: Call vec_map::remove<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): address * VecSet<address>
+	10: Pop
+	11: Pop
+B2:
+	12: CopyLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	13: FreezeRef
+	14: Call vec_map::keys<address, VecSet<address>>(&VecMap<address, VecSet<address>>): vector<address>
+	15: StLoc[7](reported_validators#1#0: vector<address>)
+	16: ImmBorrowLoc[7](reported_validators#1#0: vector<address>)
+	17: VecLen(59)
+	18: StLoc[5](length#1#0: u64)
+	19: LdU64(0)
+	20: StLoc[4](i#1#0: u64)
+B3:
+	21: CopyLoc[4](i#1#0: u64)
+	22: CopyLoc[5](length#1#0: u64)
+	23: Lt
+	24: BrFalse(66)
+B4:
+	25: Branch(26)
+B5:
+	26: ImmBorrowLoc[7](reported_validators#1#0: vector<address>)
+	27: CopyLoc[4](i#1#0: u64)
+	28: VecImmBorrow(59)
+	29: StLoc[6](reported_validator_addr#1#0: &address)
+	30: CopyLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	31: CopyLoc[6](reported_validator_addr#1#0: &address)
+	32: Call vec_map::get_mut<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): &mut VecSet<address>
+	33: StLoc[8](reporters#1#0: &mut VecSet<address>)
+	34: CopyLoc[8](reporters#1#0: &mut VecSet<address>)
+	35: ImmBorrowLoc[1](leaving_validator_addr#0#0: address)
+	36: StLoc[3](%#4: &address)
+	37: FreezeRef
+	38: MoveLoc[3](%#4: &address)
+	39: Call vec_set::contains<address>(&VecSet<address>, &address): bool
+	40: BrFalse(57)
+B6:
+	41: CopyLoc[8](reporters#1#0: &mut VecSet<address>)
+	42: ImmBorrowLoc[1](leaving_validator_addr#0#0: address)
+	43: Call vec_set::remove<address>(&mut VecSet<address>, &address)
+	44: MoveLoc[8](reporters#1#0: &mut VecSet<address>)
+	45: FreezeRef
+	46: Call vec_set::is_empty<address>(&VecSet<address>): bool
+	47: BrFalse(54)
+B7:
+	48: CopyLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	49: MoveLoc[6](reported_validator_addr#1#0: &address)
+	50: Call vec_map::remove<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): address * VecSet<address>
+	51: Pop
+	52: Pop
+	53: Branch(56)
+B8:
+	54: MoveLoc[6](reported_validator_addr#1#0: &address)
+	55: Pop
+B9:
+	56: Branch(61)
+B10:
+	57: MoveLoc[8](reporters#1#0: &mut VecSet<address>)
+	58: Pop
+	59: MoveLoc[6](reported_validator_addr#1#0: &address)
+	60: Pop
+B11:
+	61: MoveLoc[4](i#1#0: u64)
+	62: LdU64(1)
+	63: Add
+	64: StLoc[4](i#1#0: u64)
+	65: Branch(21)
+B12:
+	66: MoveLoc[0](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	67: Pop
+	68: Ret
+}
+process_pending_validators(self#0#0: &mut ValidatorSet, new_epoch#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	1: ImmBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	2: Call table_vec::is_empty<Validator>(&TableVec<Validator>): bool
+	3: Not
+	4: BrFalse(25)
+B1:
+	5: Branch(6)
+B2:
+	6: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	7: MutBorrowField[4](ValidatorSet.pending_active_validators: TableVec<Validator>)
+	8: Call table_vec::pop_back<Validator>(&mut TableVec<Validator>): Validator
+	9: StLoc[2](validator#1#0: Validator)
+	10: MutBorrowLoc[2](validator#1#0: Validator)
+	11: CopyLoc[1](new_epoch#0#0: u64)
+	12: Call validator::activate(&mut Validator, u64)
+	13: CopyLoc[1](new_epoch#0#0: u64)
+	14: ImmBorrowLoc[2](validator#1#0: Validator)
+	15: Call validator::sui_address(&Validator): address
+	16: ImmBorrowLoc[2](validator#1#0: Validator)
+	17: Call validator::staking_pool_id(&Validator): ID
+	18: Pack[3](ValidatorJoinEvent)
+	19: Call event::emit<ValidatorJoinEvent>(ValidatorJoinEvent)
+	20: CopyLoc[0](self#0#0: &mut ValidatorSet)
+	21: MutBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	22: MoveLoc[2](validator#1#0: Validator)
+	23: VecPushBack(58)
+	24: Branch(0)
+B3:
+	25: MoveLoc[0](self#0#0: &mut ValidatorSet)
+	26: Pop
+	27: Ret
+}
+sort_removal_list(withdraw_list#0#0: &mut vector<u64>) {
+L0:	%#4: u64
+L1:	cur#1#0: u64
+L2:	i#1#0: u64
+L3:	j#1#0: u64
+L4:	length#1#0: u64
+B0:
+	0: CopyLoc[0](withdraw_list#0#0: &mut vector<u64>)
+	1: FreezeRef
+	2: VecLen(14)
+	3: StLoc[6](length#1#0: u64)
+	4: LdU64(1)
+	5: StLoc[4](i#1#0: u64)
+B1:
+	6: CopyLoc[4](i#1#0: u64)
+	7: CopyLoc[6](length#1#0: u64)
+	8: Lt
+	9: BrFalse(54)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](withdraw_list#0#0: &mut vector<u64>)
+	12: CopyLoc[4](i#1#0: u64)
+	13: StLoc[1](%#2: u64)
+	14: FreezeRef
+	15: MoveLoc[1](%#2: u64)
+	16: VecImmBorrow(14)
+	17: ReadRef
+	18: StLoc[3](cur#1#0: u64)
+	19: CopyLoc[4](i#1#0: u64)
+	20: StLoc[5](j#1#0: u64)
+B4:
+	21: CopyLoc[5](j#1#0: u64)
+	22: LdU64(0)
+	23: Gt
+	24: BrFalse(49)
+B5:
+	25: Branch(26)
+B6:
+	26: MoveLoc[5](j#1#0: u64)
+	27: LdU64(1)
+	28: Sub
+	29: StLoc[5](j#1#0: u64)
+	30: CopyLoc[0](withdraw_list#0#0: &mut vector<u64>)
+	31: CopyLoc[5](j#1#0: u64)
+	32: StLoc[2](%#4: u64)
+	33: FreezeRef
+	34: MoveLoc[2](%#4: u64)
+	35: VecImmBorrow(14)
+	36: ReadRef
+	37: CopyLoc[3](cur#1#0: u64)
+	38: Gt
+	39: BrFalse(41)
+B7:
+	40: Branch(42)
+B8:
+	41: Branch(49)
+B9:
+	42: CopyLoc[0](withdraw_list#0#0: &mut vector<u64>)
+	43: CopyLoc[5](j#1#0: u64)
+	44: CopyLoc[5](j#1#0: u64)
+	45: LdU64(1)
+	46: Add
+	47: VecSwap(14)
+	48: Branch(21)
+B10:
+	49: MoveLoc[4](i#1#0: u64)
+	50: LdU64(1)
+	51: Add
+	52: StLoc[4](i#1#0: u64)
+	53: Branch(6)
+B11:
+	54: MoveLoc[0](withdraw_list#0#0: &mut vector<u64>)
+	55: Pop
+	56: Ret
+}
+process_pending_stakes_and_withdraws(validators#0#0: &mut vector<Validator>, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	1: FreezeRef
+	2: VecLen(58)
+	3: StLoc[3](length#1#0: u64)
+	4: LdU64(0)
+	5: StLoc[2](i#1#0: u64)
+B1:
+	6: CopyLoc[2](i#1#0: u64)
+	7: CopyLoc[3](length#1#0: u64)
+	8: Lt
+	9: BrFalse(21)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	12: CopyLoc[2](i#1#0: u64)
+	13: VecMutBorrow(58)
+	14: CopyLoc[1](ctx#0#0: &mut TxContext)
+	15: Call validator::process_pending_stakes_and_withdraws(&mut Validator, &mut TxContext)
+	16: MoveLoc[2](i#1#0: u64)
+	17: LdU64(1)
+	18: Add
+	19: StLoc[2](i#1#0: u64)
+	20: Branch(6)
+B4:
+	21: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	22: Pop
+	23: MoveLoc[1](ctx#0#0: &mut TxContext)
+	24: Pop
+	25: Ret
+}
+calculate_total_stakes(validators#0#0: &vector<Validator>): u64 {
+L0:	length#1#0: u64
+L1:	stake#1#0: u64
+L2:	v#1#0: &Validator
+B0:
+	0: LdU64(0)
+	1: StLoc[3](stake#1#0: u64)
+	2: CopyLoc[0](validators#0#0: &vector<Validator>)
+	3: VecLen(58)
+	4: StLoc[2](length#1#0: u64)
+	5: LdU64(0)
+	6: StLoc[1](i#1#0: u64)
+B1:
+	7: CopyLoc[1](i#1#0: u64)
+	8: CopyLoc[2](length#1#0: u64)
+	9: Lt
+	10: BrFalse(26)
+B2:
+	11: Branch(12)
+B3:
+	12: CopyLoc[0](validators#0#0: &vector<Validator>)
+	13: CopyLoc[1](i#1#0: u64)
+	14: VecImmBorrow(58)
+	15: StLoc[4](v#1#0: &Validator)
+	16: MoveLoc[3](stake#1#0: u64)
+	17: MoveLoc[4](v#1#0: &Validator)
+	18: Call validator::total_stake_amount(&Validator): u64
+	19: Add
+	20: StLoc[3](stake#1#0: u64)
+	21: MoveLoc[1](i#1#0: u64)
+	22: LdU64(1)
+	23: Add
+	24: StLoc[1](i#1#0: u64)
+	25: Branch(7)
+B4:
+	26: MoveLoc[0](validators#0#0: &vector<Validator>)
+	27: Pop
+	28: MoveLoc[3](stake#1#0: u64)
+	29: Ret
+}
+adjust_stake_and_gas_price(validators#0#0: &mut vector<Validator>) {
+L0:	length#1#0: u64
+B0:
+	0: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	1: FreezeRef
+	2: VecLen(58)
+	3: StLoc[2](length#1#0: u64)
+	4: LdU64(0)
+	5: StLoc[1](i#1#0: u64)
+B1:
+	6: CopyLoc[1](i#1#0: u64)
+	7: CopyLoc[2](length#1#0: u64)
+	8: Lt
+	9: BrFalse(20)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	12: CopyLoc[1](i#1#0: u64)
+	13: VecMutBorrow(58)
+	14: Call validator::adjust_stake_and_gas_price(&mut Validator)
+	15: MoveLoc[1](i#1#0: u64)
+	16: LdU64(1)
+	17: Add
+	18: StLoc[1](i#1#0: u64)
+	19: Branch(6)
+B4:
+	20: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	21: Pop
+	22: Ret
+}
+compute_reward_adjustments(slashed_validator_indices#0#0: vector<u64>, reward_slashing_rate#0#0: u64, unadjusted_staking_reward_amounts#0#0: &vector<u64>, unadjusted_storage_fund_reward_amounts#0#0: &vector<u64>): u64 * VecMap<u64, u64> * u64 * VecMap<u64, u64> {
+L0:	total_staking_reward_adjustment#1#0: u64
+L1:	total_storage_fund_reward_adjustment#1#0: u64
+L2:	validator_index#1#0: u64
+B0:
+	0: LdU64(0)
+	1: StLoc[8](total_staking_reward_adjustment#1#0: u64)
+	2: Call vec_map::empty<u64, u64>(): VecMap<u64, u64>
+	3: StLoc[4](individual_staking_reward_adjustments#1#0: VecMap<u64, u64>)
+	4: LdU64(0)
+	5: StLoc[9](total_storage_fund_reward_adjustment#1#0: u64)
+	6: Call vec_map::empty<u64, u64>(): VecMap<u64, u64>
+	7: StLoc[5](individual_storage_fund_reward_adjustments#1#0: VecMap<u64, u64>)
+B1:
+	8: MutBorrowLoc[0](slashed_validator_indices#0#0: vector<u64>)
+	9: FreezeRef
+	10: Call vector::is_empty<u64>(&vector<u64>): bool
+	11: Not
+	12: BrFalse(60)
+B2:
+	13: Branch(14)
+B3:
+	14: MutBorrowLoc[0](slashed_validator_indices#0#0: vector<u64>)
+	15: VecPopBack(14)
+	16: StLoc[10](validator_index#1#0: u64)
+	17: CopyLoc[2](unadjusted_staking_reward_amounts#0#0: &vector<u64>)
+	18: CopyLoc[10](validator_index#1#0: u64)
+	19: VecImmBorrow(14)
+	20: ReadRef
+	21: CastU128
+	22: CopyLoc[1](reward_slashing_rate#0#0: u64)
+	23: CastU128
+	24: Mul
+	25: LdConst[3](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	26: Div
+	27: StLoc[6](staking_reward_adjustment_u128#1#0: u128)
+	28: MutBorrowLoc[4](individual_staking_reward_adjustments#1#0: VecMap<u64, u64>)
+	29: CopyLoc[10](validator_index#1#0: u64)
+	30: CopyLoc[6](staking_reward_adjustment_u128#1#0: u128)
+	31: CastU64
+	32: Call vec_map::insert<u64, u64>(&mut VecMap<u64, u64>, u64, u64)
+	33: MoveLoc[8](total_staking_reward_adjustment#1#0: u64)
+	34: MoveLoc[6](staking_reward_adjustment_u128#1#0: u128)
+	35: CastU64
+	36: Add
+	37: StLoc[8](total_staking_reward_adjustment#1#0: u64)
+	38: CopyLoc[3](unadjusted_storage_fund_reward_amounts#0#0: &vector<u64>)
+	39: CopyLoc[10](validator_index#1#0: u64)
+	40: VecImmBorrow(14)
+	41: ReadRef
+	42: CastU128
+	43: CopyLoc[1](reward_slashing_rate#0#0: u64)
+	44: CastU128
+	45: Mul
+	46: LdConst[3](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	47: Div
+	48: StLoc[7](storage_fund_reward_adjustment_u128#1#0: u128)
+	49: MutBorrowLoc[5](individual_storage_fund_reward_adjustments#1#0: VecMap<u64, u64>)
+	50: MoveLoc[10](validator_index#1#0: u64)
+	51: CopyLoc[7](storage_fund_reward_adjustment_u128#1#0: u128)
+	52: CastU64
+	53: Call vec_map::insert<u64, u64>(&mut VecMap<u64, u64>, u64, u64)
+	54: MoveLoc[9](total_storage_fund_reward_adjustment#1#0: u64)
+	55: MoveLoc[7](storage_fund_reward_adjustment_u128#1#0: u128)
+	56: CastU64
+	57: Add
+	58: StLoc[9](total_storage_fund_reward_adjustment#1#0: u64)
+	59: Branch(8)
+B4:
+	60: MoveLoc[3](unadjusted_storage_fund_reward_amounts#0#0: &vector<u64>)
+	61: Pop
+	62: MoveLoc[2](unadjusted_staking_reward_amounts#0#0: &vector<u64>)
+	63: Pop
+	64: MoveLoc[8](total_staking_reward_adjustment#1#0: u64)
+	65: MoveLoc[4](individual_staking_reward_adjustments#1#0: VecMap<u64, u64>)
+	66: MoveLoc[9](total_storage_fund_reward_adjustment#1#0: u64)
+	67: MoveLoc[5](individual_storage_fund_reward_adjustments#1#0: VecMap<u64, u64>)
+	68: Ret
+}
+compute_slashed_validators(self#0#0: &ValidatorSet, validator_report_records#0#0: VecMap<address, VecSet<address>>): vector<address> {
+L0:	reporters#1#0: VecSet<address>
+L1:	slashed_validators#1#0: vector<address>
+L2:	validator_address#1#0: address
+B0:
+	0: LdConst[21](Vector(Address): [0])
+	1: StLoc[5](slashed_validators#1#0: vector<address>)
+B1:
+	2: ImmBorrowLoc[1](validator_report_records#0#0: VecMap<address, VecSet<address>>)
+	3: Call vec_map::is_empty<address, VecSet<address>>(&VecMap<address, VecSet<address>>): bool
+	4: Not
+	5: BrFalse(36)
+B2:
+	6: Branch(7)
+B3:
+	7: MutBorrowLoc[1](validator_report_records#0#0: VecMap<address, VecSet<address>>)
+	8: Call vec_map::pop<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>): address * VecSet<address>
+	9: StLoc[4](reporters#1#0: VecSet<address>)
+	10: StLoc[6](validator_address#1#0: address)
+	11: CopyLoc[0](self#0#0: &ValidatorSet)
+	12: CopyLoc[6](validator_address#1#0: address)
+	13: Call is_active_validator_by_sui_address(&ValidatorSet, address): bool
+	14: BrFalse(16)
+B4:
+	15: Branch(20)
+B5:
+	16: MoveLoc[0](self#0#0: &ValidatorSet)
+	17: Pop
+	18: LdConst[5](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	19: Abort
+B6:
+	20: CopyLoc[0](self#0#0: &ValidatorSet)
+	21: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	22: StLoc[3](%#2: &vector<Validator>)
+	23: MoveLoc[4](reporters#1#0: VecSet<address>)
+	24: Call vec_set::into_keys<address>(VecSet<address>): vector<address>
+	25: StLoc[2](%#1: vector<address>)
+	26: MoveLoc[3](%#2: &vector<Validator>)
+	27: ImmBorrowLoc[2](%#1: vector<address>)
+	28: Call sum_voting_power_by_addresses(&vector<Validator>, &vector<address>): u64
+	29: Call voting_power::quorum_threshold(): u64
+	30: Ge
+	31: BrFalse(35)
+B7:
+	32: MutBorrowLoc[5](slashed_validators#1#0: vector<address>)
+	33: MoveLoc[6](validator_address#1#0: address)
+	34: VecPushBack(59)
+B8:
+	35: Branch(2)
+B9:
+	36: MoveLoc[0](self#0#0: &ValidatorSet)
+	37: Pop
+	38: MoveLoc[5](slashed_validators#1#0: vector<address>)
+	39: Ret
+}
+compute_unadjusted_reward_distribution(validators#0#0: &vector<Validator>, total_voting_power#0#0: u64, total_staking_reward#0#0: u64, total_storage_fund_reward#0#0: u64): vector<u64> * vector<u64> {
+L0:	storage_fund_reward_amounts#1#0: vector<u64>
+L1:	storage_fund_reward_per_validator#1#0: u64
+B0:
+	0: VecPack(14, 0)
+	1: StLoc[7](staking_reward_amounts#1#0: vector<u64>)
+	2: VecPack(14, 0)
+	3: StLoc[8](storage_fund_reward_amounts#1#0: vector<u64>)
+	4: CopyLoc[0](validators#0#0: &vector<Validator>)
+	5: VecLen(58)
+	6: StLoc[5](length#1#0: u64)
+	7: MoveLoc[3](total_storage_fund_reward#0#0: u64)
+	8: CopyLoc[5](length#1#0: u64)
+	9: Div
+	10: StLoc[9](storage_fund_reward_per_validator#1#0: u64)
+	11: LdU64(0)
+	12: StLoc[4](i#1#0: u64)
+B1:
+	13: CopyLoc[4](i#1#0: u64)
+	14: CopyLoc[5](length#1#0: u64)
+	15: Lt
+	16: BrFalse(42)
+B2:
+	17: Branch(18)
+B3:
+	18: CopyLoc[0](validators#0#0: &vector<Validator>)
+	19: CopyLoc[4](i#1#0: u64)
+	20: VecImmBorrow(58)
+	21: Call validator::voting_power(&Validator): u64
+	22: CastU128
+	23: CopyLoc[2](total_staking_reward#0#0: u64)
+	24: CastU128
+	25: Mul
+	26: CopyLoc[1](total_voting_power#0#0: u64)
+	27: CastU128
+	28: Div
+	29: StLoc[6](reward_amount#1#0: u128)
+	30: MutBorrowLoc[7](staking_reward_amounts#1#0: vector<u64>)
+	31: MoveLoc[6](reward_amount#1#0: u128)
+	32: CastU64
+	33: VecPushBack(14)
+	34: MutBorrowLoc[8](storage_fund_reward_amounts#1#0: vector<u64>)
+	35: CopyLoc[9](storage_fund_reward_per_validator#1#0: u64)
+	36: VecPushBack(14)
+	37: MoveLoc[4](i#1#0: u64)
+	38: LdU64(1)
+	39: Add
+	40: StLoc[4](i#1#0: u64)
+	41: Branch(13)
+B4:
+	42: MoveLoc[0](validators#0#0: &vector<Validator>)
+	43: Pop
+	44: MoveLoc[7](staking_reward_amounts#1#0: vector<u64>)
+	45: MoveLoc[8](storage_fund_reward_amounts#1#0: vector<u64>)
+	46: Ret
+}
+compute_adjusted_reward_distribution(validators#0#0: &vector<Validator>, total_voting_power#0#0: u64, total_slashed_validator_voting_power#0#0: u64, unadjusted_staking_reward_amounts#0#0: vector<u64>, unadjusted_storage_fund_reward_amounts#0#0: vector<u64>, total_staking_reward_adjustment#0#0: u64, individual_staking_reward_adjustments#0#0: VecMap<u64, u64>, total_storage_fund_reward_adjustment#0#0: u64, individual_storage_fund_reward_adjustments#0#0: VecMap<u64, u64>): vector<u64> * vector<u64> {
+L0:	adjustment#4#0: u64
+L1:	i#1#0: u64
+L2:	length#1#0: u64
+L3:	num_unslashed_validators#1#0: u64
+L4:	total_unslashed_validator_voting_power#1#0: u64
+L5:	unadjusted_staking_reward_amount#1#0: u64
+L6:	unadjusted_storage_fund_reward_amount#1#0: u64
+L7:	voting_power#1#0: u128
+B0:
+	0: MoveLoc[1](total_voting_power#0#0: u64)
+	1: MoveLoc[2](total_slashed_validator_voting_power#0#0: u64)
+	2: Sub
+	3: StLoc[22](total_unslashed_validator_voting_power#1#0: u64)
+	4: VecPack(14, 0)
+	5: StLoc[12](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	6: VecPack(14, 0)
+	7: StLoc[14](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	8: CopyLoc[0](validators#0#0: &vector<Validator>)
+	9: VecLen(58)
+	10: StLoc[20](length#1#0: u64)
+	11: CopyLoc[20](length#1#0: u64)
+	12: ImmBorrowLoc[6](individual_staking_reward_adjustments#0#0: VecMap<u64, u64>)
+	13: Call vec_map::size<u64, u64>(&VecMap<u64, u64>): u64
+	14: Sub
+	15: StLoc[21](num_unslashed_validators#1#0: u64)
+	16: LdU64(0)
+	17: StLoc[19](i#1#0: u64)
+B1:
+	18: CopyLoc[19](i#1#0: u64)
+	19: CopyLoc[20](length#1#0: u64)
+	20: Lt
+	21: BrFalse(103)
+B2:
+	22: Branch(23)
+B3:
+	23: CopyLoc[0](validators#0#0: &vector<Validator>)
+	24: CopyLoc[19](i#1#0: u64)
+	25: VecImmBorrow(58)
+	26: Call validator::voting_power(&Validator): u64
+	27: CastU128
+	28: StLoc[25](voting_power#1#0: u128)
+	29: ImmBorrowLoc[3](unadjusted_staking_reward_amounts#0#0: vector<u64>)
+	30: CopyLoc[19](i#1#0: u64)
+	31: VecImmBorrow(14)
+	32: ReadRef
+	33: StLoc[23](unadjusted_staking_reward_amount#1#0: u64)
+	34: ImmBorrowLoc[6](individual_staking_reward_adjustments#0#0: VecMap<u64, u64>)
+	35: ImmBorrowLoc[19](i#1#0: u64)
+	36: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	37: BrFalse(48)
+B4:
+	38: ImmBorrowLoc[6](individual_staking_reward_adjustments#0#0: VecMap<u64, u64>)
+	39: ImmBorrowLoc[19](i#1#0: u64)
+	40: Call vec_map::get<u64, u64>(&VecMap<u64, u64>, &u64): &u64
+	41: ReadRef
+	42: StLoc[15](adjustment#1#0: u64)
+	43: MoveLoc[23](unadjusted_staking_reward_amount#1#0: u64)
+	44: MoveLoc[15](adjustment#1#0: u64)
+	45: Sub
+	46: StLoc[9](%#1: u64)
+	47: Branch(61)
+B5:
+	48: CopyLoc[5](total_staking_reward_adjustment#0#0: u64)
+	49: CastU128
+	50: MoveLoc[25](voting_power#1#0: u128)
+	51: Mul
+	52: CopyLoc[22](total_unslashed_validator_voting_power#1#0: u64)
+	53: CastU128
+	54: Div
+	55: StLoc[16](adjustment#2#0: u128)
+	56: MoveLoc[23](unadjusted_staking_reward_amount#1#0: u64)
+	57: MoveLoc[16](adjustment#2#0: u128)
+	58: CastU64
+	59: Add
+	60: StLoc[9](%#1: u64)
+B6:
+	61: MoveLoc[9](%#1: u64)
+	62: StLoc[11](adjusted_staking_reward_amount#1#0: u64)
+	63: MutBorrowLoc[12](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	64: MoveLoc[11](adjusted_staking_reward_amount#1#0: u64)
+	65: VecPushBack(14)
+	66: ImmBorrowLoc[4](unadjusted_storage_fund_reward_amounts#0#0: vector<u64>)
+	67: CopyLoc[19](i#1#0: u64)
+	68: VecImmBorrow(14)
+	69: ReadRef
+	70: StLoc[24](unadjusted_storage_fund_reward_amount#1#0: u64)
+	71: ImmBorrowLoc[8](individual_storage_fund_reward_adjustments#0#0: VecMap<u64, u64>)
+	72: ImmBorrowLoc[19](i#1#0: u64)
+	73: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	74: BrFalse(85)
+B7:
+	75: ImmBorrowLoc[8](individual_storage_fund_reward_adjustments#0#0: VecMap<u64, u64>)
+	76: ImmBorrowLoc[19](i#1#0: u64)
+	77: Call vec_map::get<u64, u64>(&VecMap<u64, u64>, &u64): &u64
+	78: ReadRef
+	79: StLoc[17](adjustment#3#0: u64)
+	80: MoveLoc[24](unadjusted_storage_fund_reward_amount#1#0: u64)
+	81: MoveLoc[17](adjustment#3#0: u64)
+	82: Sub
+	83: StLoc[10](%#2: u64)
+	84: Branch(93)
+B8:
+	85: CopyLoc[7](total_storage_fund_reward_adjustment#0#0: u64)
+	86: CopyLoc[21](num_unslashed_validators#1#0: u64)
+	87: Div
+	88: StLoc[18](adjustment#4#0: u64)
+	89: MoveLoc[24](unadjusted_storage_fund_reward_amount#1#0: u64)
+	90: MoveLoc[18](adjustment#4#0: u64)
+	91: Add
+	92: StLoc[10](%#2: u64)
+B9:
+	93: MoveLoc[10](%#2: u64)
+	94: StLoc[13](adjusted_storage_fund_reward_amount#1#0: u64)
+	95: MutBorrowLoc[14](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	96: MoveLoc[13](adjusted_storage_fund_reward_amount#1#0: u64)
+	97: VecPushBack(14)
+	98: MoveLoc[19](i#1#0: u64)
+	99: LdU64(1)
+	100: Add
+	101: StLoc[19](i#1#0: u64)
+	102: Branch(18)
+B10:
+	103: MoveLoc[0](validators#0#0: &vector<Validator>)
+	104: Pop
+	105: MoveLoc[12](adjusted_staking_reward_amounts#1#0: vector<u64>)
+	106: MoveLoc[14](adjusted_storage_fund_reward_amounts#1#0: vector<u64>)
+	107: Ret
+}
+distribute_reward(validators#0#0: &mut vector<Validator>, adjusted_staking_reward_amounts#0#0: &vector<u64>, adjusted_storage_fund_reward_amounts#0#0: &vector<u64>, staking_rewards#0#0: &mut Balance<SUI>, storage_fund_reward#0#0: &mut Balance<SUI>, ctx#0#0: &mut TxContext) {
+L0:	validator_commission_amount#1#0: u128
+L1:	validator_reward#1#0: Balance<SUI>
+B0:
+	0: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	1: FreezeRef
+	2: VecLen(58)
+	3: StLoc[7](length#1#0: u64)
+	4: CopyLoc[7](length#1#0: u64)
+	5: LdU64(0)
+	6: Gt
+	7: BrFalse(9)
+B1:
+	8: Branch(23)
+B2:
+	9: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	10: Pop
+	11: MoveLoc[4](storage_fund_reward#0#0: &mut Balance<SUI>)
+	12: Pop
+	13: MoveLoc[3](staking_rewards#0#0: &mut Balance<SUI>)
+	14: Pop
+	15: MoveLoc[5](ctx#0#0: &mut TxContext)
+	16: Pop
+	17: MoveLoc[2](adjusted_storage_fund_reward_amounts#0#0: &vector<u64>)
+	18: Pop
+	19: MoveLoc[1](adjusted_staking_reward_amounts#0#0: &vector<u64>)
+	20: Pop
+	21: LdConst[18](U64: [13, 0, 0, 0, 0, 0, 0, 0])
+	22: Abort
+B3:
+	23: LdU64(0)
+	24: StLoc[6](i#1#0: u64)
+B4:
+	25: CopyLoc[6](i#1#0: u64)
+	26: CopyLoc[7](length#1#0: u64)
+	27: Lt
+	28: BrFalse(92)
+B5:
+	29: Branch(30)
+B6:
+	30: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	31: CopyLoc[6](i#1#0: u64)
+	32: VecMutBorrow(58)
+	33: StLoc[10](validator#1#0: &mut Validator)
+	34: CopyLoc[1](adjusted_staking_reward_amounts#0#0: &vector<u64>)
+	35: CopyLoc[6](i#1#0: u64)
+	36: VecImmBorrow(14)
+	37: ReadRef
+	38: StLoc[9](staking_reward_amount#1#0: u64)
+	39: CopyLoc[3](staking_rewards#0#0: &mut Balance<SUI>)
+	40: CopyLoc[9](staking_reward_amount#1#0: u64)
+	41: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	42: StLoc[8](staker_reward#1#0: Balance<SUI>)
+	43: MoveLoc[9](staking_reward_amount#1#0: u64)
+	44: CastU128
+	45: CopyLoc[10](validator#1#0: &mut Validator)
+	46: FreezeRef
+	47: Call validator::commission_rate(&Validator): u64
+	48: CastU128
+	49: Mul
+	50: LdConst[3](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	51: Div
+	52: StLoc[12](validator_commission_amount#1#0: u128)
+	53: MutBorrowLoc[8](staker_reward#1#0: Balance<SUI>)
+	54: MoveLoc[12](validator_commission_amount#1#0: u128)
+	55: CastU64
+	56: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	57: StLoc[13](validator_reward#1#0: Balance<SUI>)
+	58: MutBorrowLoc[13](validator_reward#1#0: Balance<SUI>)
+	59: CopyLoc[4](storage_fund_reward#0#0: &mut Balance<SUI>)
+	60: CopyLoc[2](adjusted_storage_fund_reward_amounts#0#0: &vector<u64>)
+	61: CopyLoc[6](i#1#0: u64)
+	62: VecImmBorrow(14)
+	63: ReadRef
+	64: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	65: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	66: Pop
+	67: ImmBorrowLoc[13](validator_reward#1#0: Balance<SUI>)
+	68: Call balance::value<SUI>(&Balance<SUI>): u64
+	69: LdU64(0)
+	70: Gt
+	71: BrFalse(82)
+B7:
+	72: CopyLoc[10](validator#1#0: &mut Validator)
+	73: FreezeRef
+	74: Call validator::sui_address(&Validator): address
+	75: StLoc[11](validator_address#1#0: address)
+	76: CopyLoc[10](validator#1#0: &mut Validator)
+	77: MoveLoc[13](validator_reward#1#0: Balance<SUI>)
+	78: MoveLoc[11](validator_address#1#0: address)
+	79: CopyLoc[5](ctx#0#0: &mut TxContext)
+	80: Call validator::request_add_stake(&mut Validator, Balance<SUI>, address, &mut TxContext)
+	81: Branch(84)
+B8:
+	82: MoveLoc[13](validator_reward#1#0: Balance<SUI>)
+	83: Call balance::destroy_zero<SUI>(Balance<SUI>)
+B9:
+	84: MoveLoc[10](validator#1#0: &mut Validator)
+	85: MoveLoc[8](staker_reward#1#0: Balance<SUI>)
+	86: Call validator::deposit_stake_rewards(&mut Validator, Balance<SUI>)
+	87: MoveLoc[6](i#1#0: u64)
+	88: LdU64(1)
+	89: Add
+	90: StLoc[6](i#1#0: u64)
+	91: Branch(25)
+B10:
+	92: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	93: Pop
+	94: MoveLoc[4](storage_fund_reward#0#0: &mut Balance<SUI>)
+	95: Pop
+	96: MoveLoc[3](staking_rewards#0#0: &mut Balance<SUI>)
+	97: Pop
+	98: MoveLoc[5](ctx#0#0: &mut TxContext)
+	99: Pop
+	100: MoveLoc[2](adjusted_storage_fund_reward_amounts#0#0: &vector<u64>)
+	101: Pop
+	102: MoveLoc[1](adjusted_staking_reward_amounts#0#0: &vector<u64>)
+	103: Pop
+	104: Ret
+}
+emit_validator_epoch_events(new_epoch#0#0: u64, vs#0#0: &vector<Validator>, pool_staking_reward_amounts#0#0: &vector<u64>, storage_fund_staking_reward_amounts#0#0: &vector<u64>, report_records#0#0: &VecMap<address, VecSet<address>>, slashed_validators#0#0: &vector<address>) {
+L0:	v#1#0: &Validator
+L1:	validator_address#1#0: address
+B0:
+	0: CopyLoc[1](vs#0#0: &vector<Validator>)
+	1: VecLen(58)
+	2: StLoc[9](num_validators#1#0: u64)
+	3: LdU64(0)
+	4: StLoc[8](i#1#0: u64)
+B1:
+	5: CopyLoc[8](i#1#0: u64)
+	6: CopyLoc[9](num_validators#1#0: u64)
+	7: Lt
+	8: BrFalse(73)
+B2:
+	9: Branch(10)
+B3:
+	10: CopyLoc[1](vs#0#0: &vector<Validator>)
+	11: CopyLoc[8](i#1#0: u64)
+	12: VecImmBorrow(58)
+	13: StLoc[12](v#1#0: &Validator)
+	14: CopyLoc[12](v#1#0: &Validator)
+	15: Call validator::sui_address(&Validator): address
+	16: StLoc[13](validator_address#1#0: address)
+	17: CopyLoc[4](report_records#0#0: &VecMap<address, VecSet<address>>)
+	18: ImmBorrowLoc[13](validator_address#1#0: address)
+	19: Call vec_map::contains<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): bool
+	20: BrFalse(28)
+B4:
+	21: CopyLoc[4](report_records#0#0: &VecMap<address, VecSet<address>>)
+	22: ImmBorrowLoc[13](validator_address#1#0: address)
+	23: Call vec_map::get<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): &VecSet<address>
+	24: ReadRef
+	25: Call vec_set::into_keys<address>(VecSet<address>): vector<address>
+	26: StLoc[6](%#1: vector<address>)
+	27: Branch(30)
+B5:
+	28: LdConst[21](Vector(Address): [0])
+	29: StLoc[6](%#1: vector<address>)
+B6:
+	30: MoveLoc[6](%#1: vector<address>)
+	31: StLoc[11](tallying_rule_reporters#1#0: vector<address>)
+	32: CopyLoc[5](slashed_validators#0#0: &vector<address>)
+	33: ImmBorrowLoc[13](validator_address#1#0: address)
+	34: Call vector::contains<address>(&vector<address>, &address): bool
+	35: BrFalse(39)
+B7:
+	36: LdU64(0)
+	37: StLoc[7](%#2: u64)
+	38: Branch(41)
+B8:
+	39: LdU64(1)
+	40: StLoc[7](%#2: u64)
+B9:
+	41: MoveLoc[7](%#2: u64)
+	42: StLoc[10](tallying_rule_global_score#1#0: u64)
+	43: CopyLoc[0](new_epoch#0#0: u64)
+	44: MoveLoc[13](validator_address#1#0: address)
+	45: CopyLoc[12](v#1#0: &Validator)
+	46: Call validator::gas_price(&Validator): u64
+	47: CopyLoc[12](v#1#0: &Validator)
+	48: Call validator::total_stake_amount(&Validator): u64
+	49: CopyLoc[12](v#1#0: &Validator)
+	50: Call validator::voting_power(&Validator): u64
+	51: CopyLoc[12](v#1#0: &Validator)
+	52: Call validator::commission_rate(&Validator): u64
+	53: CopyLoc[2](pool_staking_reward_amounts#0#0: &vector<u64>)
+	54: CopyLoc[8](i#1#0: u64)
+	55: VecImmBorrow(14)
+	56: ReadRef
+	57: CopyLoc[3](storage_fund_staking_reward_amounts#0#0: &vector<u64>)
+	58: CopyLoc[8](i#1#0: u64)
+	59: VecImmBorrow(14)
+	60: ReadRef
+	61: MoveLoc[12](v#1#0: &Validator)
+	62: CopyLoc[0](new_epoch#0#0: u64)
+	63: Call validator::pool_token_exchange_rate_at_epoch(&Validator, u64): PoolTokenExchangeRate
+	64: MoveLoc[11](tallying_rule_reporters#1#0: vector<address>)
+	65: MoveLoc[10](tallying_rule_global_score#1#0: u64)
+	66: Pack[2](ValidatorEpochInfoEventV2)
+	67: Call event::emit<ValidatorEpochInfoEventV2>(ValidatorEpochInfoEventV2)
+	68: MoveLoc[8](i#1#0: u64)
+	69: LdU64(1)
+	70: Add
+	71: StLoc[8](i#1#0: u64)
+	72: Branch(5)
+B10:
+	73: MoveLoc[1](vs#0#0: &vector<Validator>)
+	74: Pop
+	75: MoveLoc[3](storage_fund_staking_reward_amounts#0#0: &vector<u64>)
+	76: Pop
+	77: MoveLoc[5](slashed_validators#0#0: &vector<address>)
+	78: Pop
+	79: MoveLoc[4](report_records#0#0: &VecMap<address, VecSet<address>>)
+	80: Pop
+	81: MoveLoc[2](pool_staking_reward_amounts#0#0: &vector<u64>)
+	82: Pop
+	83: Ret
+}
+public sum_voting_power_by_addresses(vs#0#0: &vector<Validator>, addresses#0#0: &vector<address>): u64 {
+L0:	sum#1#0: u64
+L1:	validator#1#0: &Validator
+B0:
+	0: LdU64(0)
+	1: StLoc[4](sum#1#0: u64)
+	2: LdU64(0)
+	3: StLoc[2](i#1#0: u64)
+	4: CopyLoc[1](addresses#0#0: &vector<address>)
+	5: VecLen(59)
+	6: StLoc[3](length#1#0: u64)
+B1:
+	7: CopyLoc[2](i#1#0: u64)
+	8: CopyLoc[3](length#1#0: u64)
+	9: Lt
+	10: BrFalse(29)
+B2:
+	11: Branch(12)
+B3:
+	12: CopyLoc[0](vs#0#0: &vector<Validator>)
+	13: CopyLoc[1](addresses#0#0: &vector<address>)
+	14: CopyLoc[2](i#1#0: u64)
+	15: VecImmBorrow(59)
+	16: ReadRef
+	17: Call get_validator_ref(&vector<Validator>, address): &Validator
+	18: StLoc[5](validator#1#0: &Validator)
+	19: MoveLoc[4](sum#1#0: u64)
+	20: MoveLoc[5](validator#1#0: &Validator)
+	21: Call validator::voting_power(&Validator): u64
+	22: Add
+	23: StLoc[4](sum#1#0: u64)
+	24: MoveLoc[2](i#1#0: u64)
+	25: LdU64(1)
+	26: Add
+	27: StLoc[2](i#1#0: u64)
+	28: Branch(7)
+B4:
+	29: MoveLoc[0](vs#0#0: &vector<Validator>)
+	30: Pop
+	31: MoveLoc[1](addresses#0#0: &vector<address>)
+	32: Pop
+	33: MoveLoc[4](sum#1#0: u64)
+	34: Ret
+}
+public active_validators(self#0#0: &ValidatorSet): &vector<Validator> {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[0](ValidatorSet.active_validators: vector<Validator>)
+	2: Ret
+}
+public is_validator_candidate(self#0#0: &ValidatorSet, addr#0#0: address): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[1](ValidatorSet.validator_candidates: Table<address, ValidatorWrapper>)
+	2: MoveLoc[1](addr#0#0: address)
+	3: Call table::contains<address, ValidatorWrapper>(&Table<address, ValidatorWrapper>, address): bool
+	4: Ret
+}
+public is_inactive_validator(self#0#0: &ValidatorSet, staking_pool_id#0#0: ID): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorSet)
+	1: ImmBorrowField[3](ValidatorSet.inactive_validators: Table<ID, ValidatorWrapper>)
+	2: MoveLoc[1](staking_pool_id#0#0: ID)
+	3: Call table::contains<ID, ValidatorWrapper>(&Table<ID, ValidatorWrapper>, ID): bool
+	4: Ret
+}
+}

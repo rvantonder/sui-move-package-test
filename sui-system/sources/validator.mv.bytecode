@@ -1,0 +1,2210 @@
+// Move bytecode v6
+module 3.validator {
+use 0000000000000000000000000000000000000000000000000000000000000001::ascii;
+use 0000000000000000000000000000000000000000000000000000000000000001::bcs;
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000001::string;
+use 0000000000000000000000000000000000000000000000000000000000000002::bag;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::event;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000002::url;
+use 0000000000000000000000000000000000000000000000000000000000000003::staking_pool;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_cap;
+
+
+struct ValidatorMetadata has store {
+	sui_address: address,
+	protocol_pubkey_bytes: vector<u8>,
+	network_pubkey_bytes: vector<u8>,
+	worker_pubkey_bytes: vector<u8>,
+	proof_of_possession: vector<u8>,
+	name: String,
+	description: String,
+	image_url: Url,
+	project_url: Url,
+	net_address: String,
+	p2p_address: String,
+	primary_address: String,
+	worker_address: String,
+	next_epoch_protocol_pubkey_bytes: Option<vector<u8>>,
+	next_epoch_proof_of_possession: Option<vector<u8>>,
+	next_epoch_network_pubkey_bytes: Option<vector<u8>>,
+	next_epoch_worker_pubkey_bytes: Option<vector<u8>>,
+	next_epoch_net_address: Option<String>,
+	next_epoch_p2p_address: Option<String>,
+	next_epoch_primary_address: Option<String>,
+	next_epoch_worker_address: Option<String>,
+	extra_fields: Bag
+}
+struct Validator has store {
+	metadata: ValidatorMetadata,
+	voting_power: u64,
+	operation_cap_id: ID,
+	gas_price: u64,
+	staking_pool: StakingPool,
+	commission_rate: u64,
+	next_epoch_stake: u64,
+	next_epoch_gas_price: u64,
+	next_epoch_commission_rate: u64,
+	extra_fields: Bag
+}
+struct StakingRequestEvent has copy, drop {
+	pool_id: ID,
+	validator_address: address,
+	staker_address: address,
+	epoch: u64,
+	amount: u64
+}
+struct UnstakingRequestEvent has copy, drop {
+	pool_id: ID,
+	validator_address: address,
+	staker_address: address,
+	stake_activation_epoch: u64,
+	unstaking_epoch: u64,
+	principal_amount: u64,
+	reward_amount: u64
+}
+
+public(friend) new_metadata(sui_address#0#0: address, protocol_pubkey_bytes#0#0: vector<u8>, network_pubkey_bytes#0#0: vector<u8>, worker_pubkey_bytes#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, name#0#0: String, description#0#0: String, image_url#0#0: Url, project_url#0#0: Url, net_address#0#0: String, p2p_address#0#0: String, primary_address#0#0: String, worker_address#0#0: String, extra_fields#0#0: Bag): ValidatorMetadata {
+L0:	%#22: Bag
+L1:	%#3: vector<u8>
+L2:	%#4: vector<u8>
+L3:	%#5: vector<u8>
+L4:	%#6: String
+L5:	%#7: String
+L6:	%#8: Url
+L7:	%#9: Url
+B0:
+	0: MoveLoc[0](sui_address#0#0: address)
+	1: StLoc[14](%#1: address)
+	2: MoveLoc[1](protocol_pubkey_bytes#0#0: vector<u8>)
+	3: StLoc[25](%#2: vector<u8>)
+	4: MoveLoc[2](network_pubkey_bytes#0#0: vector<u8>)
+	5: StLoc[29](%#3: vector<u8>)
+	6: MoveLoc[3](worker_pubkey_bytes#0#0: vector<u8>)
+	7: StLoc[30](%#4: vector<u8>)
+	8: MoveLoc[4](proof_of_possession#0#0: vector<u8>)
+	9: StLoc[31](%#5: vector<u8>)
+	10: MoveLoc[5](name#0#0: String)
+	11: StLoc[32](%#6: String)
+	12: MoveLoc[6](description#0#0: String)
+	13: StLoc[33](%#7: String)
+	14: MoveLoc[7](image_url#0#0: Url)
+	15: StLoc[34](%#8: Url)
+	16: MoveLoc[8](project_url#0#0: Url)
+	17: StLoc[35](%#9: Url)
+	18: MoveLoc[9](net_address#0#0: String)
+	19: StLoc[15](%#10: String)
+	20: MoveLoc[10](p2p_address#0#0: String)
+	21: StLoc[16](%#11: String)
+	22: MoveLoc[11](primary_address#0#0: String)
+	23: StLoc[17](%#12: String)
+	24: MoveLoc[12](worker_address#0#0: String)
+	25: StLoc[18](%#13: String)
+	26: Call option::none<vector<u8>>(): Option<vector<u8>>
+	27: StLoc[19](%#14: Option<vector<u8>>)
+	28: Call option::none<vector<u8>>(): Option<vector<u8>>
+	29: StLoc[20](%#15: Option<vector<u8>>)
+	30: Call option::none<vector<u8>>(): Option<vector<u8>>
+	31: StLoc[21](%#16: Option<vector<u8>>)
+	32: Call option::none<vector<u8>>(): Option<vector<u8>>
+	33: StLoc[22](%#17: Option<vector<u8>>)
+	34: Call option::none<String>(): Option<String>
+	35: StLoc[23](%#18: Option<String>)
+	36: Call option::none<String>(): Option<String>
+	37: StLoc[24](%#19: Option<String>)
+	38: Call option::none<String>(): Option<String>
+	39: StLoc[26](%#20: Option<String>)
+	40: Call option::none<String>(): Option<String>
+	41: StLoc[27](%#21: Option<String>)
+	42: MoveLoc[13](extra_fields#0#0: Bag)
+	43: StLoc[28](%#22: Bag)
+	44: MoveLoc[14](%#1: address)
+	45: MoveLoc[25](%#2: vector<u8>)
+	46: MoveLoc[29](%#3: vector<u8>)
+	47: MoveLoc[30](%#4: vector<u8>)
+	48: MoveLoc[31](%#5: vector<u8>)
+	49: MoveLoc[32](%#6: String)
+	50: MoveLoc[33](%#7: String)
+	51: MoveLoc[34](%#8: Url)
+	52: MoveLoc[35](%#9: Url)
+	53: MoveLoc[15](%#10: String)
+	54: MoveLoc[16](%#11: String)
+	55: MoveLoc[17](%#12: String)
+	56: MoveLoc[18](%#13: String)
+	57: MoveLoc[19](%#14: Option<vector<u8>>)
+	58: MoveLoc[22](%#17: Option<vector<u8>>)
+	59: MoveLoc[20](%#15: Option<vector<u8>>)
+	60: MoveLoc[21](%#16: Option<vector<u8>>)
+	61: MoveLoc[23](%#18: Option<String>)
+	62: MoveLoc[24](%#19: Option<String>)
+	63: MoveLoc[26](%#20: Option<String>)
+	64: MoveLoc[27](%#21: Option<String>)
+	65: MoveLoc[28](%#22: Bag)
+	66: Pack[0](ValidatorMetadata)
+	67: Ret
+}
+public(friend) new(sui_address#0#0: address, protocol_pubkey_bytes#0#0: vector<u8>, network_pubkey_bytes#0#0: vector<u8>, worker_pubkey_bytes#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, name#0#0: vector<u8>, description#0#0: vector<u8>, image_url#0#0: vector<u8>, project_url#0#0: vector<u8>, net_address#0#0: vector<u8>, p2p_address#0#0: vector<u8>, primary_address#0#0: vector<u8>, worker_address#0#0: vector<u8>, gas_price#0#0: u64, commission_rate#0#0: u64, ctx#0#0: &mut TxContext): Validator {
+B0:
+	0: ImmBorrowLoc[9](net_address#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(11)
+B1:
+	5: ImmBorrowLoc[10](p2p_address#0#0: vector<u8>)
+	6: VecLen(37)
+	7: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	8: Le
+	9: StLoc[16](%#1: bool)
+	10: Branch(13)
+B2:
+	11: LdFalse
+	12: StLoc[16](%#1: bool)
+B3:
+	13: MoveLoc[16](%#1: bool)
+	14: BrFalse(21)
+B4:
+	15: ImmBorrowLoc[11](primary_address#0#0: vector<u8>)
+	16: VecLen(37)
+	17: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	18: Le
+	19: StLoc[17](%#2: bool)
+	20: Branch(23)
+B5:
+	21: LdFalse
+	22: StLoc[17](%#2: bool)
+B6:
+	23: MoveLoc[17](%#2: bool)
+	24: BrFalse(31)
+B7:
+	25: ImmBorrowLoc[12](worker_address#0#0: vector<u8>)
+	26: VecLen(37)
+	27: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	28: Le
+	29: StLoc[18](%#3: bool)
+	30: Branch(33)
+B8:
+	31: LdFalse
+	32: StLoc[18](%#3: bool)
+B9:
+	33: MoveLoc[18](%#3: bool)
+	34: BrFalse(41)
+B10:
+	35: ImmBorrowLoc[5](name#0#0: vector<u8>)
+	36: VecLen(37)
+	37: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	38: Le
+	39: StLoc[19](%#4: bool)
+	40: Branch(43)
+B11:
+	41: LdFalse
+	42: StLoc[19](%#4: bool)
+B12:
+	43: MoveLoc[19](%#4: bool)
+	44: BrFalse(51)
+B13:
+	45: ImmBorrowLoc[6](description#0#0: vector<u8>)
+	46: VecLen(37)
+	47: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	48: Le
+	49: StLoc[20](%#5: bool)
+	50: Branch(53)
+B14:
+	51: LdFalse
+	52: StLoc[20](%#5: bool)
+B15:
+	53: MoveLoc[20](%#5: bool)
+	54: BrFalse(61)
+B16:
+	55: ImmBorrowLoc[7](image_url#0#0: vector<u8>)
+	56: VecLen(37)
+	57: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	58: Le
+	59: StLoc[21](%#6: bool)
+	60: Branch(63)
+B17:
+	61: LdFalse
+	62: StLoc[21](%#6: bool)
+B18:
+	63: MoveLoc[21](%#6: bool)
+	64: BrFalse(71)
+B19:
+	65: ImmBorrowLoc[8](project_url#0#0: vector<u8>)
+	66: VecLen(37)
+	67: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	68: Le
+	69: StLoc[22](%#7: bool)
+	70: Branch(73)
+B20:
+	71: LdFalse
+	72: StLoc[22](%#7: bool)
+B21:
+	73: MoveLoc[22](%#7: bool)
+	74: BrFalse(76)
+B22:
+	75: Branch(80)
+B23:
+	76: MoveLoc[15](ctx#0#0: &mut TxContext)
+	77: Pop
+	78: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	79: Abort
+B24:
+	80: CopyLoc[14](commission_rate#0#0: u64)
+	81: LdConst[15](U64: [16, 39, 0, 0, 0, 0, 0, 0])
+	82: Le
+	83: BrFalse(85)
+B25:
+	84: Branch(89)
+B26:
+	85: MoveLoc[15](ctx#0#0: &mut TxContext)
+	86: Pop
+	87: LdConst[8](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	88: Abort
+B27:
+	89: MoveLoc[0](sui_address#0#0: address)
+	90: MoveLoc[1](protocol_pubkey_bytes#0#0: vector<u8>)
+	91: MoveLoc[2](network_pubkey_bytes#0#0: vector<u8>)
+	92: MoveLoc[3](worker_pubkey_bytes#0#0: vector<u8>)
+	93: MoveLoc[4](proof_of_possession#0#0: vector<u8>)
+	94: MoveLoc[5](name#0#0: vector<u8>)
+	95: Call ascii::string(vector<u8>): String
+	96: Call string::from_ascii(String): String
+	97: MoveLoc[6](description#0#0: vector<u8>)
+	98: Call ascii::string(vector<u8>): String
+	99: Call string::from_ascii(String): String
+	100: MoveLoc[7](image_url#0#0: vector<u8>)
+	101: Call url::new_unsafe_from_bytes(vector<u8>): Url
+	102: MoveLoc[8](project_url#0#0: vector<u8>)
+	103: Call url::new_unsafe_from_bytes(vector<u8>): Url
+	104: MoveLoc[9](net_address#0#0: vector<u8>)
+	105: Call ascii::string(vector<u8>): String
+	106: Call string::from_ascii(String): String
+	107: MoveLoc[10](p2p_address#0#0: vector<u8>)
+	108: Call ascii::string(vector<u8>): String
+	109: Call string::from_ascii(String): String
+	110: MoveLoc[11](primary_address#0#0: vector<u8>)
+	111: Call ascii::string(vector<u8>): String
+	112: Call string::from_ascii(String): String
+	113: MoveLoc[12](worker_address#0#0: vector<u8>)
+	114: Call ascii::string(vector<u8>): String
+	115: Call string::from_ascii(String): String
+	116: CopyLoc[15](ctx#0#0: &mut TxContext)
+	117: Call bag::new(&mut TxContext): Bag
+	118: Call new_metadata(address, vector<u8>, vector<u8>, vector<u8>, vector<u8>, String, String, Url, Url, String, String, String, String, Bag): ValidatorMetadata
+	119: StLoc[23](metadata#1#0: ValidatorMetadata)
+	120: ImmBorrowLoc[23](metadata#1#0: ValidatorMetadata)
+	121: Call validate_metadata(&ValidatorMetadata)
+	122: MoveLoc[23](metadata#1#0: ValidatorMetadata)
+	123: MoveLoc[13](gas_price#0#0: u64)
+	124: MoveLoc[14](commission_rate#0#0: u64)
+	125: MoveLoc[15](ctx#0#0: &mut TxContext)
+	126: Call new_from_metadata(ValidatorMetadata, u64, u64, &mut TxContext): Validator
+	127: Ret
+}
+public(friend) deactivate(self#0#0: &mut Validator, deactivation_epoch#0#0: u64) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut Validator)
+	1: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	2: MoveLoc[1](deactivation_epoch#0#0: u64)
+	3: Call staking_pool::deactivate_staking_pool(&mut StakingPool, u64)
+	4: Ret
+}
+public(friend) activate(self#0#0: &mut Validator, activation_epoch#0#0: u64) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut Validator)
+	1: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	2: MoveLoc[1](activation_epoch#0#0: u64)
+	3: Call staking_pool::activate_staking_pool(&mut StakingPool, u64)
+	4: Ret
+}
+public(friend) adjust_stake_and_gas_price(self#0#0: &mut Validator) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: ImmBorrowField[1](Validator.next_epoch_gas_price: u64)
+	2: ReadRef
+	3: CopyLoc[0](self#0#0: &mut Validator)
+	4: MutBorrowField[2](Validator.gas_price: u64)
+	5: WriteRef
+	6: CopyLoc[0](self#0#0: &mut Validator)
+	7: ImmBorrowField[3](Validator.next_epoch_commission_rate: u64)
+	8: ReadRef
+	9: MoveLoc[0](self#0#0: &mut Validator)
+	10: MutBorrowField[4](Validator.commission_rate: u64)
+	11: WriteRef
+	12: Ret
+}
+public(friend) request_add_stake(self#0#0: &mut Validator, stake#0#0: Balance<SUI>, staker_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[1](stake#0#0: Balance<SUI>)
+	1: Call balance::value<SUI>(&Balance<SUI>): u64
+	2: StLoc[4](stake_amount#1#0: u64)
+	3: CopyLoc[4](stake_amount#1#0: u64)
+	4: LdU64(0)
+	5: Gt
+	6: BrFalse(8)
+B1:
+	7: Branch(14)
+B2:
+	8: MoveLoc[0](self#0#0: &mut Validator)
+	9: Pop
+	10: MoveLoc[3](ctx#0#0: &mut TxContext)
+	11: Pop
+	12: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: CopyLoc[3](ctx#0#0: &mut TxContext)
+	15: FreezeRef
+	16: Call tx_context::epoch(&TxContext): u64
+	17: LdU64(1)
+	18: Add
+	19: StLoc[5](stake_epoch#1#0: u64)
+	20: CopyLoc[0](self#0#0: &mut Validator)
+	21: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	22: MoveLoc[1](stake#0#0: Balance<SUI>)
+	23: CopyLoc[2](staker_address#0#0: address)
+	24: MoveLoc[5](stake_epoch#1#0: u64)
+	25: CopyLoc[3](ctx#0#0: &mut TxContext)
+	26: Call staking_pool::request_add_stake(&mut StakingPool, Balance<SUI>, address, u64, &mut TxContext)
+	27: CopyLoc[0](self#0#0: &mut Validator)
+	28: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	29: Call staking_pool::is_preactive(&StakingPool): bool
+	30: BrFalse(34)
+B4:
+	31: CopyLoc[0](self#0#0: &mut Validator)
+	32: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	33: Call staking_pool::process_pending_stake(&mut StakingPool)
+B5:
+	34: CopyLoc[0](self#0#0: &mut Validator)
+	35: ImmBorrowField[5](Validator.next_epoch_stake: u64)
+	36: ReadRef
+	37: CopyLoc[4](stake_amount#1#0: u64)
+	38: Add
+	39: CopyLoc[0](self#0#0: &mut Validator)
+	40: MutBorrowField[5](Validator.next_epoch_stake: u64)
+	41: WriteRef
+	42: CopyLoc[0](self#0#0: &mut Validator)
+	43: FreezeRef
+	44: Call staking_pool_id(&Validator): ID
+	45: MoveLoc[0](self#0#0: &mut Validator)
+	46: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	47: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	48: ReadRef
+	49: MoveLoc[2](staker_address#0#0: address)
+	50: MoveLoc[3](ctx#0#0: &mut TxContext)
+	51: FreezeRef
+	52: Call tx_context::epoch(&TxContext): u64
+	53: MoveLoc[4](stake_amount#1#0: u64)
+	54: Pack[2](StakingRequestEvent)
+	55: Call event::emit<StakingRequestEvent>(StakingRequestEvent)
+	56: Ret
+}
+public(friend) request_add_stake_at_genesis(self#0#0: &mut Validator, stake#0#0: Balance<SUI>, staker_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[3](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::epoch(&TxContext): u64
+	3: LdU64(0)
+	4: Eq
+	5: BrFalse(7)
+B1:
+	6: Branch(13)
+B2:
+	7: MoveLoc[0](self#0#0: &mut Validator)
+	8: Pop
+	9: MoveLoc[3](ctx#0#0: &mut TxContext)
+	10: Pop
+	11: LdConst[12](U64: [12, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: ImmBorrowLoc[1](stake#0#0: Balance<SUI>)
+	14: Call balance::value<SUI>(&Balance<SUI>): u64
+	15: StLoc[4](stake_amount#1#0: u64)
+	16: CopyLoc[4](stake_amount#1#0: u64)
+	17: LdU64(0)
+	18: Gt
+	19: BrFalse(21)
+B4:
+	20: Branch(27)
+B5:
+	21: MoveLoc[0](self#0#0: &mut Validator)
+	22: Pop
+	23: MoveLoc[3](ctx#0#0: &mut TxContext)
+	24: Pop
+	25: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	26: Abort
+B6:
+	27: CopyLoc[0](self#0#0: &mut Validator)
+	28: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	29: MoveLoc[1](stake#0#0: Balance<SUI>)
+	30: MoveLoc[2](staker_address#0#0: address)
+	31: LdU64(0)
+	32: MoveLoc[3](ctx#0#0: &mut TxContext)
+	33: Call staking_pool::request_add_stake(&mut StakingPool, Balance<SUI>, address, u64, &mut TxContext)
+	34: CopyLoc[0](self#0#0: &mut Validator)
+	35: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	36: Call staking_pool::process_pending_stake(&mut StakingPool)
+	37: CopyLoc[0](self#0#0: &mut Validator)
+	38: ImmBorrowField[5](Validator.next_epoch_stake: u64)
+	39: ReadRef
+	40: MoveLoc[4](stake_amount#1#0: u64)
+	41: Add
+	42: MoveLoc[0](self#0#0: &mut Validator)
+	43: MutBorrowField[5](Validator.next_epoch_stake: u64)
+	44: WriteRef
+	45: Ret
+}
+public(friend) request_withdraw_stake(self#0#0: &mut Validator, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext) {
+L0:	withdraw_amount#1#0: u64
+B0:
+	0: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	1: Call staking_pool::staked_sui_amount(&StakedSui): u64
+	2: StLoc[3](principal_amount#1#0: u64)
+	3: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	4: Call staking_pool::stake_activation_epoch(&StakedSui): u64
+	5: StLoc[5](stake_activation_epoch#1#0: u64)
+	6: CopyLoc[0](self#0#0: &mut Validator)
+	7: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	8: MoveLoc[1](staked_sui#0#0: StakedSui)
+	9: CopyLoc[2](ctx#0#0: &mut TxContext)
+	10: Call staking_pool::request_withdraw_stake(&mut StakingPool, StakedSui, &mut TxContext): u64
+	11: StLoc[6](withdraw_amount#1#0: u64)
+	12: CopyLoc[6](withdraw_amount#1#0: u64)
+	13: CopyLoc[3](principal_amount#1#0: u64)
+	14: Sub
+	15: StLoc[4](reward_amount#1#0: u64)
+	16: CopyLoc[0](self#0#0: &mut Validator)
+	17: ImmBorrowField[5](Validator.next_epoch_stake: u64)
+	18: ReadRef
+	19: MoveLoc[6](withdraw_amount#1#0: u64)
+	20: Sub
+	21: CopyLoc[0](self#0#0: &mut Validator)
+	22: MutBorrowField[5](Validator.next_epoch_stake: u64)
+	23: WriteRef
+	24: CopyLoc[0](self#0#0: &mut Validator)
+	25: FreezeRef
+	26: Call staking_pool_id(&Validator): ID
+	27: MoveLoc[0](self#0#0: &mut Validator)
+	28: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	29: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	30: ReadRef
+	31: CopyLoc[2](ctx#0#0: &mut TxContext)
+	32: FreezeRef
+	33: Call tx_context::sender(&TxContext): address
+	34: MoveLoc[5](stake_activation_epoch#1#0: u64)
+	35: MoveLoc[2](ctx#0#0: &mut TxContext)
+	36: FreezeRef
+	37: Call tx_context::epoch(&TxContext): u64
+	38: MoveLoc[3](principal_amount#1#0: u64)
+	39: MoveLoc[4](reward_amount#1#0: u64)
+	40: Pack[3](UnstakingRequestEvent)
+	41: Call event::emit<UnstakingRequestEvent>(UnstakingRequestEvent)
+	42: Ret
+}
+public(friend) request_set_gas_price(self#0#0: &mut Validator, verified_cap#0#0: ValidatorOperationCap, new_price#0#0: u64) {
+B0:
+	0: ImmBorrowLoc[1](verified_cap#0#0: ValidatorOperationCap)
+	1: Call validator_cap::verified_operation_cap_address(&ValidatorOperationCap): &address
+	2: ReadRef
+	3: CopyLoc[0](self#0#0: &mut Validator)
+	4: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	5: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	6: ReadRef
+	7: Eq
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](self#0#0: &mut Validator)
+	11: Pop
+	12: LdConst[14](U64: [101, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: MoveLoc[2](new_price#0#0: u64)
+	15: MoveLoc[0](self#0#0: &mut Validator)
+	16: MutBorrowField[1](Validator.next_epoch_gas_price: u64)
+	17: WriteRef
+	18: Ret
+}
+public(friend) set_candidate_gas_price(self#0#0: &mut Validator, verified_cap#0#0: ValidatorOperationCap, new_price#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: ImmBorrowLoc[1](verified_cap#0#0: ValidatorOperationCap)
+	10: Call validator_cap::verified_operation_cap_address(&ValidatorOperationCap): &address
+	11: ReadRef
+	12: CopyLoc[0](self#0#0: &mut Validator)
+	13: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	14: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	15: ReadRef
+	16: Eq
+	17: BrFalse(19)
+B4:
+	18: Branch(23)
+B5:
+	19: MoveLoc[0](self#0#0: &mut Validator)
+	20: Pop
+	21: LdConst[14](U64: [101, 0, 0, 0, 0, 0, 0, 0])
+	22: Abort
+B6:
+	23: CopyLoc[2](new_price#0#0: u64)
+	24: CopyLoc[0](self#0#0: &mut Validator)
+	25: MutBorrowField[1](Validator.next_epoch_gas_price: u64)
+	26: WriteRef
+	27: MoveLoc[2](new_price#0#0: u64)
+	28: MoveLoc[0](self#0#0: &mut Validator)
+	29: MutBorrowField[2](Validator.gas_price: u64)
+	30: WriteRef
+	31: Ret
+}
+public(friend) request_set_commission_rate(self#0#0: &mut Validator, new_commission_rate#0#0: u64) {
+B0:
+	0: CopyLoc[1](new_commission_rate#0#0: u64)
+	1: LdConst[15](U64: [16, 39, 0, 0, 0, 0, 0, 0])
+	2: Le
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[8](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[1](new_commission_rate#0#0: u64)
+	10: MoveLoc[0](self#0#0: &mut Validator)
+	11: MutBorrowField[3](Validator.next_epoch_commission_rate: u64)
+	12: WriteRef
+	13: Ret
+}
+public(friend) set_candidate_commission_rate(self#0#0: &mut Validator, new_commission_rate#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: CopyLoc[1](new_commission_rate#0#0: u64)
+	10: LdConst[15](U64: [16, 39, 0, 0, 0, 0, 0, 0])
+	11: Le
+	12: BrFalse(14)
+B4:
+	13: Branch(18)
+B5:
+	14: MoveLoc[0](self#0#0: &mut Validator)
+	15: Pop
+	16: LdConst[8](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	17: Abort
+B6:
+	18: MoveLoc[1](new_commission_rate#0#0: u64)
+	19: MoveLoc[0](self#0#0: &mut Validator)
+	20: MutBorrowField[4](Validator.commission_rate: u64)
+	21: WriteRef
+	22: Ret
+}
+public(friend) deposit_stake_rewards(self#0#0: &mut Validator, reward#0#0: Balance<SUI>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: ImmBorrowField[5](Validator.next_epoch_stake: u64)
+	2: ReadRef
+	3: ImmBorrowLoc[1](reward#0#0: Balance<SUI>)
+	4: Call balance::value<SUI>(&Balance<SUI>): u64
+	5: Add
+	6: CopyLoc[0](self#0#0: &mut Validator)
+	7: MutBorrowField[5](Validator.next_epoch_stake: u64)
+	8: WriteRef
+	9: MoveLoc[0](self#0#0: &mut Validator)
+	10: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	11: MoveLoc[1](reward#0#0: Balance<SUI>)
+	12: Call staking_pool::deposit_rewards(&mut StakingPool, Balance<SUI>)
+	13: Ret
+}
+public(friend) process_pending_stakes_and_withdraws(self#0#0: &mut Validator, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: MutBorrowField[0](Validator.staking_pool: StakingPool)
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call staking_pool::process_pending_stakes_and_withdraws(&mut StakingPool, &mut TxContext)
+	4: CopyLoc[0](self#0#0: &mut Validator)
+	5: FreezeRef
+	6: Call stake_amount(&Validator): u64
+	7: MoveLoc[0](self#0#0: &mut Validator)
+	8: ImmBorrowField[5](Validator.next_epoch_stake: u64)
+	9: ReadRef
+	10: Eq
+	11: BrFalse(13)
+B1:
+	12: Branch(15)
+B2:
+	13: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: Ret
+}
+public is_preactive(self#0#0: &Validator): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: Call staking_pool::is_preactive(&StakingPool): bool
+	3: Ret
+}
+public metadata(self#0#0: &Validator): &ValidatorMetadata {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: Ret
+}
+public sui_address(self#0#0: &Validator): address {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	3: ReadRef
+	4: Ret
+}
+public name(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[8](ValidatorMetadata.name: String)
+	3: Ret
+}
+public description(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[9](ValidatorMetadata.description: String)
+	3: Ret
+}
+public image_url(self#0#0: &Validator): &Url {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[10](ValidatorMetadata.image_url: Url)
+	3: Ret
+}
+public project_url(self#0#0: &Validator): &Url {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[11](ValidatorMetadata.project_url: Url)
+	3: Ret
+}
+public network_address(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[12](ValidatorMetadata.net_address: String)
+	3: Ret
+}
+public p2p_address(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[13](ValidatorMetadata.p2p_address: String)
+	3: Ret
+}
+public primary_address(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[14](ValidatorMetadata.primary_address: String)
+	3: Ret
+}
+public worker_address(self#0#0: &Validator): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[15](ValidatorMetadata.worker_address: String)
+	3: Ret
+}
+public protocol_pubkey_bytes(self#0#0: &Validator): &vector<u8> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	3: Ret
+}
+public proof_of_possession(self#0#0: &Validator): &vector<u8> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[17](ValidatorMetadata.proof_of_possession: vector<u8>)
+	3: Ret
+}
+public network_pubkey_bytes(self#0#0: &Validator): &vector<u8> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	3: Ret
+}
+public worker_pubkey_bytes(self#0#0: &Validator): &vector<u8> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	3: Ret
+}
+public next_epoch_network_address(self#0#0: &Validator): &Option<String> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	3: Ret
+}
+public next_epoch_p2p_address(self#0#0: &Validator): &Option<String> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	3: Ret
+}
+public next_epoch_primary_address(self#0#0: &Validator): &Option<String> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[22](ValidatorMetadata.next_epoch_primary_address: Option<String>)
+	3: Ret
+}
+public next_epoch_worker_address(self#0#0: &Validator): &Option<String> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[23](ValidatorMetadata.next_epoch_worker_address: Option<String>)
+	3: Ret
+}
+public next_epoch_protocol_pubkey_bytes(self#0#0: &Validator): &Option<vector<u8>> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	3: Ret
+}
+public next_epoch_proof_of_possession(self#0#0: &Validator): &Option<vector<u8>> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[25](ValidatorMetadata.next_epoch_proof_of_possession: Option<vector<u8>>)
+	3: Ret
+}
+public next_epoch_network_pubkey_bytes(self#0#0: &Validator): &Option<vector<u8>> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	3: Ret
+}
+public next_epoch_worker_pubkey_bytes(self#0#0: &Validator): &Option<vector<u8>> {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	3: Ret
+}
+public operation_cap_id(self#0#0: &Validator): &ID {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[28](Validator.operation_cap_id: ID)
+	2: Ret
+}
+public next_epoch_gas_price(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[1](Validator.next_epoch_gas_price: u64)
+	2: ReadRef
+	3: Ret
+}
+public total_stake_amount(self#0#0: &Validator): u64 {
+B0:
+	0: Nop
+	1: MoveLoc[0](self#0#0: &Validator)
+	2: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	3: Call staking_pool::sui_balance(&StakingPool): u64
+	4: Ret
+}
+public stake_amount(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: Call staking_pool::sui_balance(&StakingPool): u64
+	3: Ret
+}
+public total_stake(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: Call stake_amount(&Validator): u64
+	2: Ret
+}
+public voting_power(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[29](Validator.voting_power: u64)
+	2: ReadRef
+	3: Ret
+}
+public(friend) set_voting_power(self#0#0: &mut Validator, new_voting_power#0#0: u64) {
+B0:
+	0: MoveLoc[1](new_voting_power#0#0: u64)
+	1: MoveLoc[0](self#0#0: &mut Validator)
+	2: MutBorrowField[29](Validator.voting_power: u64)
+	3: WriteRef
+	4: Ret
+}
+public pending_stake_amount(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: Call staking_pool::pending_stake_amount(&StakingPool): u64
+	3: Ret
+}
+public pending_stake_withdraw_amount(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: Call staking_pool::pending_stake_withdraw_amount(&StakingPool): u64
+	3: Ret
+}
+public gas_price(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[2](Validator.gas_price: u64)
+	2: ReadRef
+	3: Ret
+}
+public commission_rate(self#0#0: &Validator): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[4](Validator.commission_rate: u64)
+	2: ReadRef
+	3: Ret
+}
+public pool_token_exchange_rate_at_epoch(self#0#0: &Validator, epoch#0#0: u64): PoolTokenExchangeRate {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: MoveLoc[1](epoch#0#0: u64)
+	3: Call staking_pool::pool_token_exchange_rate_at_epoch(&StakingPool, u64): PoolTokenExchangeRate
+	4: Ret
+}
+public staking_pool_id(self#0#0: &Validator): ID {
+B0:
+	0: MoveLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[0](Validator.staking_pool: StakingPool)
+	2: Call object::id<StakingPool>(&StakingPool): ID
+	3: Ret
+}
+public is_duplicate(self#0#0: &Validator, other#0#0: &Validator): bool {
+L0:	%#11: bool
+L1:	%#12: bool
+L2:	%#13: bool
+L3:	%#14: bool
+L4:	%#15: bool
+L5:	%#16: bool
+L6:	%#17: bool
+L7:	%#18: bool
+L8:	%#19: bool
+L9:	%#2: bool
+L10:	%#20: bool
+L11:	%#21: bool
+L12:	%#22: bool
+L13:	%#23: bool
+L14:	%#24: bool
+L15:	%#25: bool
+L16:	%#26: bool
+L17:	%#27: bool
+L18:	%#28: bool
+L19:	%#29: bool
+L20:	%#3: bool
+L21:	%#4: bool
+L22:	%#5: bool
+L23:	%#6: bool
+L24:	%#7: bool
+L25:	%#8: bool
+L26:	%#9: bool
+B0:
+	0: CopyLoc[0](self#0#0: &Validator)
+	1: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	2: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	3: ReadRef
+	4: CopyLoc[1](other#0#0: &Validator)
+	5: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	6: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	7: ReadRef
+	8: Eq
+	9: BrFalse(13)
+B1:
+	10: LdTrue
+	11: StLoc[2](%#1: bool)
+	12: Branch(23)
+B2:
+	13: CopyLoc[0](self#0#0: &Validator)
+	14: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	15: ImmBorrowField[8](ValidatorMetadata.name: String)
+	16: ReadRef
+	17: CopyLoc[1](other#0#0: &Validator)
+	18: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	19: ImmBorrowField[8](ValidatorMetadata.name: String)
+	20: ReadRef
+	21: Eq
+	22: StLoc[2](%#1: bool)
+B3:
+	23: MoveLoc[2](%#1: bool)
+	24: BrFalse(28)
+B4:
+	25: LdTrue
+	26: StLoc[13](%#2: bool)
+	27: Branch(38)
+B5:
+	28: CopyLoc[0](self#0#0: &Validator)
+	29: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	30: ImmBorrowField[12](ValidatorMetadata.net_address: String)
+	31: ReadRef
+	32: CopyLoc[1](other#0#0: &Validator)
+	33: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	34: ImmBorrowField[12](ValidatorMetadata.net_address: String)
+	35: ReadRef
+	36: Eq
+	37: StLoc[13](%#2: bool)
+B6:
+	38: MoveLoc[13](%#2: bool)
+	39: BrFalse(43)
+B7:
+	40: LdTrue
+	41: StLoc[24](%#3: bool)
+	42: Branch(53)
+B8:
+	43: CopyLoc[0](self#0#0: &Validator)
+	44: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	45: ImmBorrowField[13](ValidatorMetadata.p2p_address: String)
+	46: ReadRef
+	47: CopyLoc[1](other#0#0: &Validator)
+	48: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	49: ImmBorrowField[13](ValidatorMetadata.p2p_address: String)
+	50: ReadRef
+	51: Eq
+	52: StLoc[24](%#3: bool)
+B9:
+	53: MoveLoc[24](%#3: bool)
+	54: BrFalse(58)
+B10:
+	55: LdTrue
+	56: StLoc[25](%#4: bool)
+	57: Branch(68)
+B11:
+	58: CopyLoc[0](self#0#0: &Validator)
+	59: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	60: ImmBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	61: ReadRef
+	62: CopyLoc[1](other#0#0: &Validator)
+	63: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	64: ImmBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	65: ReadRef
+	66: Eq
+	67: StLoc[25](%#4: bool)
+B12:
+	68: MoveLoc[25](%#4: bool)
+	69: BrFalse(73)
+B13:
+	70: LdTrue
+	71: StLoc[26](%#5: bool)
+	72: Branch(83)
+B14:
+	73: CopyLoc[0](self#0#0: &Validator)
+	74: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	75: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	76: ReadRef
+	77: CopyLoc[1](other#0#0: &Validator)
+	78: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	79: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	80: ReadRef
+	81: Eq
+	82: StLoc[26](%#5: bool)
+B15:
+	83: MoveLoc[26](%#5: bool)
+	84: BrFalse(88)
+B16:
+	85: LdTrue
+	86: StLoc[27](%#6: bool)
+	87: Branch(98)
+B17:
+	88: CopyLoc[0](self#0#0: &Validator)
+	89: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	90: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	91: ReadRef
+	92: CopyLoc[1](other#0#0: &Validator)
+	93: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	94: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	95: ReadRef
+	96: Eq
+	97: StLoc[27](%#6: bool)
+B18:
+	98: MoveLoc[27](%#6: bool)
+	99: BrFalse(103)
+B19:
+	100: LdTrue
+	101: StLoc[28](%#7: bool)
+	102: Branch(113)
+B20:
+	103: CopyLoc[0](self#0#0: &Validator)
+	104: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	105: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	106: ReadRef
+	107: CopyLoc[1](other#0#0: &Validator)
+	108: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	109: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	110: ReadRef
+	111: Eq
+	112: StLoc[28](%#7: bool)
+B21:
+	113: MoveLoc[28](%#7: bool)
+	114: BrFalse(118)
+B22:
+	115: LdTrue
+	116: StLoc[29](%#8: bool)
+	117: Branch(128)
+B23:
+	118: CopyLoc[0](self#0#0: &Validator)
+	119: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	120: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	121: ReadRef
+	122: CopyLoc[1](other#0#0: &Validator)
+	123: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	124: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	125: ReadRef
+	126: Eq
+	127: StLoc[29](%#8: bool)
+B24:
+	128: MoveLoc[29](%#8: bool)
+	129: BrFalse(133)
+B25:
+	130: LdTrue
+	131: StLoc[30](%#9: bool)
+	132: Branch(141)
+B26:
+	133: CopyLoc[0](self#0#0: &Validator)
+	134: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	135: ImmBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	136: CopyLoc[1](other#0#0: &Validator)
+	137: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	138: ImmBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	139: Call is_equal_some<String>(&Option<String>, &Option<String>): bool
+	140: StLoc[30](%#9: bool)
+B27:
+	141: MoveLoc[30](%#9: bool)
+	142: BrFalse(146)
+B28:
+	143: LdTrue
+	144: StLoc[3](%#10: bool)
+	145: Branch(154)
+B29:
+	146: CopyLoc[0](self#0#0: &Validator)
+	147: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	148: ImmBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	149: CopyLoc[1](other#0#0: &Validator)
+	150: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	151: ImmBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	152: Call is_equal_some<String>(&Option<String>, &Option<String>): bool
+	153: StLoc[3](%#10: bool)
+B30:
+	154: MoveLoc[3](%#10: bool)
+	155: BrFalse(159)
+B31:
+	156: LdTrue
+	157: StLoc[4](%#11: bool)
+	158: Branch(167)
+B32:
+	159: CopyLoc[0](self#0#0: &Validator)
+	160: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	161: ImmBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	162: CopyLoc[1](other#0#0: &Validator)
+	163: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	164: ImmBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	165: Call is_equal_some<vector<u8>>(&Option<vector<u8>>, &Option<vector<u8>>): bool
+	166: StLoc[4](%#11: bool)
+B33:
+	167: MoveLoc[4](%#11: bool)
+	168: BrFalse(172)
+B34:
+	169: LdTrue
+	170: StLoc[5](%#12: bool)
+	171: Branch(180)
+B35:
+	172: CopyLoc[0](self#0#0: &Validator)
+	173: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	174: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	175: CopyLoc[1](other#0#0: &Validator)
+	176: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	177: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	178: Call is_equal_some<vector<u8>>(&Option<vector<u8>>, &Option<vector<u8>>): bool
+	179: StLoc[5](%#12: bool)
+B36:
+	180: MoveLoc[5](%#12: bool)
+	181: BrFalse(185)
+B37:
+	182: LdTrue
+	183: StLoc[6](%#13: bool)
+	184: Branch(193)
+B38:
+	185: CopyLoc[0](self#0#0: &Validator)
+	186: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	187: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	188: CopyLoc[1](other#0#0: &Validator)
+	189: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	190: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	191: Call is_equal_some<vector<u8>>(&Option<vector<u8>>, &Option<vector<u8>>): bool
+	192: StLoc[6](%#13: bool)
+B39:
+	193: MoveLoc[6](%#13: bool)
+	194: BrFalse(198)
+B40:
+	195: LdTrue
+	196: StLoc[7](%#14: bool)
+	197: Branch(206)
+B41:
+	198: CopyLoc[0](self#0#0: &Validator)
+	199: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	200: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	201: CopyLoc[1](other#0#0: &Validator)
+	202: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	203: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	204: Call is_equal_some<vector<u8>>(&Option<vector<u8>>, &Option<vector<u8>>): bool
+	205: StLoc[7](%#14: bool)
+B42:
+	206: MoveLoc[7](%#14: bool)
+	207: BrFalse(211)
+B43:
+	208: LdTrue
+	209: StLoc[8](%#15: bool)
+	210: Branch(219)
+B44:
+	211: CopyLoc[0](self#0#0: &Validator)
+	212: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	213: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	214: CopyLoc[1](other#0#0: &Validator)
+	215: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	216: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	217: Call is_equal_some<vector<u8>>(&Option<vector<u8>>, &Option<vector<u8>>): bool
+	218: StLoc[8](%#15: bool)
+B45:
+	219: MoveLoc[8](%#15: bool)
+	220: BrFalse(224)
+B46:
+	221: LdTrue
+	222: StLoc[9](%#16: bool)
+	223: Branch(232)
+B47:
+	224: CopyLoc[0](self#0#0: &Validator)
+	225: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	226: ImmBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	227: CopyLoc[1](other#0#0: &Validator)
+	228: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	229: ImmBorrowField[12](ValidatorMetadata.net_address: String)
+	230: Call is_equal_some_and_value<String>(&Option<String>, &String): bool
+	231: StLoc[9](%#16: bool)
+B48:
+	232: MoveLoc[9](%#16: bool)
+	233: BrFalse(237)
+B49:
+	234: LdTrue
+	235: StLoc[10](%#17: bool)
+	236: Branch(245)
+B50:
+	237: CopyLoc[0](self#0#0: &Validator)
+	238: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	239: ImmBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	240: CopyLoc[1](other#0#0: &Validator)
+	241: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	242: ImmBorrowField[13](ValidatorMetadata.p2p_address: String)
+	243: Call is_equal_some_and_value<String>(&Option<String>, &String): bool
+	244: StLoc[10](%#17: bool)
+B51:
+	245: MoveLoc[10](%#17: bool)
+	246: BrFalse(250)
+B52:
+	247: LdTrue
+	248: StLoc[11](%#18: bool)
+	249: Branch(258)
+B53:
+	250: CopyLoc[0](self#0#0: &Validator)
+	251: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	252: ImmBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	253: CopyLoc[1](other#0#0: &Validator)
+	254: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	255: ImmBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	256: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	257: StLoc[11](%#18: bool)
+B54:
+	258: MoveLoc[11](%#18: bool)
+	259: BrFalse(263)
+B55:
+	260: LdTrue
+	261: StLoc[12](%#19: bool)
+	262: Branch(271)
+B56:
+	263: CopyLoc[0](self#0#0: &Validator)
+	264: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	265: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	266: CopyLoc[1](other#0#0: &Validator)
+	267: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	268: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	269: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	270: StLoc[12](%#19: bool)
+B57:
+	271: MoveLoc[12](%#19: bool)
+	272: BrFalse(276)
+B58:
+	273: LdTrue
+	274: StLoc[14](%#20: bool)
+	275: Branch(284)
+B59:
+	276: CopyLoc[0](self#0#0: &Validator)
+	277: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	278: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	279: CopyLoc[1](other#0#0: &Validator)
+	280: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	281: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	282: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	283: StLoc[14](%#20: bool)
+B60:
+	284: MoveLoc[14](%#20: bool)
+	285: BrFalse(289)
+B61:
+	286: LdTrue
+	287: StLoc[15](%#21: bool)
+	288: Branch(297)
+B62:
+	289: CopyLoc[0](self#0#0: &Validator)
+	290: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	291: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	292: CopyLoc[1](other#0#0: &Validator)
+	293: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	294: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	295: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	296: StLoc[15](%#21: bool)
+B63:
+	297: MoveLoc[15](%#21: bool)
+	298: BrFalse(302)
+B64:
+	299: LdTrue
+	300: StLoc[16](%#22: bool)
+	301: Branch(310)
+B65:
+	302: CopyLoc[0](self#0#0: &Validator)
+	303: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	304: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	305: CopyLoc[1](other#0#0: &Validator)
+	306: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	307: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	308: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	309: StLoc[16](%#22: bool)
+B66:
+	310: MoveLoc[16](%#22: bool)
+	311: BrFalse(315)
+B67:
+	312: LdTrue
+	313: StLoc[17](%#23: bool)
+	314: Branch(323)
+B68:
+	315: CopyLoc[1](other#0#0: &Validator)
+	316: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	317: ImmBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	318: CopyLoc[0](self#0#0: &Validator)
+	319: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	320: ImmBorrowField[12](ValidatorMetadata.net_address: String)
+	321: Call is_equal_some_and_value<String>(&Option<String>, &String): bool
+	322: StLoc[17](%#23: bool)
+B69:
+	323: MoveLoc[17](%#23: bool)
+	324: BrFalse(328)
+B70:
+	325: LdTrue
+	326: StLoc[18](%#24: bool)
+	327: Branch(336)
+B71:
+	328: CopyLoc[1](other#0#0: &Validator)
+	329: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	330: ImmBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	331: CopyLoc[0](self#0#0: &Validator)
+	332: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	333: ImmBorrowField[13](ValidatorMetadata.p2p_address: String)
+	334: Call is_equal_some_and_value<String>(&Option<String>, &String): bool
+	335: StLoc[18](%#24: bool)
+B72:
+	336: MoveLoc[18](%#24: bool)
+	337: BrFalse(341)
+B73:
+	338: LdTrue
+	339: StLoc[19](%#25: bool)
+	340: Branch(349)
+B74:
+	341: CopyLoc[1](other#0#0: &Validator)
+	342: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	343: ImmBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	344: CopyLoc[0](self#0#0: &Validator)
+	345: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	346: ImmBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	347: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	348: StLoc[19](%#25: bool)
+B75:
+	349: MoveLoc[19](%#25: bool)
+	350: BrFalse(354)
+B76:
+	351: LdTrue
+	352: StLoc[20](%#26: bool)
+	353: Branch(362)
+B77:
+	354: CopyLoc[1](other#0#0: &Validator)
+	355: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	356: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	357: CopyLoc[0](self#0#0: &Validator)
+	358: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	359: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	360: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	361: StLoc[20](%#26: bool)
+B78:
+	362: MoveLoc[20](%#26: bool)
+	363: BrFalse(367)
+B79:
+	364: LdTrue
+	365: StLoc[21](%#27: bool)
+	366: Branch(375)
+B80:
+	367: CopyLoc[1](other#0#0: &Validator)
+	368: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	369: ImmBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	370: CopyLoc[0](self#0#0: &Validator)
+	371: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	372: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	373: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	374: StLoc[21](%#27: bool)
+B81:
+	375: MoveLoc[21](%#27: bool)
+	376: BrFalse(380)
+B82:
+	377: LdTrue
+	378: StLoc[22](%#28: bool)
+	379: Branch(388)
+B83:
+	380: CopyLoc[1](other#0#0: &Validator)
+	381: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	382: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	383: CopyLoc[0](self#0#0: &Validator)
+	384: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	385: ImmBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	386: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	387: StLoc[22](%#28: bool)
+B84:
+	388: MoveLoc[22](%#28: bool)
+	389: BrFalse(397)
+B85:
+	390: MoveLoc[0](self#0#0: &Validator)
+	391: Pop
+	392: MoveLoc[1](other#0#0: &Validator)
+	393: Pop
+	394: LdTrue
+	395: StLoc[23](%#29: bool)
+	396: Branch(405)
+B86:
+	397: MoveLoc[1](other#0#0: &Validator)
+	398: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	399: ImmBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	400: MoveLoc[0](self#0#0: &Validator)
+	401: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	402: ImmBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	403: Call is_equal_some_and_value<vector<u8>>(&Option<vector<u8>>, &vector<u8>): bool
+	404: StLoc[23](%#29: bool)
+B87:
+	405: MoveLoc[23](%#29: bool)
+	406: Ret
+}
+is_equal_some_and_value<T>(a#0#0: &Option<T>, b#0#0: &T): bool {
+B0:
+	0: CopyLoc[0](a#0#0: &Option<T>)
+	1: Call option::is_none<T>(&Option<T>): bool
+	2: BrFalse(10)
+B1:
+	3: MoveLoc[1](b#0#0: &T)
+	4: Pop
+	5: MoveLoc[0](a#0#0: &Option<T>)
+	6: Pop
+	7: LdFalse
+	8: StLoc[2](%#1: bool)
+	9: Branch(15)
+B2:
+	10: MoveLoc[0](a#0#0: &Option<T>)
+	11: Call option::borrow<T>(&Option<T>): &T
+	12: MoveLoc[1](b#0#0: &T)
+	13: Eq
+	14: StLoc[2](%#1: bool)
+B3:
+	15: MoveLoc[2](%#1: bool)
+	16: Ret
+}
+is_equal_some<T>(a#0#0: &Option<T>, b#0#0: &Option<T>): bool {
+B0:
+	0: CopyLoc[0](a#0#0: &Option<T>)
+	1: Call option::is_none<T>(&Option<T>): bool
+	2: BrFalse(6)
+B1:
+	3: LdTrue
+	4: StLoc[2](%#1: bool)
+	5: Branch(9)
+B2:
+	6: CopyLoc[1](b#0#0: &Option<T>)
+	7: Call option::is_none<T>(&Option<T>): bool
+	8: StLoc[2](%#1: bool)
+B3:
+	9: MoveLoc[2](%#1: bool)
+	10: BrFalse(18)
+B4:
+	11: MoveLoc[1](b#0#0: &Option<T>)
+	12: Pop
+	13: MoveLoc[0](a#0#0: &Option<T>)
+	14: Pop
+	15: LdFalse
+	16: StLoc[3](%#2: bool)
+	17: Branch(24)
+B5:
+	18: MoveLoc[0](a#0#0: &Option<T>)
+	19: Call option::borrow<T>(&Option<T>): &T
+	20: MoveLoc[1](b#0#0: &Option<T>)
+	21: Call option::borrow<T>(&Option<T>): &T
+	22: Eq
+	23: StLoc[3](%#2: bool)
+B6:
+	24: MoveLoc[3](%#2: bool)
+	25: Ret
+}
+public(friend) new_unverified_validator_operation_cap_and_transfer(self#0#0: &mut Validator, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[1](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::sender(&TxContext): address
+	3: StLoc[2](address#1#0: address)
+	4: CopyLoc[2](address#1#0: address)
+	5: CopyLoc[0](self#0#0: &mut Validator)
+	6: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	7: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	8: ReadRef
+	9: Eq
+	10: BrFalse(12)
+B1:
+	11: Branch(18)
+B2:
+	12: MoveLoc[0](self#0#0: &mut Validator)
+	13: Pop
+	14: MoveLoc[1](ctx#0#0: &mut TxContext)
+	15: Pop
+	16: LdConst[13](U64: [100, 0, 0, 0, 0, 0, 0, 0])
+	17: Abort
+B3:
+	18: MoveLoc[2](address#1#0: address)
+	19: MoveLoc[1](ctx#0#0: &mut TxContext)
+	20: Call validator_cap::new_unverified_validator_operation_cap_and_transfer(address, &mut TxContext): ID
+	21: MoveLoc[0](self#0#0: &mut Validator)
+	22: MutBorrowField[28](Validator.operation_cap_id: ID)
+	23: WriteRef
+	24: Ret
+}
+public(friend) update_name(self#0#0: &mut Validator, name#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](name#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](name#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: MoveLoc[0](self#0#0: &mut Validator)
+	14: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	15: MutBorrowField[8](ValidatorMetadata.name: String)
+	16: WriteRef
+	17: Ret
+}
+public(friend) update_description(self#0#0: &mut Validator, description#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](description#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](description#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: MoveLoc[0](self#0#0: &mut Validator)
+	14: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	15: MutBorrowField[9](ValidatorMetadata.description: String)
+	16: WriteRef
+	17: Ret
+}
+public(friend) update_image_url(self#0#0: &mut Validator, image_url#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](image_url#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](image_url#0#0: vector<u8>)
+	11: Call url::new_unsafe_from_bytes(vector<u8>): Url
+	12: MoveLoc[0](self#0#0: &mut Validator)
+	13: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	14: MutBorrowField[10](ValidatorMetadata.image_url: Url)
+	15: WriteRef
+	16: Ret
+}
+public(friend) update_project_url(self#0#0: &mut Validator, project_url#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](project_url#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](project_url#0#0: vector<u8>)
+	11: Call url::new_unsafe_from_bytes(vector<u8>): Url
+	12: MoveLoc[0](self#0#0: &mut Validator)
+	13: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	14: MutBorrowField[11](ValidatorMetadata.project_url: Url)
+	15: WriteRef
+	16: Ret
+}
+public(friend) update_next_epoch_network_address(self#0#0: &mut Validator, net_address#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](net_address#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](net_address#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: Call option::some<String>(String): Option<String>
+	14: CopyLoc[0](self#0#0: &mut Validator)
+	15: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: MutBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	17: WriteRef
+	18: MoveLoc[0](self#0#0: &mut Validator)
+	19: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	20: Call validate_metadata(&ValidatorMetadata)
+	21: Ret
+}
+public(friend) update_candidate_network_address(self#0#0: &mut Validator, net_address#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: ImmBorrowLoc[1](net_address#0#0: vector<u8>)
+	10: VecLen(37)
+	11: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	12: Le
+	13: BrFalse(15)
+B4:
+	14: Branch(19)
+B5:
+	15: MoveLoc[0](self#0#0: &mut Validator)
+	16: Pop
+	17: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	18: Abort
+B6:
+	19: MoveLoc[1](net_address#0#0: vector<u8>)
+	20: Call ascii::string(vector<u8>): String
+	21: Call string::from_ascii(String): String
+	22: CopyLoc[0](self#0#0: &mut Validator)
+	23: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	24: MutBorrowField[12](ValidatorMetadata.net_address: String)
+	25: WriteRef
+	26: MoveLoc[0](self#0#0: &mut Validator)
+	27: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	28: Call validate_metadata(&ValidatorMetadata)
+	29: Ret
+}
+public(friend) update_next_epoch_p2p_address(self#0#0: &mut Validator, p2p_address#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](p2p_address#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: Call option::some<String>(String): Option<String>
+	14: CopyLoc[0](self#0#0: &mut Validator)
+	15: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: MutBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	17: WriteRef
+	18: MoveLoc[0](self#0#0: &mut Validator)
+	19: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	20: Call validate_metadata(&ValidatorMetadata)
+	21: Ret
+}
+public(friend) update_candidate_p2p_address(self#0#0: &mut Validator, p2p_address#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: ImmBorrowLoc[1](p2p_address#0#0: vector<u8>)
+	10: VecLen(37)
+	11: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	12: Le
+	13: BrFalse(15)
+B4:
+	14: Branch(19)
+B5:
+	15: MoveLoc[0](self#0#0: &mut Validator)
+	16: Pop
+	17: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	18: Abort
+B6:
+	19: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	20: Call ascii::string(vector<u8>): String
+	21: Call string::from_ascii(String): String
+	22: CopyLoc[0](self#0#0: &mut Validator)
+	23: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	24: MutBorrowField[13](ValidatorMetadata.p2p_address: String)
+	25: WriteRef
+	26: MoveLoc[0](self#0#0: &mut Validator)
+	27: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	28: Call validate_metadata(&ValidatorMetadata)
+	29: Ret
+}
+public(friend) update_next_epoch_primary_address(self#0#0: &mut Validator, primary_address#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](primary_address#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](primary_address#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: Call option::some<String>(String): Option<String>
+	14: CopyLoc[0](self#0#0: &mut Validator)
+	15: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: MutBorrowField[22](ValidatorMetadata.next_epoch_primary_address: Option<String>)
+	17: WriteRef
+	18: MoveLoc[0](self#0#0: &mut Validator)
+	19: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	20: Call validate_metadata(&ValidatorMetadata)
+	21: Ret
+}
+public(friend) update_candidate_primary_address(self#0#0: &mut Validator, primary_address#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: ImmBorrowLoc[1](primary_address#0#0: vector<u8>)
+	10: VecLen(37)
+	11: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	12: Le
+	13: BrFalse(15)
+B4:
+	14: Branch(19)
+B5:
+	15: MoveLoc[0](self#0#0: &mut Validator)
+	16: Pop
+	17: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	18: Abort
+B6:
+	19: MoveLoc[1](primary_address#0#0: vector<u8>)
+	20: Call ascii::string(vector<u8>): String
+	21: Call string::from_ascii(String): String
+	22: CopyLoc[0](self#0#0: &mut Validator)
+	23: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	24: MutBorrowField[14](ValidatorMetadata.primary_address: String)
+	25: WriteRef
+	26: MoveLoc[0](self#0#0: &mut Validator)
+	27: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	28: Call validate_metadata(&ValidatorMetadata)
+	29: Ret
+}
+public(friend) update_next_epoch_worker_address(self#0#0: &mut Validator, worker_address#0#0: vector<u8>) {
+B0:
+	0: ImmBorrowLoc[1](worker_address#0#0: vector<u8>)
+	1: VecLen(37)
+	2: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: Pop
+	8: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[1](worker_address#0#0: vector<u8>)
+	11: Call ascii::string(vector<u8>): String
+	12: Call string::from_ascii(String): String
+	13: Call option::some<String>(String): Option<String>
+	14: CopyLoc[0](self#0#0: &mut Validator)
+	15: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: MutBorrowField[23](ValidatorMetadata.next_epoch_worker_address: Option<String>)
+	17: WriteRef
+	18: MoveLoc[0](self#0#0: &mut Validator)
+	19: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	20: Call validate_metadata(&ValidatorMetadata)
+	21: Ret
+}
+public(friend) update_candidate_worker_address(self#0#0: &mut Validator, worker_address#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: ImmBorrowLoc[1](worker_address#0#0: vector<u8>)
+	10: VecLen(37)
+	11: LdConst[16](U64: [0, 1, 0, 0, 0, 0, 0, 0])
+	12: Le
+	13: BrFalse(15)
+B4:
+	14: Branch(19)
+B5:
+	15: MoveLoc[0](self#0#0: &mut Validator)
+	16: Pop
+	17: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	18: Abort
+B6:
+	19: MoveLoc[1](worker_address#0#0: vector<u8>)
+	20: Call ascii::string(vector<u8>): String
+	21: Call string::from_ascii(String): String
+	22: CopyLoc[0](self#0#0: &mut Validator)
+	23: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	24: MutBorrowField[15](ValidatorMetadata.worker_address: String)
+	25: WriteRef
+	26: MoveLoc[0](self#0#0: &mut Validator)
+	27: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	28: Call validate_metadata(&ValidatorMetadata)
+	29: Ret
+}
+public(friend) update_next_epoch_protocol_pubkey(self#0#0: &mut Validator, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>) {
+B0:
+	0: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	1: Call option::some<vector<u8>>(vector<u8>): Option<vector<u8>>
+	2: CopyLoc[0](self#0#0: &mut Validator)
+	3: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	4: MutBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	5: WriteRef
+	6: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	7: Call option::some<vector<u8>>(vector<u8>): Option<vector<u8>>
+	8: CopyLoc[0](self#0#0: &mut Validator)
+	9: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	10: MutBorrowField[25](ValidatorMetadata.next_epoch_proof_of_possession: Option<vector<u8>>)
+	11: WriteRef
+	12: MoveLoc[0](self#0#0: &mut Validator)
+	13: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	14: Call validate_metadata(&ValidatorMetadata)
+	15: Ret
+}
+public(friend) update_candidate_protocol_pubkey(self#0#0: &mut Validator, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	10: CopyLoc[0](self#0#0: &mut Validator)
+	11: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	12: MutBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	13: WriteRef
+	14: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	15: CopyLoc[0](self#0#0: &mut Validator)
+	16: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	17: MutBorrowField[17](ValidatorMetadata.proof_of_possession: vector<u8>)
+	18: WriteRef
+	19: MoveLoc[0](self#0#0: &mut Validator)
+	20: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	21: Call validate_metadata(&ValidatorMetadata)
+	22: Ret
+}
+public(friend) update_next_epoch_network_pubkey(self#0#0: &mut Validator, network_pubkey#0#0: vector<u8>) {
+B0:
+	0: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	1: Call option::some<vector<u8>>(vector<u8>): Option<vector<u8>>
+	2: CopyLoc[0](self#0#0: &mut Validator)
+	3: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	4: MutBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	5: WriteRef
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	8: Call validate_metadata(&ValidatorMetadata)
+	9: Ret
+}
+public(friend) update_candidate_network_pubkey(self#0#0: &mut Validator, network_pubkey#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	10: CopyLoc[0](self#0#0: &mut Validator)
+	11: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	12: MutBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	13: WriteRef
+	14: MoveLoc[0](self#0#0: &mut Validator)
+	15: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: Call validate_metadata(&ValidatorMetadata)
+	17: Ret
+}
+public(friend) update_next_epoch_worker_pubkey(self#0#0: &mut Validator, worker_pubkey#0#0: vector<u8>) {
+B0:
+	0: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	1: Call option::some<vector<u8>>(vector<u8>): Option<vector<u8>>
+	2: CopyLoc[0](self#0#0: &mut Validator)
+	3: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	4: MutBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	5: WriteRef
+	6: MoveLoc[0](self#0#0: &mut Validator)
+	7: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	8: Call validate_metadata(&ValidatorMetadata)
+	9: Ret
+}
+public(friend) update_candidate_worker_pubkey(self#0#0: &mut Validator, worker_pubkey#0#0: vector<u8>) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call is_preactive(&Validator): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Validator)
+	6: Pop
+	7: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	10: CopyLoc[0](self#0#0: &mut Validator)
+	11: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	12: MutBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	13: WriteRef
+	14: MoveLoc[0](self#0#0: &mut Validator)
+	15: ImmBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: Call validate_metadata(&ValidatorMetadata)
+	17: Ret
+}
+public(friend) effectuate_staged_metadata(self#0#0: &mut Validator) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Validator)
+	1: FreezeRef
+	2: Call next_epoch_network_address(&Validator): &Option<String>
+	3: Call option::is_some<String>(&Option<String>): bool
+	4: BrFalse(18)
+B1:
+	5: CopyLoc[0](self#0#0: &mut Validator)
+	6: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	7: MutBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	8: Call option::extract<String>(&mut Option<String>): String
+	9: CopyLoc[0](self#0#0: &mut Validator)
+	10: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	11: MutBorrowField[12](ValidatorMetadata.net_address: String)
+	12: WriteRef
+	13: Call option::none<String>(): Option<String>
+	14: CopyLoc[0](self#0#0: &mut Validator)
+	15: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	16: MutBorrowField[20](ValidatorMetadata.next_epoch_net_address: Option<String>)
+	17: WriteRef
+B2:
+	18: CopyLoc[0](self#0#0: &mut Validator)
+	19: FreezeRef
+	20: Call next_epoch_p2p_address(&Validator): &Option<String>
+	21: Call option::is_some<String>(&Option<String>): bool
+	22: BrFalse(36)
+B3:
+	23: CopyLoc[0](self#0#0: &mut Validator)
+	24: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	25: MutBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	26: Call option::extract<String>(&mut Option<String>): String
+	27: CopyLoc[0](self#0#0: &mut Validator)
+	28: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	29: MutBorrowField[13](ValidatorMetadata.p2p_address: String)
+	30: WriteRef
+	31: Call option::none<String>(): Option<String>
+	32: CopyLoc[0](self#0#0: &mut Validator)
+	33: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	34: MutBorrowField[21](ValidatorMetadata.next_epoch_p2p_address: Option<String>)
+	35: WriteRef
+B4:
+	36: CopyLoc[0](self#0#0: &mut Validator)
+	37: FreezeRef
+	38: Call next_epoch_primary_address(&Validator): &Option<String>
+	39: Call option::is_some<String>(&Option<String>): bool
+	40: BrFalse(54)
+B5:
+	41: CopyLoc[0](self#0#0: &mut Validator)
+	42: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	43: MutBorrowField[22](ValidatorMetadata.next_epoch_primary_address: Option<String>)
+	44: Call option::extract<String>(&mut Option<String>): String
+	45: CopyLoc[0](self#0#0: &mut Validator)
+	46: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	47: MutBorrowField[14](ValidatorMetadata.primary_address: String)
+	48: WriteRef
+	49: Call option::none<String>(): Option<String>
+	50: CopyLoc[0](self#0#0: &mut Validator)
+	51: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	52: MutBorrowField[22](ValidatorMetadata.next_epoch_primary_address: Option<String>)
+	53: WriteRef
+B6:
+	54: CopyLoc[0](self#0#0: &mut Validator)
+	55: FreezeRef
+	56: Call next_epoch_worker_address(&Validator): &Option<String>
+	57: Call option::is_some<String>(&Option<String>): bool
+	58: BrFalse(72)
+B7:
+	59: CopyLoc[0](self#0#0: &mut Validator)
+	60: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	61: MutBorrowField[23](ValidatorMetadata.next_epoch_worker_address: Option<String>)
+	62: Call option::extract<String>(&mut Option<String>): String
+	63: CopyLoc[0](self#0#0: &mut Validator)
+	64: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	65: MutBorrowField[15](ValidatorMetadata.worker_address: String)
+	66: WriteRef
+	67: Call option::none<String>(): Option<String>
+	68: CopyLoc[0](self#0#0: &mut Validator)
+	69: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	70: MutBorrowField[23](ValidatorMetadata.next_epoch_worker_address: Option<String>)
+	71: WriteRef
+B8:
+	72: CopyLoc[0](self#0#0: &mut Validator)
+	73: FreezeRef
+	74: Call next_epoch_protocol_pubkey_bytes(&Validator): &Option<vector<u8>>
+	75: Call option::is_some<vector<u8>>(&Option<vector<u8>>): bool
+	76: BrFalse(103)
+B9:
+	77: CopyLoc[0](self#0#0: &mut Validator)
+	78: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	79: MutBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	80: Call option::extract<vector<u8>>(&mut Option<vector<u8>>): vector<u8>
+	81: CopyLoc[0](self#0#0: &mut Validator)
+	82: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	83: MutBorrowField[16](ValidatorMetadata.protocol_pubkey_bytes: vector<u8>)
+	84: WriteRef
+	85: Call option::none<vector<u8>>(): Option<vector<u8>>
+	86: CopyLoc[0](self#0#0: &mut Validator)
+	87: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	88: MutBorrowField[24](ValidatorMetadata.next_epoch_protocol_pubkey_bytes: Option<vector<u8>>)
+	89: WriteRef
+	90: CopyLoc[0](self#0#0: &mut Validator)
+	91: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	92: MutBorrowField[25](ValidatorMetadata.next_epoch_proof_of_possession: Option<vector<u8>>)
+	93: Call option::extract<vector<u8>>(&mut Option<vector<u8>>): vector<u8>
+	94: CopyLoc[0](self#0#0: &mut Validator)
+	95: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	96: MutBorrowField[17](ValidatorMetadata.proof_of_possession: vector<u8>)
+	97: WriteRef
+	98: Call option::none<vector<u8>>(): Option<vector<u8>>
+	99: CopyLoc[0](self#0#0: &mut Validator)
+	100: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	101: MutBorrowField[25](ValidatorMetadata.next_epoch_proof_of_possession: Option<vector<u8>>)
+	102: WriteRef
+B10:
+	103: CopyLoc[0](self#0#0: &mut Validator)
+	104: FreezeRef
+	105: Call next_epoch_network_pubkey_bytes(&Validator): &Option<vector<u8>>
+	106: Call option::is_some<vector<u8>>(&Option<vector<u8>>): bool
+	107: BrFalse(121)
+B11:
+	108: CopyLoc[0](self#0#0: &mut Validator)
+	109: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	110: MutBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	111: Call option::extract<vector<u8>>(&mut Option<vector<u8>>): vector<u8>
+	112: CopyLoc[0](self#0#0: &mut Validator)
+	113: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	114: MutBorrowField[18](ValidatorMetadata.network_pubkey_bytes: vector<u8>)
+	115: WriteRef
+	116: Call option::none<vector<u8>>(): Option<vector<u8>>
+	117: CopyLoc[0](self#0#0: &mut Validator)
+	118: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	119: MutBorrowField[26](ValidatorMetadata.next_epoch_network_pubkey_bytes: Option<vector<u8>>)
+	120: WriteRef
+B12:
+	121: CopyLoc[0](self#0#0: &mut Validator)
+	122: FreezeRef
+	123: Call next_epoch_worker_pubkey_bytes(&Validator): &Option<vector<u8>>
+	124: Call option::is_some<vector<u8>>(&Option<vector<u8>>): bool
+	125: BrFalse(140)
+B13:
+	126: CopyLoc[0](self#0#0: &mut Validator)
+	127: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	128: MutBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	129: Call option::extract<vector<u8>>(&mut Option<vector<u8>>): vector<u8>
+	130: CopyLoc[0](self#0#0: &mut Validator)
+	131: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	132: MutBorrowField[19](ValidatorMetadata.worker_pubkey_bytes: vector<u8>)
+	133: WriteRef
+	134: Call option::none<vector<u8>>(): Option<vector<u8>>
+	135: MoveLoc[0](self#0#0: &mut Validator)
+	136: MutBorrowField[6](Validator.metadata: ValidatorMetadata)
+	137: MutBorrowField[27](ValidatorMetadata.next_epoch_worker_pubkey_bytes: Option<vector<u8>>)
+	138: WriteRef
+	139: Branch(142)
+B14:
+	140: MoveLoc[0](self#0#0: &mut Validator)
+	141: Pop
+B15:
+	142: Ret
+}
+public validate_metadata(metadata#0#0: &ValidatorMetadata) {
+B0:
+	0: MoveLoc[0](metadata#0#0: &ValidatorMetadata)
+	1: Call bcs::to_bytes<ValidatorMetadata>(&ValidatorMetadata): vector<u8>
+	2: Call validate_metadata_bcs(vector<u8>)
+	3: Ret
+}
+native public validate_metadata_bcs(metadata#0#0: vector<u8>)
+new_from_metadata(metadata#0#0: ValidatorMetadata, gas_price#0#0: u64, commission_rate#0#0: u64, ctx#0#0: &mut TxContext): Validator {
+B0:
+	0: ImmBorrowLoc[0](metadata#0#0: ValidatorMetadata)
+	1: ImmBorrowField[7](ValidatorMetadata.sui_address: address)
+	2: ReadRef
+	3: StLoc[6](sui_address#1#0: address)
+	4: CopyLoc[3](ctx#0#0: &mut TxContext)
+	5: Call staking_pool::new(&mut TxContext): StakingPool
+	6: StLoc[5](staking_pool#1#0: StakingPool)
+	7: MoveLoc[6](sui_address#1#0: address)
+	8: CopyLoc[3](ctx#0#0: &mut TxContext)
+	9: Call validator_cap::new_unverified_validator_operation_cap_and_transfer(address, &mut TxContext): ID
+	10: StLoc[4](operation_cap_id#1#0: ID)
+	11: MoveLoc[0](metadata#0#0: ValidatorMetadata)
+	12: LdU64(0)
+	13: MoveLoc[4](operation_cap_id#1#0: ID)
+	14: CopyLoc[1](gas_price#0#0: u64)
+	15: MoveLoc[5](staking_pool#1#0: StakingPool)
+	16: CopyLoc[2](commission_rate#0#0: u64)
+	17: LdU64(0)
+	18: MoveLoc[1](gas_price#0#0: u64)
+	19: MoveLoc[2](commission_rate#0#0: u64)
+	20: MoveLoc[3](ctx#0#0: &mut TxContext)
+	21: Call bag::new(&mut TxContext): Bag
+	22: Pack[1](Validator)
+	23: Ret
+}
+}

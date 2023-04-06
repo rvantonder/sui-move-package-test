@@ -1,0 +1,323 @@
+// Move bytecode v6
+module 3.genesis {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000001::vector;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000003::stake_subsidy;
+use 0000000000000000000000000000000000000000000000000000000000000003::sui_system;
+use 0000000000000000000000000000000000000000000000000000000000000003::sui_system_state_inner;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_set;
+
+
+struct GenesisValidatorMetadata has copy, drop {
+	name: vector<u8>,
+	description: vector<u8>,
+	image_url: vector<u8>,
+	project_url: vector<u8>,
+	sui_address: address,
+	gas_price: u64,
+	commission_rate: u64,
+	protocol_public_key: vector<u8>,
+	proof_of_possession: vector<u8>,
+	network_public_key: vector<u8>,
+	worker_public_key: vector<u8>,
+	network_address: vector<u8>,
+	p2p_address: vector<u8>,
+	primary_address: vector<u8>,
+	worker_address: vector<u8>
+}
+struct GenesisChainParameters has copy, drop {
+	protocol_version: u64,
+	chain_start_timestamp_ms: u64,
+	epoch_duration_ms: u64,
+	stake_subsidy_start_epoch: u64,
+	stake_subsidy_initial_distribution_amount: u64,
+	stake_subsidy_period_length: u64,
+	stake_subsidy_decrease_rate: u16,
+	max_validator_count: u64,
+	min_validator_joining_stake: u64,
+	validator_low_stake_threshold: u64,
+	validator_very_low_stake_threshold: u64,
+	validator_low_stake_grace_period: u64
+}
+struct TokenDistributionSchedule {
+	stake_subsidy_fund_mist: u64,
+	allocations: vector<TokenAllocation>
+}
+struct TokenAllocation {
+	recipient_address: address,
+	amount_mist: u64,
+	staked_with_validator: Option<address>
+}
+
+create(sui_system_state_id#0#0: UID, sui_supply#0#0: Balance<SUI>, genesis_chain_parameters#0#0: GenesisChainParameters, genesis_validators#0#0: vector<GenesisValidatorMetadata>, token_distribution_schedule#0#0: TokenDistributionSchedule, ctx#0#0: &mut TxContext) {
+L0:	image_url#1#0: vector<u8>
+L1:	name#1#0: vector<u8>
+L2:	network_address#1#0: vector<u8>
+L3:	network_public_key#1#0: vector<u8>
+L4:	p2p_address#1#0: vector<u8>
+L5:	primary_address#1#0: vector<u8>
+L6:	project_url#1#0: vector<u8>
+L7:	proof_of_possession#1#0: vector<u8>
+L8:	protocol_public_key#1#0: vector<u8>
+L9:	stake_subsidy#1#0: StakeSubsidy
+L10:	stake_subsidy_fund_mist#1#0: u64
+L11:	storage_fund#1#0: Balance<SUI>
+L12:	subsidy_fund#1#0: Balance<SUI>
+L13:	sui_address#1#0: address
+L14:	system_parameters#1#0: SystemParameters
+L15:	validator#1#0: Validator
+L16:	validators#1#0: vector<Validator>
+L17:	worker_address#1#0: vector<u8>
+L18:	worker_public_key#1#0: vector<u8>
+B0:
+	0: CopyLoc[5](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::epoch(&TxContext): u64
+	3: LdU64(0)
+	4: Eq
+	5: BrFalse(7)
+B1:
+	6: Branch(11)
+B2:
+	7: MoveLoc[5](ctx#0#0: &mut TxContext)
+	8: Pop
+	9: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	10: Abort
+B3:
+	11: MoveLoc[4](token_distribution_schedule#0#0: TokenDistributionSchedule)
+	12: Unpack[2](TokenDistributionSchedule)
+	13: StLoc[6](allocations#1#0: vector<TokenAllocation>)
+	14: StLoc[22](stake_subsidy_fund_mist#1#0: u64)
+	15: MutBorrowLoc[1](sui_supply#0#0: Balance<SUI>)
+	16: MoveLoc[22](stake_subsidy_fund_mist#1#0: u64)
+	17: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	18: StLoc[24](subsidy_fund#1#0: Balance<SUI>)
+	19: Call balance::zero<SUI>(): Balance<SUI>
+	20: StLoc[23](storage_fund#1#0: Balance<SUI>)
+	21: VecPack(10, 0)
+	22: StLoc[28](validators#1#0: vector<Validator>)
+	23: ImmBorrowLoc[3](genesis_validators#0#0: vector<GenesisValidatorMetadata>)
+	24: VecLen(11)
+	25: StLoc[8](count#1#0: u64)
+	26: LdU64(0)
+	27: StLoc[11](i#1#0: u64)
+B4:
+	28: CopyLoc[11](i#1#0: u64)
+	29: CopyLoc[8](count#1#0: u64)
+	30: Lt
+	31: BrFalse(89)
+B5:
+	32: Branch(33)
+B6:
+	33: ImmBorrowLoc[3](genesis_validators#0#0: vector<GenesisValidatorMetadata>)
+	34: CopyLoc[11](i#1#0: u64)
+	35: VecImmBorrow(11)
+	36: ReadRef
+	37: Unpack[0](GenesisValidatorMetadata)
+	38: StLoc[29](worker_address#1#0: vector<u8>)
+	39: StLoc[17](primary_address#1#0: vector<u8>)
+	40: StLoc[16](p2p_address#1#0: vector<u8>)
+	41: StLoc[14](network_address#1#0: vector<u8>)
+	42: StLoc[30](worker_public_key#1#0: vector<u8>)
+	43: StLoc[15](network_public_key#1#0: vector<u8>)
+	44: StLoc[19](proof_of_possession#1#0: vector<u8>)
+	45: StLoc[20](protocol_public_key#1#0: vector<u8>)
+	46: StLoc[7](commission_rate#1#0: u64)
+	47: StLoc[10](gas_price#1#0: u64)
+	48: StLoc[25](sui_address#1#0: address)
+	49: StLoc[18](project_url#1#0: vector<u8>)
+	50: StLoc[12](image_url#1#0: vector<u8>)
+	51: StLoc[9](description#1#0: vector<u8>)
+	52: StLoc[13](name#1#0: vector<u8>)
+	53: MoveLoc[25](sui_address#1#0: address)
+	54: MoveLoc[20](protocol_public_key#1#0: vector<u8>)
+	55: MoveLoc[15](network_public_key#1#0: vector<u8>)
+	56: MoveLoc[30](worker_public_key#1#0: vector<u8>)
+	57: MoveLoc[19](proof_of_possession#1#0: vector<u8>)
+	58: MoveLoc[13](name#1#0: vector<u8>)
+	59: MoveLoc[9](description#1#0: vector<u8>)
+	60: MoveLoc[12](image_url#1#0: vector<u8>)
+	61: MoveLoc[18](project_url#1#0: vector<u8>)
+	62: MoveLoc[14](network_address#1#0: vector<u8>)
+	63: MoveLoc[16](p2p_address#1#0: vector<u8>)
+	64: MoveLoc[17](primary_address#1#0: vector<u8>)
+	65: MoveLoc[29](worker_address#1#0: vector<u8>)
+	66: MoveLoc[10](gas_price#1#0: u64)
+	67: MoveLoc[7](commission_rate#1#0: u64)
+	68: CopyLoc[5](ctx#0#0: &mut TxContext)
+	69: Call validator::new(address, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, u64, u64, &mut TxContext): Validator
+	70: StLoc[27](validator#1#0: Validator)
+	71: ImmBorrowLoc[28](validators#1#0: vector<Validator>)
+	72: ImmBorrowLoc[27](validator#1#0: Validator)
+	73: Call validator_set::is_duplicate_validator(&vector<Validator>, &Validator): bool
+	74: Not
+	75: BrFalse(77)
+B7:
+	76: Branch(81)
+B8:
+	77: MoveLoc[5](ctx#0#0: &mut TxContext)
+	78: Pop
+	79: LdConst[1](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	80: Abort
+B9:
+	81: MutBorrowLoc[28](validators#1#0: vector<Validator>)
+	82: MoveLoc[27](validator#1#0: Validator)
+	83: VecPushBack(10)
+	84: MoveLoc[11](i#1#0: u64)
+	85: LdU64(1)
+	86: Add
+	87: StLoc[11](i#1#0: u64)
+	88: Branch(28)
+B10:
+	89: MoveLoc[1](sui_supply#0#0: Balance<SUI>)
+	90: MoveLoc[6](allocations#1#0: vector<TokenAllocation>)
+	91: MutBorrowLoc[28](validators#1#0: vector<Validator>)
+	92: CopyLoc[5](ctx#0#0: &mut TxContext)
+	93: Call allocate_tokens(Balance<SUI>, vector<TokenAllocation>, &mut vector<Validator>, &mut TxContext)
+	94: MutBorrowLoc[28](validators#1#0: vector<Validator>)
+	95: Call activate_validators(&mut vector<Validator>)
+	96: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	97: ImmBorrowField[0](GenesisChainParameters.epoch_duration_ms: u64)
+	98: ReadRef
+	99: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	100: ImmBorrowField[1](GenesisChainParameters.stake_subsidy_start_epoch: u64)
+	101: ReadRef
+	102: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	103: ImmBorrowField[2](GenesisChainParameters.max_validator_count: u64)
+	104: ReadRef
+	105: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	106: ImmBorrowField[3](GenesisChainParameters.min_validator_joining_stake: u64)
+	107: ReadRef
+	108: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	109: ImmBorrowField[4](GenesisChainParameters.validator_low_stake_threshold: u64)
+	110: ReadRef
+	111: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	112: ImmBorrowField[5](GenesisChainParameters.validator_very_low_stake_threshold: u64)
+	113: ReadRef
+	114: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	115: ImmBorrowField[6](GenesisChainParameters.validator_low_stake_grace_period: u64)
+	116: ReadRef
+	117: CopyLoc[5](ctx#0#0: &mut TxContext)
+	118: Call sui_system_state_inner::create_system_parameters(u64, u64, u64, u64, u64, u64, u64, &mut TxContext): SystemParameters
+	119: StLoc[26](system_parameters#1#0: SystemParameters)
+	120: MoveLoc[24](subsidy_fund#1#0: Balance<SUI>)
+	121: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	122: ImmBorrowField[7](GenesisChainParameters.stake_subsidy_initial_distribution_amount: u64)
+	123: ReadRef
+	124: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	125: ImmBorrowField[8](GenesisChainParameters.stake_subsidy_period_length: u64)
+	126: ReadRef
+	127: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	128: ImmBorrowField[9](GenesisChainParameters.stake_subsidy_decrease_rate: u16)
+	129: ReadRef
+	130: CopyLoc[5](ctx#0#0: &mut TxContext)
+	131: Call stake_subsidy::create(Balance<SUI>, u64, u64, u16, &mut TxContext): StakeSubsidy
+	132: StLoc[21](stake_subsidy#1#0: StakeSubsidy)
+	133: MoveLoc[0](sui_system_state_id#0#0: UID)
+	134: MoveLoc[28](validators#1#0: vector<Validator>)
+	135: MoveLoc[23](storage_fund#1#0: Balance<SUI>)
+	136: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	137: ImmBorrowField[10](GenesisChainParameters.protocol_version: u64)
+	138: ReadRef
+	139: ImmBorrowLoc[2](genesis_chain_parameters#0#0: GenesisChainParameters)
+	140: ImmBorrowField[11](GenesisChainParameters.chain_start_timestamp_ms: u64)
+	141: ReadRef
+	142: MoveLoc[26](system_parameters#1#0: SystemParameters)
+	143: MoveLoc[21](stake_subsidy#1#0: StakeSubsidy)
+	144: MoveLoc[5](ctx#0#0: &mut TxContext)
+	145: Call sui_system::create(UID, vector<Validator>, Balance<SUI>, u64, u64, SystemParameters, StakeSubsidy, &mut TxContext)
+	146: Ret
+}
+allocate_tokens(sui_supply#0#0: Balance<SUI>, allocations#0#0: vector<TokenAllocation>, validators#0#0: &mut vector<Validator>, ctx#0#0: &mut TxContext) {
+L0:	validator_address#1#0: address
+B0:
+	0: ImmBorrowLoc[1](allocations#0#0: vector<TokenAllocation>)
+	1: Call vector::is_empty<TokenAllocation>(&vector<TokenAllocation>): bool
+	2: Not
+	3: BrFalse(35)
+B1:
+	4: Branch(5)
+B2:
+	5: MutBorrowLoc[1](allocations#0#0: vector<TokenAllocation>)
+	6: VecPopBack(21)
+	7: Unpack[3](TokenAllocation)
+	8: StLoc[7](staked_with_validator#1#0: Option<address>)
+	9: StLoc[5](amount_mist#1#0: u64)
+	10: StLoc[6](recipient_address#1#0: address)
+	11: MutBorrowLoc[0](sui_supply#0#0: Balance<SUI>)
+	12: MoveLoc[5](amount_mist#1#0: u64)
+	13: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	14: StLoc[4](allocation_balance#1#0: Balance<SUI>)
+	15: ImmBorrowLoc[7](staked_with_validator#1#0: Option<address>)
+	16: Call option::is_some<address>(&Option<address>): bool
+	17: BrFalse(29)
+B3:
+	18: MoveLoc[7](staked_with_validator#1#0: Option<address>)
+	19: Call option::destroy_some<address>(Option<address>): address
+	20: StLoc[8](validator_address#1#0: address)
+	21: CopyLoc[2](validators#0#0: &mut vector<Validator>)
+	22: MoveLoc[8](validator_address#1#0: address)
+	23: Call validator_set::get_validator_mut(&mut vector<Validator>, address): &mut Validator
+	24: MoveLoc[4](allocation_balance#1#0: Balance<SUI>)
+	25: MoveLoc[6](recipient_address#1#0: address)
+	26: CopyLoc[3](ctx#0#0: &mut TxContext)
+	27: Call validator::request_add_stake_at_genesis(&mut Validator, Balance<SUI>, address, &mut TxContext)
+	28: Branch(34)
+B4:
+	29: MoveLoc[4](allocation_balance#1#0: Balance<SUI>)
+	30: CopyLoc[3](ctx#0#0: &mut TxContext)
+	31: Call coin::from_balance<SUI>(Balance<SUI>, &mut TxContext): Coin<SUI>
+	32: MoveLoc[6](recipient_address#1#0: address)
+	33: Call sui::transfer(Coin<SUI>, address)
+B5:
+	34: Branch(0)
+B6:
+	35: MoveLoc[2](validators#0#0: &mut vector<Validator>)
+	36: Pop
+	37: MoveLoc[3](ctx#0#0: &mut TxContext)
+	38: Pop
+	39: MoveLoc[1](allocations#0#0: vector<TokenAllocation>)
+	40: VecUnpack(21, 0)
+	41: MoveLoc[0](sui_supply#0#0: Balance<SUI>)
+	42: Call balance::destroy_zero<SUI>(Balance<SUI>)
+	43: Ret
+}
+activate_validators(validators#0#0: &mut vector<Validator>) {
+L0:	i#1#0: u64
+B0:
+	0: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	1: FreezeRef
+	2: VecLen(10)
+	3: StLoc[1](count#1#0: u64)
+	4: LdU64(0)
+	5: StLoc[2](i#1#0: u64)
+B1:
+	6: CopyLoc[2](i#1#0: u64)
+	7: CopyLoc[1](count#1#0: u64)
+	8: Lt
+	9: BrFalse(21)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](validators#0#0: &mut vector<Validator>)
+	12: CopyLoc[2](i#1#0: u64)
+	13: VecMutBorrow(10)
+	14: LdU64(0)
+	15: Call validator::activate(&mut Validator, u64)
+	16: MoveLoc[2](i#1#0: u64)
+	17: LdU64(1)
+	18: Add
+	19: StLoc[2](i#1#0: u64)
+	20: Branch(6)
+B4:
+	21: MoveLoc[0](validators#0#0: &mut vector<Validator>)
+	22: Pop
+	23: Ret
+}
+}

@@ -1,0 +1,7 @@
+// Move bytecode v6
+module 2.ecdsa_r1 {
+
+
+native public secp256r1_ecrecover(signature#0#0: &vector<u8>, msg#0#0: &vector<u8>, hash#0#0: u8): vector<u8>
+native public secp256r1_verify(signature#0#0: &vector<u8>, public_key#0#0: &vector<u8>, msg#0#0: &vector<u8>, hash#0#0: u8): bool
+}

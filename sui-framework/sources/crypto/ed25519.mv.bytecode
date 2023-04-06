@@ -1,0 +1,6 @@
+// Move bytecode v6
+module 2.ed25519 {
+
+
+native public ed25519_verify(signature#0#0: &vector<u8>, public_key#0#0: &vector<u8>, msg#0#0: &vector<u8>): bool
+}

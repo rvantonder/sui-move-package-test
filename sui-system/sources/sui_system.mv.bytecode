@@ -1,0 +1,455 @@
+// Move bytecode v6
+module 3.sui_system {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::dynamic_field;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::transfer;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000003::stake_subsidy;
+use 0000000000000000000000000000000000000000000000000000000000000003::staking_pool;
+use 0000000000000000000000000000000000000000000000000000000000000003::sui_system_state_inner;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_cap;
+
+
+struct SuiSystemState has key {
+	id: UID,
+	version: u64
+}
+
+public(friend) create(id#0#0: UID, validators#0#0: vector<Validator>, storage_fund#0#0: Balance<SUI>, protocol_version#0#0: u64, epoch_start_timestamp_ms#0#0: u64, parameters#0#0: SystemParameters, stake_subsidy#0#0: StakeSubsidy, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[1](validators#0#0: vector<Validator>)
+	1: MoveLoc[2](storage_fund#0#0: Balance<SUI>)
+	2: MoveLoc[3](protocol_version#0#0: u64)
+	3: MoveLoc[4](epoch_start_timestamp_ms#0#0: u64)
+	4: MoveLoc[5](parameters#0#0: SystemParameters)
+	5: MoveLoc[6](stake_subsidy#0#0: StakeSubsidy)
+	6: MoveLoc[7](ctx#0#0: &mut TxContext)
+	7: Call sui_system_state_inner::create(vector<Validator>, Balance<SUI>, u64, u64, SystemParameters, StakeSubsidy, &mut TxContext): SuiSystemStateInner
+	8: StLoc[9](system_state#1#0: SuiSystemStateInner)
+	9: Call sui_system_state_inner::genesis_system_state_version(): u64
+	10: StLoc[10](version#1#0: u64)
+	11: MoveLoc[0](id#0#0: UID)
+	12: CopyLoc[10](version#1#0: u64)
+	13: Pack[0](SuiSystemState)
+	14: StLoc[8](self#1#0: SuiSystemState)
+	15: MutBorrowLoc[8](self#1#0: SuiSystemState)
+	16: MutBorrowField[0](SuiSystemState.id: UID)
+	17: MoveLoc[10](version#1#0: u64)
+	18: MoveLoc[9](system_state#1#0: SuiSystemStateInner)
+	19: Call dynamic_field::add<u64, SuiSystemStateInner>(&mut UID, u64, SuiSystemStateInner)
+	20: MoveLoc[8](self#1#0: SuiSystemState)
+	21: Call transfer::share_object<SuiSystemState>(SuiSystemState)
+	22: Ret
+}
+entry public request_add_validator_candidate(wrapper#0#0: &mut SuiSystemState, pubkey_bytes#0#0: vector<u8>, network_pubkey_bytes#0#0: vector<u8>, worker_pubkey_bytes#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, name#0#0: vector<u8>, description#0#0: vector<u8>, image_url#0#0: vector<u8>, project_url#0#0: vector<u8>, net_address#0#0: vector<u8>, p2p_address#0#0: vector<u8>, primary_address#0#0: vector<u8>, worker_address#0#0: vector<u8>, gas_price#0#0: u64, commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](pubkey_bytes#0#0: vector<u8>)
+	3: MoveLoc[2](network_pubkey_bytes#0#0: vector<u8>)
+	4: MoveLoc[3](worker_pubkey_bytes#0#0: vector<u8>)
+	5: MoveLoc[4](proof_of_possession#0#0: vector<u8>)
+	6: MoveLoc[5](name#0#0: vector<u8>)
+	7: MoveLoc[6](description#0#0: vector<u8>)
+	8: MoveLoc[7](image_url#0#0: vector<u8>)
+	9: MoveLoc[8](project_url#0#0: vector<u8>)
+	10: MoveLoc[9](net_address#0#0: vector<u8>)
+	11: MoveLoc[10](p2p_address#0#0: vector<u8>)
+	12: MoveLoc[11](primary_address#0#0: vector<u8>)
+	13: MoveLoc[12](worker_address#0#0: vector<u8>)
+	14: MoveLoc[13](gas_price#0#0: u64)
+	15: MoveLoc[14](commission_rate#0#0: u64)
+	16: MoveLoc[15](ctx#0#0: &mut TxContext)
+	17: Call sui_system_state_inner::request_add_validator_candidate(&mut SuiSystemStateInnerV2, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, u64, u64, &mut TxContext)
+	18: Ret
+}
+entry public request_remove_validator_candidate(wrapper#0#0: &mut SuiSystemState, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call sui_system_state_inner::request_remove_validator_candidate(&mut SuiSystemStateInnerV2, &mut TxContext)
+	4: Ret
+}
+entry public request_add_validator(wrapper#0#0: &mut SuiSystemState, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call sui_system_state_inner::request_add_validator(&mut SuiSystemStateInnerV2, &mut TxContext)
+	4: Ret
+}
+entry public request_remove_validator(wrapper#0#0: &mut SuiSystemState, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call sui_system_state_inner::request_remove_validator(&mut SuiSystemStateInnerV2, &mut TxContext)
+	4: Ret
+}
+entry public request_set_gas_price(wrapper#0#0: &mut SuiSystemState, cap#0#0: &UnverifiedValidatorOperationCap, new_gas_price#0#0: u64) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: MoveLoc[2](new_gas_price#0#0: u64)
+	4: Call sui_system_state_inner::request_set_gas_price(&mut SuiSystemStateInnerV2, &UnverifiedValidatorOperationCap, u64)
+	5: Ret
+}
+entry public set_candidate_validator_gas_price(wrapper#0#0: &mut SuiSystemState, cap#0#0: &UnverifiedValidatorOperationCap, new_gas_price#0#0: u64) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: MoveLoc[2](new_gas_price#0#0: u64)
+	4: Call sui_system_state_inner::set_candidate_validator_gas_price(&mut SuiSystemStateInnerV2, &UnverifiedValidatorOperationCap, u64)
+	5: Ret
+}
+entry public request_set_commission_rate(wrapper#0#0: &mut SuiSystemState, new_commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](new_commission_rate#0#0: u64)
+	3: MoveLoc[2](ctx#0#0: &mut TxContext)
+	4: Call sui_system_state_inner::request_set_commission_rate(&mut SuiSystemStateInnerV2, u64, &mut TxContext)
+	5: Ret
+}
+entry public set_candidate_validator_commission_rate(wrapper#0#0: &mut SuiSystemState, new_commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](new_commission_rate#0#0: u64)
+	3: MoveLoc[2](ctx#0#0: &mut TxContext)
+	4: Call sui_system_state_inner::set_candidate_validator_commission_rate(&mut SuiSystemStateInnerV2, u64, &mut TxContext)
+	5: Ret
+}
+entry public request_add_stake(wrapper#0#0: &mut SuiSystemState, stake#0#0: Coin<SUI>, validator_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](stake#0#0: Coin<SUI>)
+	3: MoveLoc[2](validator_address#0#0: address)
+	4: MoveLoc[3](ctx#0#0: &mut TxContext)
+	5: Call sui_system_state_inner::request_add_stake(&mut SuiSystemStateInnerV2, Coin<SUI>, address, &mut TxContext)
+	6: Ret
+}
+entry public request_add_stake_mul_coin(wrapper#0#0: &mut SuiSystemState, stakes#0#0: vector<Coin<SUI>>, stake_amount#0#0: Option<u64>, validator_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](stakes#0#0: vector<Coin<SUI>>)
+	3: MoveLoc[2](stake_amount#0#0: Option<u64>)
+	4: MoveLoc[3](validator_address#0#0: address)
+	5: MoveLoc[4](ctx#0#0: &mut TxContext)
+	6: Call sui_system_state_inner::request_add_stake_mul_coin(&mut SuiSystemStateInnerV2, vector<Coin<SUI>>, Option<u64>, address, &mut TxContext)
+	7: Ret
+}
+entry public request_withdraw_stake(wrapper#0#0: &mut SuiSystemState, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](staked_sui#0#0: StakedSui)
+	3: MoveLoc[2](ctx#0#0: &mut TxContext)
+	4: Call sui_system_state_inner::request_withdraw_stake(&mut SuiSystemStateInnerV2, StakedSui, &mut TxContext)
+	5: Ret
+}
+entry public report_validator(wrapper#0#0: &mut SuiSystemState, cap#0#0: &UnverifiedValidatorOperationCap, reportee_addr#0#0: address) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: MoveLoc[2](reportee_addr#0#0: address)
+	4: Call sui_system_state_inner::report_validator(&mut SuiSystemStateInnerV2, &UnverifiedValidatorOperationCap, address)
+	5: Ret
+}
+entry public undo_report_validator(wrapper#0#0: &mut SuiSystemState, cap#0#0: &UnverifiedValidatorOperationCap, reportee_addr#0#0: address) {
+B0:
+	0: MoveLoc[0](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: MoveLoc[2](reportee_addr#0#0: address)
+	4: Call sui_system_state_inner::undo_report_validator(&mut SuiSystemStateInnerV2, &UnverifiedValidatorOperationCap, address)
+	5: Ret
+}
+entry public rotate_operation_cap(self#0#0: &mut SuiSystemState, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call sui_system_state_inner::rotate_operation_cap(&mut SuiSystemStateInnerV2, &mut TxContext)
+	4: Ret
+}
+entry public update_validator_name(self#0#0: &mut SuiSystemState, name#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](name#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_name(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_description(self#0#0: &mut SuiSystemState, description#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](description#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_description(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_image_url(self#0#0: &mut SuiSystemState, image_url#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](image_url#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_image_url(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_project_url(self#0#0: &mut SuiSystemState, project_url#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](project_url#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_project_url(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_network_address(self#0#0: &mut SuiSystemState, network_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](network_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_network_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_network_address(self#0#0: &mut SuiSystemState, network_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](network_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_network_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_p2p_address(self#0#0: &mut SuiSystemState, p2p_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_p2p_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_p2p_address(self#0#0: &mut SuiSystemState, p2p_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_p2p_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_primary_address(self#0#0: &mut SuiSystemState, primary_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](primary_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_primary_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_primary_address(self#0#0: &mut SuiSystemState, primary_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](primary_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_primary_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_worker_address(self#0#0: &mut SuiSystemState, worker_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](worker_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_worker_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_worker_address(self#0#0: &mut SuiSystemState, worker_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](worker_address#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_worker_address(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_protocol_pubkey(self#0#0: &mut SuiSystemState, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	4: MoveLoc[3](ctx#0#0: &TxContext)
+	5: Call sui_system_state_inner::update_validator_next_epoch_protocol_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, vector<u8>, &TxContext)
+	6: Ret
+}
+entry public update_candidate_validator_protocol_pubkey(self#0#0: &mut SuiSystemState, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	4: MoveLoc[3](ctx#0#0: &TxContext)
+	5: Call sui_system_state_inner::update_candidate_validator_protocol_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, vector<u8>, &TxContext)
+	6: Ret
+}
+entry public update_validator_next_epoch_worker_pubkey(self#0#0: &mut SuiSystemState, worker_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_worker_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_worker_pubkey(self#0#0: &mut SuiSystemState, worker_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_worker_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_validator_next_epoch_network_pubkey(self#0#0: &mut SuiSystemState, network_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_validator_next_epoch_network_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+entry public update_candidate_validator_network_pubkey(self#0#0: &mut SuiSystemState, network_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	3: MoveLoc[2](ctx#0#0: &TxContext)
+	4: Call sui_system_state_inner::update_candidate_validator_network_pubkey(&mut SuiSystemStateInnerV2, vector<u8>, &TxContext)
+	5: Ret
+}
+advance_epoch(storage_reward#0#0: Balance<SUI>, computation_reward#0#0: Balance<SUI>, wrapper#0#0: &mut SuiSystemState, new_epoch#0#0: u64, next_protocol_version#0#0: u64, storage_rebate#0#0: u64, non_refundable_storage_fee#0#0: u64, storage_fund_reinvest_rate#0#0: u64, reward_slashing_rate#0#0: u64, epoch_start_timestamp_ms#0#0: u64, ctx#0#0: &mut TxContext): Balance<SUI> {
+B0:
+	0: MoveLoc[2](wrapper#0#0: &mut SuiSystemState)
+	1: Call load_system_state_mut(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: StLoc[11](self#1#0: &mut SuiSystemStateInnerV2)
+	3: CopyLoc[10](ctx#0#0: &mut TxContext)
+	4: FreezeRef
+	5: Call tx_context::sender(&TxContext): address
+	6: LdConst[2](Address: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	7: Eq
+	8: BrFalse(10)
+B1:
+	9: Branch(16)
+B2:
+	10: MoveLoc[11](self#1#0: &mut SuiSystemStateInnerV2)
+	11: Pop
+	12: MoveLoc[10](ctx#0#0: &mut TxContext)
+	13: Pop
+	14: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	15: Abort
+B3:
+	16: MoveLoc[11](self#1#0: &mut SuiSystemStateInnerV2)
+	17: MoveLoc[3](new_epoch#0#0: u64)
+	18: MoveLoc[4](next_protocol_version#0#0: u64)
+	19: MoveLoc[0](storage_reward#0#0: Balance<SUI>)
+	20: MoveLoc[1](computation_reward#0#0: Balance<SUI>)
+	21: MoveLoc[5](storage_rebate#0#0: u64)
+	22: MoveLoc[6](non_refundable_storage_fee#0#0: u64)
+	23: MoveLoc[7](storage_fund_reinvest_rate#0#0: u64)
+	24: MoveLoc[8](reward_slashing_rate#0#0: u64)
+	25: MoveLoc[9](epoch_start_timestamp_ms#0#0: u64)
+	26: MoveLoc[10](ctx#0#0: &mut TxContext)
+	27: Call sui_system_state_inner::advance_epoch(&mut SuiSystemStateInnerV2, u64, u64, Balance<SUI>, Balance<SUI>, u64, u64, u64, u64, u64, &mut TxContext): Balance<SUI>
+	28: Ret
+}
+load_system_state(self#0#0: &mut SuiSystemState): &SuiSystemStateInnerV2 {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_inner_maybe_upgrade(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: FreezeRef
+	3: Ret
+}
+load_system_state_mut(self#0#0: &mut SuiSystemState): &mut SuiSystemStateInnerV2 {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	1: Call load_inner_maybe_upgrade(&mut SuiSystemState): &mut SuiSystemStateInnerV2
+	2: Ret
+}
+load_inner_maybe_upgrade(self#0#0: &mut SuiSystemState): &mut SuiSystemStateInnerV2 {
+L0:	v2#1#0: SuiSystemStateInnerV2
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	1: ImmBorrowField[1](SuiSystemState.version: u64)
+	2: ReadRef
+	3: LdU64(1)
+	4: Eq
+	5: BrFalse(25)
+B1:
+	6: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	7: MutBorrowField[0](SuiSystemState.id: UID)
+	8: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	9: ImmBorrowField[1](SuiSystemState.version: u64)
+	10: ReadRef
+	11: Call dynamic_field::remove<u64, SuiSystemStateInner>(&mut UID, u64): SuiSystemStateInner
+	12: Call sui_system_state_inner::v1_to_v2(SuiSystemStateInner): SuiSystemStateInnerV2
+	13: StLoc[2](v2#1#0: SuiSystemStateInnerV2)
+	14: LdU64(2)
+	15: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	16: MutBorrowField[1](SuiSystemState.version: u64)
+	17: WriteRef
+	18: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	19: MutBorrowField[0](SuiSystemState.id: UID)
+	20: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	21: ImmBorrowField[1](SuiSystemState.version: u64)
+	22: ReadRef
+	23: MoveLoc[2](v2#1#0: SuiSystemStateInnerV2)
+	24: Call dynamic_field::add<u64, SuiSystemStateInnerV2>(&mut UID, u64, SuiSystemStateInnerV2)
+B2:
+	25: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	26: MutBorrowField[0](SuiSystemState.id: UID)
+	27: CopyLoc[0](self#0#0: &mut SuiSystemState)
+	28: ImmBorrowField[1](SuiSystemState.version: u64)
+	29: ReadRef
+	30: Call dynamic_field::borrow_mut<u64, SuiSystemStateInnerV2>(&mut UID, u64): &mut SuiSystemStateInnerV2
+	31: StLoc[1](inner#1#0: &mut SuiSystemStateInnerV2)
+	32: CopyLoc[1](inner#1#0: &mut SuiSystemStateInnerV2)
+	33: FreezeRef
+	34: Call sui_system_state_inner::system_state_version(&SuiSystemStateInnerV2): u64
+	35: MoveLoc[0](self#0#0: &mut SuiSystemState)
+	36: ImmBorrowField[1](SuiSystemState.version: u64)
+	37: ReadRef
+	38: Eq
+	39: BrFalse(41)
+B3:
+	40: Branch(45)
+B4:
+	41: MoveLoc[1](inner#1#0: &mut SuiSystemStateInnerV2)
+	42: Pop
+	43: LdConst[1](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	44: Abort
+B5:
+	45: MoveLoc[1](inner#1#0: &mut SuiSystemStateInnerV2)
+	46: Ret
+}
+}

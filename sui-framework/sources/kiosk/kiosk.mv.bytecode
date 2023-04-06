@@ -1,0 +1,1046 @@
+// Move bytecode v6
+module 2.kiosk {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::dynamic_field;
+use 0000000000000000000000000000000000000000000000000000000000000002::dynamic_object_field;
+use 0000000000000000000000000000000000000000000000000000000000000002::event;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::transfer_policy;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct Kiosk has store, key {
+	id: UID,
+	profits: Balance<SUI>,
+	owner: address,
+	item_count: u32,
+	allow_extensions: bool
+}
+struct KioskOwnerCap has store, key {
+	id: UID,
+	for: ID
+}
+struct PurchaseCap<phantom T: store + key> has store, key {
+	id: UID,
+	kiosk_id: ID,
+	item_id: ID,
+	min_price: u64
+}
+struct Borrow {
+	kiosk_id: ID,
+	item_id: ID
+}
+struct Item has copy, drop, store {
+	id: ID
+}
+struct Listing has copy, drop, store {
+	id: ID,
+	is_exclusive: bool
+}
+struct Lock has copy, drop, store {
+	id: ID
+}
+struct ItemListed<phantom T: store + key> has copy, drop {
+	kiosk: ID,
+	id: ID,
+	price: u64
+}
+
+public new(ctx#0#0: &mut TxContext): Kiosk * KioskOwnerCap {
+L0:	kiosk#1#0: Kiosk
+B0:
+	0: CopyLoc[0](ctx#0#0: &mut TxContext)
+	1: Call object::new(&mut TxContext): UID
+	2: Call balance::zero<SUI>(): Balance<SUI>
+	3: CopyLoc[0](ctx#0#0: &mut TxContext)
+	4: FreezeRef
+	5: Call tx_context::sender(&TxContext): address
+	6: LdU32(0)
+	7: LdTrue
+	8: Pack[0](Kiosk)
+	9: StLoc[2](kiosk#1#0: Kiosk)
+	10: MoveLoc[0](ctx#0#0: &mut TxContext)
+	11: Call object::new(&mut TxContext): UID
+	12: ImmBorrowLoc[2](kiosk#1#0: Kiosk)
+	13: Call object::id<Kiosk>(&Kiosk): ID
+	14: Pack[1](KioskOwnerCap)
+	15: StLoc[1](cap#1#0: KioskOwnerCap)
+	16: MoveLoc[2](kiosk#1#0: Kiosk)
+	17: MoveLoc[1](cap#1#0: KioskOwnerCap)
+	18: Ret
+}
+public close_and_withdraw(self#0#0: Kiosk, cap#0#0: KioskOwnerCap, ctx#0#0: &mut TxContext): Coin<SUI> {
+L0:	item_count#1#0: u32
+L1:	profits#1#0: Balance<SUI>
+B0:
+	0: MoveLoc[0](self#0#0: Kiosk)
+	1: Unpack[0](Kiosk)
+	2: Pop
+	3: StLoc[6](item_count#1#0: u32)
+	4: Pop
+	5: StLoc[7](profits#1#0: Balance<SUI>)
+	6: StLoc[5](id#1#0: UID)
+	7: MoveLoc[1](cap#0#0: KioskOwnerCap)
+	8: Unpack[1](KioskOwnerCap)
+	9: StLoc[4](for#1#0: ID)
+	10: StLoc[3](cap_id#1#0: UID)
+	11: ImmBorrowLoc[5](id#1#0: UID)
+	12: Call object::uid_to_inner(&UID): ID
+	13: MoveLoc[4](for#1#0: ID)
+	14: Eq
+	15: BrFalse(17)
+B1:
+	16: Branch(21)
+B2:
+	17: MoveLoc[2](ctx#0#0: &mut TxContext)
+	18: Pop
+	19: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	20: Abort
+B3:
+	21: MoveLoc[6](item_count#1#0: u32)
+	22: LdU32(0)
+	23: Eq
+	24: BrFalse(26)
+B4:
+	25: Branch(30)
+B5:
+	26: MoveLoc[2](ctx#0#0: &mut TxContext)
+	27: Pop
+	28: LdConst[3](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	29: Abort
+B6:
+	30: MoveLoc[3](cap_id#1#0: UID)
+	31: Call object::delete(UID)
+	32: MoveLoc[5](id#1#0: UID)
+	33: Call object::delete(UID)
+	34: MoveLoc[7](profits#1#0: Balance<SUI>)
+	35: MoveLoc[2](ctx#0#0: &mut TxContext)
+	36: Call coin::from_balance<SUI>(Balance<SUI>, &mut TxContext): Coin<SUI>
+	37: Ret
+}
+public set_owner(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(15)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: MoveLoc[2](ctx#0#0: &TxContext)
+	12: Pop
+	13: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: MoveLoc[2](ctx#0#0: &TxContext)
+	16: Call tx_context::sender(&TxContext): address
+	17: MoveLoc[0](self#0#0: &mut Kiosk)
+	18: MutBorrowField[1](Kiosk.owner: address)
+	19: WriteRef
+	20: Ret
+}
+public set_owner_custom(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, owner#0#0: address) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MoveLoc[2](owner#0#0: address)
+	14: MoveLoc[0](self#0#0: &mut Kiosk)
+	15: MutBorrowField[1](Kiosk.owner: address)
+	16: WriteRef
+	17: Ret
+}
+public place<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, item#0#0: T) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: ImmBorrowField[2](Kiosk.item_count: u32)
+	15: ReadRef
+	16: LdU32(1)
+	17: Add
+	18: CopyLoc[0](self#0#0: &mut Kiosk)
+	19: MutBorrowField[2](Kiosk.item_count: u32)
+	20: WriteRef
+	21: MoveLoc[0](self#0#0: &mut Kiosk)
+	22: MutBorrowField[3](Kiosk.id: UID)
+	23: ImmBorrowLoc[2](item#0#0: T)
+	24: Call object::id<T>(&T): ID
+	25: Pack[4](Item)
+	26: MoveLoc[2](item#0#0: T)
+	27: Call dynamic_object_field::add<Item, T>(&mut UID, Item, T)
+	28: Ret
+}
+public lock<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, _policy#0#0: &TransferPolicy<T>, item#0#0: T) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: MutBorrowField[3](Kiosk.id: UID)
+	2: ImmBorrowLoc[3](item#0#0: T)
+	3: Call object::id<T>(&T): ID
+	4: Pack[6](Lock)
+	5: LdTrue
+	6: Call dynamic_field::add<Lock, bool>(&mut UID, Lock, bool)
+	7: MoveLoc[0](self#0#0: &mut Kiosk)
+	8: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	9: MoveLoc[3](item#0#0: T)
+	10: Call place<T>(&mut Kiosk, &KioskOwnerCap, T)
+	11: Ret
+}
+public take<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID): T {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: CopyLoc[2](id#0#0: ID)
+	15: StLoc[3](%#2: ID)
+	16: FreezeRef
+	17: MoveLoc[3](%#2: ID)
+	18: Call is_locked(&Kiosk, ID): bool
+	19: Not
+	20: BrFalse(22)
+B4:
+	21: Branch(26)
+B5:
+	22: MoveLoc[0](self#0#0: &mut Kiosk)
+	23: Pop
+	24: LdConst[8](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	25: Abort
+B6:
+	26: CopyLoc[0](self#0#0: &mut Kiosk)
+	27: CopyLoc[2](id#0#0: ID)
+	28: StLoc[4](%#4: ID)
+	29: FreezeRef
+	30: MoveLoc[4](%#4: ID)
+	31: Call is_listed_exclusively(&Kiosk, ID): bool
+	32: Not
+	33: BrFalse(35)
+B7:
+	34: Branch(39)
+B8:
+	35: MoveLoc[0](self#0#0: &mut Kiosk)
+	36: Pop
+	37: LdConst[4](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	38: Abort
+B9:
+	39: CopyLoc[0](self#0#0: &mut Kiosk)
+	40: CopyLoc[2](id#0#0: ID)
+	41: StLoc[5](%#6: ID)
+	42: FreezeRef
+	43: MoveLoc[5](%#6: ID)
+	44: Call has_item(&Kiosk, ID): bool
+	45: BrFalse(47)
+B10:
+	46: Branch(51)
+B11:
+	47: MoveLoc[0](self#0#0: &mut Kiosk)
+	48: Pop
+	49: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	50: Abort
+B12:
+	51: CopyLoc[0](self#0#0: &mut Kiosk)
+	52: ImmBorrowField[2](Kiosk.item_count: u32)
+	53: ReadRef
+	54: LdU32(1)
+	55: Sub
+	56: CopyLoc[0](self#0#0: &mut Kiosk)
+	57: MutBorrowField[2](Kiosk.item_count: u32)
+	58: WriteRef
+	59: CopyLoc[0](self#0#0: &mut Kiosk)
+	60: MutBorrowField[3](Kiosk.id: UID)
+	61: CopyLoc[2](id#0#0: ID)
+	62: LdFalse
+	63: Pack[5](Listing)
+	64: Call dynamic_field::remove_if_exists<Listing, u64>(&mut UID, Listing): Option<u64>
+	65: Pop
+	66: MoveLoc[0](self#0#0: &mut Kiosk)
+	67: MutBorrowField[3](Kiosk.id: UID)
+	68: MoveLoc[2](id#0#0: ID)
+	69: Pack[4](Item)
+	70: Call dynamic_object_field::remove<Item, T>(&mut UID, Item): T
+	71: Ret
+}
+public list<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID, price#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: CopyLoc[2](id#0#0: ID)
+	15: StLoc[4](%#2: ID)
+	16: FreezeRef
+	17: MoveLoc[4](%#2: ID)
+	18: Call is_listed_exclusively(&Kiosk, ID): bool
+	19: Not
+	20: BrFalse(22)
+B4:
+	21: Branch(26)
+B5:
+	22: MoveLoc[0](self#0#0: &mut Kiosk)
+	23: Pop
+	24: LdConst[4](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	25: Abort
+B6:
+	26: CopyLoc[0](self#0#0: &mut Kiosk)
+	27: MutBorrowField[3](Kiosk.id: UID)
+	28: CopyLoc[2](id#0#0: ID)
+	29: LdFalse
+	30: Pack[5](Listing)
+	31: CopyLoc[3](price#0#0: u64)
+	32: Call dynamic_field::add<Listing, u64>(&mut UID, Listing, u64)
+	33: MoveLoc[0](self#0#0: &mut Kiosk)
+	34: FreezeRef
+	35: Call object::id<Kiosk>(&Kiosk): ID
+	36: MoveLoc[2](id#0#0: ID)
+	37: MoveLoc[3](price#0#0: u64)
+	38: PackGeneric[0](ItemListed<T>)
+	39: Call event::emit<ItemListed<T>>(ItemListed<T>)
+	40: Ret
+}
+public place_and_list<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, item#0#0: T, price#0#0: u64) {
+B0:
+	0: ImmBorrowLoc[2](item#0#0: T)
+	1: Call object::id<T>(&T): ID
+	2: StLoc[4](id#1#0: ID)
+	3: CopyLoc[0](self#0#0: &mut Kiosk)
+	4: CopyLoc[1](cap#0#0: &KioskOwnerCap)
+	5: MoveLoc[2](item#0#0: T)
+	6: Call place<T>(&mut Kiosk, &KioskOwnerCap, T)
+	7: MoveLoc[0](self#0#0: &mut Kiosk)
+	8: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	9: MoveLoc[4](id#1#0: ID)
+	10: MoveLoc[3](price#0#0: u64)
+	11: Call list<T>(&mut Kiosk, &KioskOwnerCap, ID, u64)
+	12: Ret
+}
+public purchase<T: store + key>(self#0#0: &mut Kiosk, id#0#0: ID, payment#0#0: Coin<SUI>): T * TransferRequest<T> {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: MutBorrowField[3](Kiosk.id: UID)
+	2: CopyLoc[1](id#0#0: ID)
+	3: LdFalse
+	4: Pack[5](Listing)
+	5: Call dynamic_field::remove<Listing, u64>(&mut UID, Listing): u64
+	6: StLoc[4](price#1#0: u64)
+	7: CopyLoc[0](self#0#0: &mut Kiosk)
+	8: MutBorrowField[3](Kiosk.id: UID)
+	9: CopyLoc[1](id#0#0: ID)
+	10: Pack[4](Item)
+	11: Call dynamic_object_field::remove<Item, T>(&mut UID, Item): T
+	12: StLoc[3](inner#1#0: T)
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: ImmBorrowField[2](Kiosk.item_count: u32)
+	15: ReadRef
+	16: LdU32(1)
+	17: Sub
+	18: CopyLoc[0](self#0#0: &mut Kiosk)
+	19: MutBorrowField[2](Kiosk.item_count: u32)
+	20: WriteRef
+	21: CopyLoc[4](price#1#0: u64)
+	22: ImmBorrowLoc[2](payment#0#0: Coin<SUI>)
+	23: Call coin::value<SUI>(&Coin<SUI>): u64
+	24: Eq
+	25: BrFalse(27)
+B1:
+	26: Branch(31)
+B2:
+	27: MoveLoc[0](self#0#0: &mut Kiosk)
+	28: Pop
+	29: LdConst[1](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	30: Abort
+B3:
+	31: CopyLoc[0](self#0#0: &mut Kiosk)
+	32: MutBorrowField[4](Kiosk.profits: Balance<SUI>)
+	33: MoveLoc[2](payment#0#0: Coin<SUI>)
+	34: Call coin::into_balance<SUI>(Coin<SUI>): Balance<SUI>
+	35: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	36: Pop
+	37: CopyLoc[0](self#0#0: &mut Kiosk)
+	38: MutBorrowField[3](Kiosk.id: UID)
+	39: CopyLoc[1](id#0#0: ID)
+	40: Pack[6](Lock)
+	41: Call dynamic_field::remove_if_exists<Lock, bool>(&mut UID, Lock): Option<bool>
+	42: Pop
+	43: MoveLoc[3](inner#1#0: T)
+	44: MoveLoc[1](id#0#0: ID)
+	45: MoveLoc[4](price#1#0: u64)
+	46: MoveLoc[0](self#0#0: &mut Kiosk)
+	47: FreezeRef
+	48: Call object::id<Kiosk>(&Kiosk): ID
+	49: Call transfer_policy::new_request<T>(ID, u64, ID): TransferRequest<T>
+	50: Ret
+}
+public list_with_purchase_cap<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID, min_price#0#0: u64, ctx#0#0: &mut TxContext): PurchaseCap<T> {
+L0:	uid#1#0: UID
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: CopyLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(17)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: MoveLoc[4](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	14: Pop
+	15: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	16: Abort
+B3:
+	17: CopyLoc[0](self#0#0: &mut Kiosk)
+	18: CopyLoc[2](id#0#0: ID)
+	19: StLoc[5](%#2: ID)
+	20: FreezeRef
+	21: MoveLoc[5](%#2: ID)
+	22: Call is_listed(&Kiosk, ID): bool
+	23: Not
+	24: BrFalse(26)
+B4:
+	25: Branch(34)
+B5:
+	26: MoveLoc[0](self#0#0: &mut Kiosk)
+	27: Pop
+	28: MoveLoc[4](ctx#0#0: &mut TxContext)
+	29: Pop
+	30: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	31: Pop
+	32: LdConst[6](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	33: Abort
+B6:
+	34: MoveLoc[4](ctx#0#0: &mut TxContext)
+	35: Call object::new(&mut TxContext): UID
+	36: StLoc[10](uid#1#0: UID)
+	37: MoveLoc[0](self#0#0: &mut Kiosk)
+	38: MutBorrowField[3](Kiosk.id: UID)
+	39: CopyLoc[2](id#0#0: ID)
+	40: LdTrue
+	41: Pack[5](Listing)
+	42: CopyLoc[3](min_price#0#0: u64)
+	43: Call dynamic_field::add<Listing, u64>(&mut UID, Listing, u64)
+	44: MoveLoc[10](uid#1#0: UID)
+	45: StLoc[6](%#3: UID)
+	46: MoveLoc[2](id#0#0: ID)
+	47: StLoc[7](%#4: ID)
+	48: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	49: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	50: ReadRef
+	51: StLoc[8](%#5: ID)
+	52: MoveLoc[3](min_price#0#0: u64)
+	53: StLoc[9](%#6: u64)
+	54: MoveLoc[6](%#3: UID)
+	55: MoveLoc[8](%#5: ID)
+	56: MoveLoc[7](%#4: ID)
+	57: MoveLoc[9](%#6: u64)
+	58: PackGeneric[1](PurchaseCap<T>)
+	59: Ret
+}
+public purchase_with_cap<T: store + key>(self#0#0: &mut Kiosk, purchase_cap#0#0: PurchaseCap<T>, payment#0#0: Coin<SUI>): T * TransferRequest<T> {
+L0:	min_price#1#0: u64
+L1:	paid#1#0: u64
+B0:
+	0: MoveLoc[1](purchase_cap#0#0: PurchaseCap<T>)
+	1: UnpackGeneric[1](PurchaseCap<T>)
+	2: StLoc[6](min_price#1#0: u64)
+	3: StLoc[4](item_id#1#0: ID)
+	4: StLoc[5](kiosk_id#1#0: ID)
+	5: StLoc[3](id#1#0: UID)
+	6: ImmBorrowLoc[2](payment#0#0: Coin<SUI>)
+	7: Call coin::value<SUI>(&Coin<SUI>): u64
+	8: StLoc[7](paid#1#0: u64)
+	9: CopyLoc[7](paid#1#0: u64)
+	10: MoveLoc[6](min_price#1#0: u64)
+	11: Ge
+	12: BrFalse(14)
+B1:
+	13: Branch(18)
+B2:
+	14: MoveLoc[0](self#0#0: &mut Kiosk)
+	15: Pop
+	16: LdConst[1](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	17: Abort
+B3:
+	18: CopyLoc[0](self#0#0: &mut Kiosk)
+	19: FreezeRef
+	20: Call object::id<Kiosk>(&Kiosk): ID
+	21: MoveLoc[5](kiosk_id#1#0: ID)
+	22: Eq
+	23: BrFalse(25)
+B4:
+	24: Branch(29)
+B5:
+	25: MoveLoc[0](self#0#0: &mut Kiosk)
+	26: Pop
+	27: LdConst[5](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	28: Abort
+B6:
+	29: CopyLoc[0](self#0#0: &mut Kiosk)
+	30: MutBorrowField[3](Kiosk.id: UID)
+	31: CopyLoc[4](item_id#1#0: ID)
+	32: LdTrue
+	33: Pack[5](Listing)
+	34: Call dynamic_field::remove<Listing, u64>(&mut UID, Listing): u64
+	35: Pop
+	36: CopyLoc[0](self#0#0: &mut Kiosk)
+	37: MutBorrowField[3](Kiosk.id: UID)
+	38: CopyLoc[4](item_id#1#0: ID)
+	39: LdFalse
+	40: Pack[5](Listing)
+	41: MoveLoc[7](paid#1#0: u64)
+	42: Call dynamic_field::add<Listing, u64>(&mut UID, Listing, u64)
+	43: MoveLoc[3](id#1#0: UID)
+	44: Call object::delete(UID)
+	45: MoveLoc[0](self#0#0: &mut Kiosk)
+	46: MoveLoc[4](item_id#1#0: ID)
+	47: MoveLoc[2](payment#0#0: Coin<SUI>)
+	48: Call purchase<T>(&mut Kiosk, ID, Coin<SUI>): T * TransferRequest<T>
+	49: Ret
+}
+public return_purchase_cap<T: store + key>(self#0#0: &mut Kiosk, purchase_cap#0#0: PurchaseCap<T>) {
+L0:	kiosk_id#1#0: ID
+B0:
+	0: MoveLoc[1](purchase_cap#0#0: PurchaseCap<T>)
+	1: UnpackGeneric[1](PurchaseCap<T>)
+	2: Pop
+	3: StLoc[3](item_id#1#0: ID)
+	4: StLoc[4](kiosk_id#1#0: ID)
+	5: StLoc[2](id#1#0: UID)
+	6: CopyLoc[0](self#0#0: &mut Kiosk)
+	7: FreezeRef
+	8: Call object::id<Kiosk>(&Kiosk): ID
+	9: MoveLoc[4](kiosk_id#1#0: ID)
+	10: Eq
+	11: BrFalse(13)
+B1:
+	12: Branch(17)
+B2:
+	13: MoveLoc[0](self#0#0: &mut Kiosk)
+	14: Pop
+	15: LdConst[5](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	16: Abort
+B3:
+	17: MoveLoc[0](self#0#0: &mut Kiosk)
+	18: MutBorrowField[3](Kiosk.id: UID)
+	19: MoveLoc[3](item_id#1#0: ID)
+	20: LdTrue
+	21: Pack[5](Listing)
+	22: Call dynamic_field::remove<Listing, u64>(&mut UID, Listing): u64
+	23: Pop
+	24: MoveLoc[2](id#1#0: UID)
+	25: Call object::delete(UID)
+	26: Ret
+}
+public withdraw(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, amount#0#0: Option<u64>, ctx#0#0: &mut TxContext): Coin<SUI> {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(15)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: MoveLoc[3](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: ImmBorrowLoc[2](amount#0#0: Option<u64>)
+	16: Call option::is_some<u64>(&Option<u64>): bool
+	17: BrFalse(37)
+B4:
+	18: MoveLoc[2](amount#0#0: Option<u64>)
+	19: Call option::destroy_some<u64>(Option<u64>): u64
+	20: StLoc[6](amt#1#0: u64)
+	21: CopyLoc[6](amt#1#0: u64)
+	22: CopyLoc[0](self#0#0: &mut Kiosk)
+	23: ImmBorrowField[4](Kiosk.profits: Balance<SUI>)
+	24: Call balance::value<SUI>(&Balance<SUI>): u64
+	25: Le
+	26: BrFalse(28)
+B5:
+	27: Branch(34)
+B6:
+	28: MoveLoc[0](self#0#0: &mut Kiosk)
+	29: Pop
+	30: MoveLoc[3](ctx#0#0: &mut TxContext)
+	31: Pop
+	32: LdConst[2](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	33: Abort
+B7:
+	34: MoveLoc[6](amt#1#0: u64)
+	35: StLoc[4](%#1: u64)
+	36: Branch(41)
+B8:
+	37: CopyLoc[0](self#0#0: &mut Kiosk)
+	38: ImmBorrowField[4](Kiosk.profits: Balance<SUI>)
+	39: Call balance::value<SUI>(&Balance<SUI>): u64
+	40: StLoc[4](%#1: u64)
+B9:
+	41: MoveLoc[4](%#1: u64)
+	42: StLoc[5](amount#1#0: u64)
+	43: MoveLoc[0](self#0#0: &mut Kiosk)
+	44: MutBorrowField[4](Kiosk.profits: Balance<SUI>)
+	45: MoveLoc[5](amount#1#0: u64)
+	46: MoveLoc[3](ctx#0#0: &mut TxContext)
+	47: Call coin::take<SUI>(&mut Balance<SUI>, u64, &mut TxContext): Coin<SUI>
+	48: Ret
+}
+public has_item(self#0#0: &Kiosk, id#0#0: ID): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[3](Kiosk.id: UID)
+	2: MoveLoc[1](id#0#0: ID)
+	3: Pack[4](Item)
+	4: Call dynamic_object_field::exists_<Item>(&UID, Item): bool
+	5: Ret
+}
+public is_locked(self#0#0: &Kiosk, id#0#0: ID): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[3](Kiosk.id: UID)
+	2: MoveLoc[1](id#0#0: ID)
+	3: Pack[6](Lock)
+	4: Call dynamic_field::exists_<Lock>(&UID, Lock): bool
+	5: Ret
+}
+public is_listed(self#0#0: &Kiosk, id#0#0: ID): bool {
+B0:
+	0: CopyLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[3](Kiosk.id: UID)
+	2: CopyLoc[1](id#0#0: ID)
+	3: LdFalse
+	4: Pack[5](Listing)
+	5: Call dynamic_field::exists_<Listing>(&UID, Listing): bool
+	6: BrFalse(12)
+B1:
+	7: MoveLoc[0](self#0#0: &Kiosk)
+	8: Pop
+	9: LdTrue
+	10: StLoc[2](%#1: bool)
+	11: Branch(16)
+B2:
+	12: MoveLoc[0](self#0#0: &Kiosk)
+	13: MoveLoc[1](id#0#0: ID)
+	14: Call is_listed_exclusively(&Kiosk, ID): bool
+	15: StLoc[2](%#1: bool)
+B3:
+	16: MoveLoc[2](%#1: bool)
+	17: Ret
+}
+public is_listed_exclusively(self#0#0: &Kiosk, id#0#0: ID): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[3](Kiosk.id: UID)
+	2: MoveLoc[1](id#0#0: ID)
+	3: LdTrue
+	4: Pack[5](Listing)
+	5: Call dynamic_field::exists_<Listing>(&UID, Listing): bool
+	6: Ret
+}
+public has_access(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap): bool {
+B0:
+	0: MoveLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: Ret
+}
+public uid_mut_as_owner(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap): &mut UID {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MoveLoc[0](self#0#0: &mut Kiosk)
+	14: MutBorrowField[3](Kiosk.id: UID)
+	15: Ret
+}
+public set_allow_extensions(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, allow_extensions#0#0: bool) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MoveLoc[2](allow_extensions#0#0: bool)
+	14: MoveLoc[0](self#0#0: &mut Kiosk)
+	15: MutBorrowField[5](Kiosk.allow_extensions: bool)
+	16: WriteRef
+	17: Ret
+}
+public uid_mut(self#0#0: &mut Kiosk): &mut UID {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: ImmBorrowField[5](Kiosk.allow_extensions: bool)
+	2: ReadRef
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](self#0#0: &mut Kiosk)
+	6: Pop
+	7: LdConst[7](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: MutBorrowField[3](Kiosk.id: UID)
+	11: Ret
+}
+public owner(self#0#0: &Kiosk): address {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[1](Kiosk.owner: address)
+	2: ReadRef
+	3: Ret
+}
+public item_count(self#0#0: &Kiosk): u32 {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[2](Kiosk.item_count: u32)
+	2: ReadRef
+	3: Ret
+}
+public profits_amount(self#0#0: &Kiosk): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &Kiosk)
+	1: ImmBorrowField[4](Kiosk.profits: Balance<SUI>)
+	2: Call balance::value<SUI>(&Balance<SUI>): u64
+	3: Ret
+}
+public profits_mut(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap): &mut Balance<SUI> {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: MoveLoc[0](self#0#0: &mut Kiosk)
+	14: MutBorrowField[4](Kiosk.profits: Balance<SUI>)
+	15: Ret
+}
+public borrow<T: store + key>(self#0#0: &Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID): &T {
+B0:
+	0: CopyLoc[0](self#0#0: &Kiosk)
+	1: Call object::id<Kiosk>(&Kiosk): ID
+	2: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	3: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	4: ReadRef
+	5: Eq
+	6: BrFalse(8)
+B1:
+	7: Branch(12)
+B2:
+	8: MoveLoc[0](self#0#0: &Kiosk)
+	9: Pop
+	10: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: CopyLoc[0](self#0#0: &Kiosk)
+	13: CopyLoc[2](id#0#0: ID)
+	14: Call has_item(&Kiosk, ID): bool
+	15: BrFalse(17)
+B4:
+	16: Branch(21)
+B5:
+	17: MoveLoc[0](self#0#0: &Kiosk)
+	18: Pop
+	19: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	20: Abort
+B6:
+	21: MoveLoc[0](self#0#0: &Kiosk)
+	22: ImmBorrowField[3](Kiosk.id: UID)
+	23: MoveLoc[2](id#0#0: ID)
+	24: Pack[4](Item)
+	25: Call dynamic_object_field::borrow<Item, T>(&UID, Item): &T
+	26: Ret
+}
+public borrow_mut<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID): &mut T {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: CopyLoc[2](id#0#0: ID)
+	15: StLoc[3](%#2: ID)
+	16: FreezeRef
+	17: MoveLoc[3](%#2: ID)
+	18: Call has_item(&Kiosk, ID): bool
+	19: BrFalse(21)
+B4:
+	20: Branch(25)
+B5:
+	21: MoveLoc[0](self#0#0: &mut Kiosk)
+	22: Pop
+	23: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	24: Abort
+B6:
+	25: CopyLoc[0](self#0#0: &mut Kiosk)
+	26: CopyLoc[2](id#0#0: ID)
+	27: StLoc[4](%#4: ID)
+	28: FreezeRef
+	29: MoveLoc[4](%#4: ID)
+	30: Call is_listed(&Kiosk, ID): bool
+	31: Not
+	32: BrFalse(34)
+B7:
+	33: Branch(38)
+B8:
+	34: MoveLoc[0](self#0#0: &mut Kiosk)
+	35: Pop
+	36: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	37: Abort
+B9:
+	38: MoveLoc[0](self#0#0: &mut Kiosk)
+	39: MutBorrowField[3](Kiosk.id: UID)
+	40: MoveLoc[2](id#0#0: ID)
+	41: Pack[4](Item)
+	42: Call dynamic_object_field::borrow_mut<Item, T>(&mut UID, Item): &mut T
+	43: Ret
+}
+public borrow_val<T: store + key>(self#0#0: &mut Kiosk, cap#0#0: &KioskOwnerCap, id#0#0: ID): T * Borrow {
+B0:
+	0: CopyLoc[0](self#0#0: &mut Kiosk)
+	1: FreezeRef
+	2: Call object::id<Kiosk>(&Kiosk): ID
+	3: MoveLoc[1](cap#0#0: &KioskOwnerCap)
+	4: ImmBorrowField[0](KioskOwnerCap.for: ID)
+	5: ReadRef
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](self#0#0: &mut Kiosk)
+	10: Pop
+	11: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](self#0#0: &mut Kiosk)
+	14: CopyLoc[2](id#0#0: ID)
+	15: StLoc[3](%#2: ID)
+	16: FreezeRef
+	17: MoveLoc[3](%#2: ID)
+	18: Call has_item(&Kiosk, ID): bool
+	19: BrFalse(21)
+B4:
+	20: Branch(25)
+B5:
+	21: MoveLoc[0](self#0#0: &mut Kiosk)
+	22: Pop
+	23: LdConst[11](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	24: Abort
+B6:
+	25: CopyLoc[0](self#0#0: &mut Kiosk)
+	26: CopyLoc[2](id#0#0: ID)
+	27: StLoc[4](%#4: ID)
+	28: FreezeRef
+	29: MoveLoc[4](%#4: ID)
+	30: Call is_listed(&Kiosk, ID): bool
+	31: Not
+	32: BrFalse(34)
+B7:
+	33: Branch(38)
+B8:
+	34: MoveLoc[0](self#0#0: &mut Kiosk)
+	35: Pop
+	36: LdConst[9](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	37: Abort
+B9:
+	38: CopyLoc[0](self#0#0: &mut Kiosk)
+	39: MutBorrowField[3](Kiosk.id: UID)
+	40: CopyLoc[2](id#0#0: ID)
+	41: Pack[4](Item)
+	42: Call dynamic_object_field::remove<Item, T>(&mut UID, Item): T
+	43: MoveLoc[0](self#0#0: &mut Kiosk)
+	44: FreezeRef
+	45: Call object::id<Kiosk>(&Kiosk): ID
+	46: MoveLoc[2](id#0#0: ID)
+	47: Pack[3](Borrow)
+	48: Ret
+}
+public return_val<T: store + key>(self#0#0: &mut Kiosk, item#0#0: T, borrow#0#0: Borrow) {
+B0:
+	0: MoveLoc[2](borrow#0#0: Borrow)
+	1: Unpack[3](Borrow)
+	2: StLoc[3](item_id#1#0: ID)
+	3: StLoc[4](kiosk_id#1#0: ID)
+	4: CopyLoc[0](self#0#0: &mut Kiosk)
+	5: FreezeRef
+	6: Call object::id<Kiosk>(&Kiosk): ID
+	7: MoveLoc[4](kiosk_id#1#0: ID)
+	8: Eq
+	9: BrFalse(11)
+B1:
+	10: Branch(15)
+B2:
+	11: MoveLoc[0](self#0#0: &mut Kiosk)
+	12: Pop
+	13: LdConst[5](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: ImmBorrowLoc[1](item#0#0: T)
+	16: Call object::id<T>(&T): ID
+	17: CopyLoc[3](item_id#1#0: ID)
+	18: Eq
+	19: BrFalse(21)
+B4:
+	20: Branch(25)
+B5:
+	21: MoveLoc[0](self#0#0: &mut Kiosk)
+	22: Pop
+	23: LdConst[10](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	24: Abort
+B6:
+	25: MoveLoc[0](self#0#0: &mut Kiosk)
+	26: MutBorrowField[3](Kiosk.id: UID)
+	27: MoveLoc[3](item_id#1#0: ID)
+	28: Pack[4](Item)
+	29: MoveLoc[1](item#0#0: T)
+	30: Call dynamic_object_field::add<Item, T>(&mut UID, Item, T)
+	31: Ret
+}
+public purchase_cap_kiosk<T: store + key>(self#0#0: &PurchaseCap<T>): ID {
+B0:
+	0: MoveLoc[0](self#0#0: &PurchaseCap<T>)
+	1: ImmBorrowFieldGeneric[0](PurchaseCap.kiosk_id: ID)
+	2: ReadRef
+	3: Ret
+}
+public purchase_cap_item<T: store + key>(self#0#0: &PurchaseCap<T>): ID {
+B0:
+	0: MoveLoc[0](self#0#0: &PurchaseCap<T>)
+	1: ImmBorrowFieldGeneric[1](PurchaseCap.item_id: ID)
+	2: ReadRef
+	3: Ret
+}
+public purchase_cap_min_price<T: store + key>(self#0#0: &PurchaseCap<T>): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &PurchaseCap<T>)
+	1: ImmBorrowFieldGeneric[2](PurchaseCap.min_price: u64)
+	2: ReadRef
+	3: Ret
+}
+}

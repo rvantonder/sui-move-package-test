@@ -1,0 +1,62 @@
+// Move bytecode v6
+module 3.validator_wrapper {
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000002::versioned;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator;
+
+
+struct ValidatorWrapper has store {
+	inner: Versioned
+}
+
+public(friend) create_v1(validator#0#0: Validator, ctx#0#0: &mut TxContext): ValidatorWrapper {
+B0:
+	0: LdU64(1)
+	1: MoveLoc[0](validator#0#0: Validator)
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call versioned::create<Validator>(u64, Validator, &mut TxContext): Versioned
+	4: Pack[0](ValidatorWrapper)
+	5: Ret
+}
+public(friend) load_validator_maybe_upgrade(self#0#0: &mut ValidatorWrapper): &mut Validator {
+B0:
+	0: CopyLoc[0](self#0#0: &mut ValidatorWrapper)
+	1: Call upgrade_to_latest(&mut ValidatorWrapper)
+	2: MoveLoc[0](self#0#0: &mut ValidatorWrapper)
+	3: MutBorrowField[0](ValidatorWrapper.inner: Versioned)
+	4: Call versioned::load_value_mut<Validator>(&mut Versioned): &mut Validator
+	5: Ret
+}
+public(friend) destroy(self#0#0: ValidatorWrapper): Validator {
+B0:
+	0: MutBorrowLoc[0](self#0#0: ValidatorWrapper)
+	1: Call upgrade_to_latest(&mut ValidatorWrapper)
+	2: MoveLoc[0](self#0#0: ValidatorWrapper)
+	3: Unpack[0](ValidatorWrapper)
+	4: Call versioned::destroy<Validator>(Versioned): Validator
+	5: Ret
+}
+upgrade_to_latest(self#0#0: &mut ValidatorWrapper) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut ValidatorWrapper)
+	1: FreezeRef
+	2: Call version(&ValidatorWrapper): u64
+	3: LdU64(1)
+	4: Eq
+	5: BrFalse(7)
+B1:
+	6: Branch(9)
+B2:
+	7: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: Ret
+}
+version(self#0#0: &ValidatorWrapper): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &ValidatorWrapper)
+	1: ImmBorrowField[0](ValidatorWrapper.inner: Versioned)
+	2: Call versioned::version(&Versioned): u64
+	3: Ret
+}
+}

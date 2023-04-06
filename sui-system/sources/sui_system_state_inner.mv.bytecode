@@ -1,0 +1,1358 @@
+// Move bytecode v6
+module 3.sui_system_state_inner {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000002::bag;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::event;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::pay;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::transfer;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000002::vec_map;
+use 0000000000000000000000000000000000000000000000000000000000000002::vec_set;
+use 0000000000000000000000000000000000000000000000000000000000000003::stake_subsidy;
+use 0000000000000000000000000000000000000000000000000000000000000003::staking_pool;
+use 0000000000000000000000000000000000000000000000000000000000000003::storage_fund;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_cap;
+use 0000000000000000000000000000000000000000000000000000000000000003::validator_set;
+
+
+struct SystemParameters has store {
+	epoch_duration_ms: u64,
+	stake_subsidy_start_epoch: u64,
+	max_validator_count: u64,
+	min_validator_joining_stake: u64,
+	validator_low_stake_threshold: u64,
+	validator_very_low_stake_threshold: u64,
+	validator_low_stake_grace_period: u64,
+	extra_fields: Bag
+}
+struct SystemParametersV2 has store {
+	epoch_duration_ms: u64,
+	stake_subsidy_start_epoch: u64,
+	min_validator_count: u64,
+	max_validator_count: u64,
+	min_validator_joining_stake: u64,
+	validator_low_stake_threshold: u64,
+	validator_very_low_stake_threshold: u64,
+	validator_low_stake_grace_period: u64,
+	extra_fields: Bag
+}
+struct SuiSystemStateInner has store {
+	epoch: u64,
+	protocol_version: u64,
+	system_state_version: u64,
+	validators: ValidatorSet,
+	storage_fund: StorageFund,
+	parameters: SystemParameters,
+	reference_gas_price: u64,
+	validator_report_records: VecMap<address, VecSet<address>>,
+	stake_subsidy: StakeSubsidy,
+	safe_mode: bool,
+	safe_mode_storage_rewards: Balance<SUI>,
+	safe_mode_computation_rewards: Balance<SUI>,
+	safe_mode_storage_rebates: u64,
+	safe_mode_non_refundable_storage_fee: u64,
+	epoch_start_timestamp_ms: u64,
+	extra_fields: Bag
+}
+struct SuiSystemStateInnerV2 has store {
+	epoch: u64,
+	protocol_version: u64,
+	system_state_version: u64,
+	validators: ValidatorSet,
+	storage_fund: StorageFund,
+	parameters: SystemParametersV2,
+	reference_gas_price: u64,
+	validator_report_records: VecMap<address, VecSet<address>>,
+	stake_subsidy: StakeSubsidy,
+	safe_mode: bool,
+	safe_mode_storage_rewards: Balance<SUI>,
+	safe_mode_computation_rewards: Balance<SUI>,
+	safe_mode_storage_rebates: u64,
+	safe_mode_non_refundable_storage_fee: u64,
+	epoch_start_timestamp_ms: u64,
+	extra_fields: Bag
+}
+struct SystemEpochInfoEvent has copy, drop {
+	epoch: u64,
+	protocol_version: u64,
+	reference_gas_price: u64,
+	total_stake: u64,
+	storage_fund_reinvestment: u64,
+	storage_charge: u64,
+	storage_rebate: u64,
+	storage_fund_balance: u64,
+	stake_subsidy_amount: u64,
+	total_gas_fees: u64,
+	total_stake_rewards_distributed: u64,
+	leftover_storage_fund_inflow: u64
+}
+
+public(friend) create(validators#0#0: vector<Validator>, initial_storage_fund#0#0: Balance<SUI>, protocol_version#0#0: u64, epoch_start_timestamp_ms#0#0: u64, parameters#0#0: SystemParameters, stake_subsidy#0#0: StakeSubsidy, ctx#0#0: &mut TxContext): SuiSystemStateInner {
+B0:
+	0: MoveLoc[0](validators#0#0: vector<Validator>)
+	1: CopyLoc[6](ctx#0#0: &mut TxContext)
+	2: Call validator_set::new(vector<Validator>, &mut TxContext): ValidatorSet
+	3: StLoc[8](validators#1#0: ValidatorSet)
+	4: ImmBorrowLoc[8](validators#1#0: ValidatorSet)
+	5: Call validator_set::derive_reference_gas_price(&ValidatorSet): u64
+	6: StLoc[7](reference_gas_price#1#0: u64)
+	7: LdU64(0)
+	8: MoveLoc[2](protocol_version#0#0: u64)
+	9: Call genesis_system_state_version(): u64
+	10: MoveLoc[8](validators#1#0: ValidatorSet)
+	11: MoveLoc[1](initial_storage_fund#0#0: Balance<SUI>)
+	12: Call storage_fund::new(Balance<SUI>): StorageFund
+	13: MoveLoc[4](parameters#0#0: SystemParameters)
+	14: MoveLoc[7](reference_gas_price#1#0: u64)
+	15: Call vec_map::empty<address, VecSet<address>>(): VecMap<address, VecSet<address>>
+	16: MoveLoc[5](stake_subsidy#0#0: StakeSubsidy)
+	17: LdFalse
+	18: Call balance::zero<SUI>(): Balance<SUI>
+	19: Call balance::zero<SUI>(): Balance<SUI>
+	20: LdU64(0)
+	21: LdU64(0)
+	22: MoveLoc[3](epoch_start_timestamp_ms#0#0: u64)
+	23: MoveLoc[6](ctx#0#0: &mut TxContext)
+	24: Call bag::new(&mut TxContext): Bag
+	25: Pack[2](SuiSystemStateInner)
+	26: Ret
+}
+public(friend) create_system_parameters(epoch_duration_ms#0#0: u64, stake_subsidy_start_epoch#0#0: u64, max_validator_count#0#0: u64, min_validator_joining_stake#0#0: u64, validator_low_stake_threshold#0#0: u64, validator_very_low_stake_threshold#0#0: u64, validator_low_stake_grace_period#0#0: u64, ctx#0#0: &mut TxContext): SystemParameters {
+B0:
+	0: MoveLoc[0](epoch_duration_ms#0#0: u64)
+	1: MoveLoc[1](stake_subsidy_start_epoch#0#0: u64)
+	2: MoveLoc[2](max_validator_count#0#0: u64)
+	3: MoveLoc[3](min_validator_joining_stake#0#0: u64)
+	4: MoveLoc[4](validator_low_stake_threshold#0#0: u64)
+	5: MoveLoc[5](validator_very_low_stake_threshold#0#0: u64)
+	6: MoveLoc[6](validator_low_stake_grace_period#0#0: u64)
+	7: MoveLoc[7](ctx#0#0: &mut TxContext)
+	8: Call bag::new(&mut TxContext): Bag
+	9: Pack[0](SystemParameters)
+	10: Ret
+}
+public(friend) v1_to_v2(self#0#0: SuiSystemStateInner): SuiSystemStateInnerV2 {
+L0:	epoch_duration_ms#1#0: u64
+L1:	epoch_start_timestamp_ms#1#0: u64
+L2:	max_validator_count#1#0: u64
+L3:	min_validator_joining_stake#1#0: u64
+L4:	param_extra_fields#1#0: Bag
+L5:	parameters#1#0: SystemParameters
+L6:	protocol_version#1#0: u64
+L7:	reference_gas_price#1#0: u64
+L8:	safe_mode#1#0: bool
+L9:	safe_mode_computation_rewards#1#0: Balance<SUI>
+L10:	safe_mode_non_refundable_storage_fee#1#0: u64
+L11:	safe_mode_storage_rebates#1#0: u64
+L12:	safe_mode_storage_rewards#1#0: Balance<SUI>
+L13:	stake_subsidy#1#0: StakeSubsidy
+L14:	stake_subsidy_start_epoch#1#0: u64
+L15:	state_extra_fields#1#0: Bag
+L16:	storage_fund#1#0: StorageFund
+L17:	validator_low_stake_grace_period#1#0: u64
+L18:	validator_low_stake_threshold#1#0: u64
+L19:	validator_report_records#1#0: VecMap<address, VecSet<address>>
+L20:	validator_very_low_stake_threshold#1#0: u64
+L21:	validators#1#0: ValidatorSet
+B0:
+	0: MoveLoc[0](self#0#0: SuiSystemStateInner)
+	1: Unpack[2](SuiSystemStateInner)
+	2: StLoc[17](state_extra_fields#1#0: Bag)
+	3: StLoc[3](epoch_start_timestamp_ms#1#0: u64)
+	4: StLoc[12](safe_mode_non_refundable_storage_fee#1#0: u64)
+	5: StLoc[13](safe_mode_storage_rebates#1#0: u64)
+	6: StLoc[11](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	7: StLoc[14](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	8: StLoc[10](safe_mode#1#0: bool)
+	9: StLoc[15](stake_subsidy#1#0: StakeSubsidy)
+	10: StLoc[21](validator_report_records#1#0: VecMap<address, VecSet<address>>)
+	11: StLoc[9](reference_gas_price#1#0: u64)
+	12: StLoc[7](parameters#1#0: SystemParameters)
+	13: StLoc[18](storage_fund#1#0: StorageFund)
+	14: StLoc[23](validators#1#0: ValidatorSet)
+	15: Pop
+	16: StLoc[8](protocol_version#1#0: u64)
+	17: StLoc[1](epoch#1#0: u64)
+	18: MoveLoc[7](parameters#1#0: SystemParameters)
+	19: Unpack[0](SystemParameters)
+	20: StLoc[6](param_extra_fields#1#0: Bag)
+	21: StLoc[19](validator_low_stake_grace_period#1#0: u64)
+	22: StLoc[22](validator_very_low_stake_threshold#1#0: u64)
+	23: StLoc[20](validator_low_stake_threshold#1#0: u64)
+	24: StLoc[5](min_validator_joining_stake#1#0: u64)
+	25: StLoc[4](max_validator_count#1#0: u64)
+	26: StLoc[16](stake_subsidy_start_epoch#1#0: u64)
+	27: StLoc[2](epoch_duration_ms#1#0: u64)
+	28: MoveLoc[1](epoch#1#0: u64)
+	29: MoveLoc[8](protocol_version#1#0: u64)
+	30: LdU64(2)
+	31: MoveLoc[23](validators#1#0: ValidatorSet)
+	32: MoveLoc[18](storage_fund#1#0: StorageFund)
+	33: MoveLoc[2](epoch_duration_ms#1#0: u64)
+	34: MoveLoc[16](stake_subsidy_start_epoch#1#0: u64)
+	35: LdU64(4)
+	36: MoveLoc[4](max_validator_count#1#0: u64)
+	37: MoveLoc[5](min_validator_joining_stake#1#0: u64)
+	38: MoveLoc[20](validator_low_stake_threshold#1#0: u64)
+	39: MoveLoc[22](validator_very_low_stake_threshold#1#0: u64)
+	40: MoveLoc[19](validator_low_stake_grace_period#1#0: u64)
+	41: MoveLoc[6](param_extra_fields#1#0: Bag)
+	42: Pack[1](SystemParametersV2)
+	43: MoveLoc[9](reference_gas_price#1#0: u64)
+	44: MoveLoc[21](validator_report_records#1#0: VecMap<address, VecSet<address>>)
+	45: MoveLoc[15](stake_subsidy#1#0: StakeSubsidy)
+	46: MoveLoc[10](safe_mode#1#0: bool)
+	47: MoveLoc[14](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	48: MoveLoc[11](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	49: MoveLoc[13](safe_mode_storage_rebates#1#0: u64)
+	50: MoveLoc[12](safe_mode_non_refundable_storage_fee#1#0: u64)
+	51: MoveLoc[3](epoch_start_timestamp_ms#1#0: u64)
+	52: MoveLoc[17](state_extra_fields#1#0: Bag)
+	53: Pack[3](SuiSystemStateInnerV2)
+	54: Ret
+}
+public(friend) request_add_validator_candidate(self#0#0: &mut SuiSystemStateInnerV2, pubkey_bytes#0#0: vector<u8>, network_pubkey_bytes#0#0: vector<u8>, worker_pubkey_bytes#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, name#0#0: vector<u8>, description#0#0: vector<u8>, image_url#0#0: vector<u8>, project_url#0#0: vector<u8>, net_address#0#0: vector<u8>, p2p_address#0#0: vector<u8>, primary_address#0#0: vector<u8>, worker_address#0#0: vector<u8>, gas_price#0#0: u64, commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[15](ctx#0#0: &mut TxContext)
+	1: FreezeRef
+	2: Call tx_context::sender(&TxContext): address
+	3: MoveLoc[1](pubkey_bytes#0#0: vector<u8>)
+	4: MoveLoc[2](network_pubkey_bytes#0#0: vector<u8>)
+	5: MoveLoc[3](worker_pubkey_bytes#0#0: vector<u8>)
+	6: MoveLoc[4](proof_of_possession#0#0: vector<u8>)
+	7: MoveLoc[5](name#0#0: vector<u8>)
+	8: MoveLoc[6](description#0#0: vector<u8>)
+	9: MoveLoc[7](image_url#0#0: vector<u8>)
+	10: MoveLoc[8](project_url#0#0: vector<u8>)
+	11: MoveLoc[9](net_address#0#0: vector<u8>)
+	12: MoveLoc[10](p2p_address#0#0: vector<u8>)
+	13: MoveLoc[11](primary_address#0#0: vector<u8>)
+	14: MoveLoc[12](worker_address#0#0: vector<u8>)
+	15: MoveLoc[13](gas_price#0#0: u64)
+	16: MoveLoc[14](commission_rate#0#0: u64)
+	17: CopyLoc[15](ctx#0#0: &mut TxContext)
+	18: Call validator::new(address, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, vector<u8>, u64, u64, &mut TxContext): Validator
+	19: StLoc[16](validator#1#0: Validator)
+	20: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	21: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	22: MoveLoc[16](validator#1#0: Validator)
+	23: MoveLoc[15](ctx#0#0: &mut TxContext)
+	24: Call validator_set::request_add_validator_candidate(&mut ValidatorSet, Validator, &mut TxContext)
+	25: Ret
+}
+public(friend) request_remove_validator_candidate(self#0#0: &mut SuiSystemStateInnerV2, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](ctx#0#0: &mut TxContext)
+	3: Call validator_set::request_remove_validator_candidate(&mut ValidatorSet, &mut TxContext)
+	4: Ret
+}
+public(friend) request_add_validator(self#0#0: &mut SuiSystemStateInnerV2, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: Call validator_set::next_epoch_validator_count(&ValidatorSet): u64
+	3: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	4: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	5: ImmBorrowField[2](SystemParametersV2.max_validator_count: u64)
+	6: ReadRef
+	7: Lt
+	8: BrFalse(10)
+B1:
+	9: Branch(16)
+B2:
+	10: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	11: Pop
+	12: MoveLoc[1](ctx#0#0: &mut TxContext)
+	13: Pop
+	14: LdConst[3](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	15: Abort
+B3:
+	16: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	17: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	18: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	19: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	20: ImmBorrowField[3](SystemParametersV2.min_validator_joining_stake: u64)
+	21: ReadRef
+	22: MoveLoc[1](ctx#0#0: &mut TxContext)
+	23: Call validator_set::request_add_validator(&mut ValidatorSet, u64, &mut TxContext)
+	24: Ret
+}
+public(friend) request_remove_validator(self#0#0: &mut SuiSystemStateInnerV2, ctx#0#0: &mut TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: Call validator_set::active_validators(&ValidatorSet): &vector<Validator>
+	3: VecLen(38)
+	4: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	5: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	6: ImmBorrowField[4](SystemParametersV2.min_validator_count: u64)
+	7: ReadRef
+	8: Ge
+	9: BrFalse(26)
+B1:
+	10: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	11: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	12: Call validator_set::next_epoch_validator_count(&ValidatorSet): u64
+	13: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	14: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	15: ImmBorrowField[4](SystemParametersV2.min_validator_count: u64)
+	16: ReadRef
+	17: Gt
+	18: BrFalse(20)
+B2:
+	19: Branch(26)
+B3:
+	20: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	21: Pop
+	22: MoveLoc[1](ctx#0#0: &mut TxContext)
+	23: Pop
+	24: LdConst[3](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	25: Abort
+B4:
+	26: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	27: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	28: MoveLoc[1](ctx#0#0: &mut TxContext)
+	29: Call validator_set::request_remove_validator(&mut ValidatorSet, &mut TxContext)
+	30: Ret
+}
+public(friend) request_set_gas_price(self#0#0: &mut SuiSystemStateInnerV2, cap#0#0: &UnverifiedValidatorOperationCap, new_gas_price#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: LdConst[1](U8: [2])
+	4: Call validator_set::verify_cap(&mut ValidatorSet, &UnverifiedValidatorOperationCap, u8): ValidatorOperationCap
+	5: StLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	6: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	7: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	8: ImmBorrowLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	9: LdFalse
+	10: Call validator_set::get_validator_mut_with_verified_cap(&mut ValidatorSet, &ValidatorOperationCap, bool): &mut Validator
+	11: MoveLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	12: MoveLoc[2](new_gas_price#0#0: u64)
+	13: Call validator::request_set_gas_price(&mut Validator, ValidatorOperationCap, u64)
+	14: Ret
+}
+public(friend) set_candidate_validator_gas_price(self#0#0: &mut SuiSystemStateInnerV2, cap#0#0: &UnverifiedValidatorOperationCap, new_gas_price#0#0: u64) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: LdConst[2](U8: [3])
+	4: Call validator_set::verify_cap(&mut ValidatorSet, &UnverifiedValidatorOperationCap, u8): ValidatorOperationCap
+	5: StLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	6: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	7: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	8: ImmBorrowLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	9: LdTrue
+	10: Call validator_set::get_validator_mut_with_verified_cap(&mut ValidatorSet, &ValidatorOperationCap, bool): &mut Validator
+	11: MoveLoc[3](verified_cap#1#0: ValidatorOperationCap)
+	12: MoveLoc[2](new_gas_price#0#0: u64)
+	13: Call validator::set_candidate_gas_price(&mut Validator, ValidatorOperationCap, u64)
+	14: Ret
+}
+public(friend) request_set_commission_rate(self#0#0: &mut SuiSystemStateInnerV2, new_commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](new_commission_rate#0#0: u64)
+	3: MoveLoc[2](ctx#0#0: &mut TxContext)
+	4: FreezeRef
+	5: Call validator_set::request_set_commission_rate(&mut ValidatorSet, u64, &TxContext)
+	6: Ret
+}
+public(friend) set_candidate_validator_commission_rate(self#0#0: &mut SuiSystemStateInnerV2, new_commission_rate#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &mut TxContext)
+	3: FreezeRef
+	4: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	5: MoveLoc[1](new_commission_rate#0#0: u64)
+	6: Call validator::set_candidate_commission_rate(&mut Validator, u64)
+	7: Ret
+}
+public(friend) request_add_stake(self#0#0: &mut SuiSystemStateInnerV2, stake#0#0: Coin<SUI>, validator_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](validator_address#0#0: address)
+	3: MoveLoc[1](stake#0#0: Coin<SUI>)
+	4: Call coin::into_balance<SUI>(Coin<SUI>): Balance<SUI>
+	5: MoveLoc[3](ctx#0#0: &mut TxContext)
+	6: Call validator_set::request_add_stake(&mut ValidatorSet, address, Balance<SUI>, &mut TxContext)
+	7: Ret
+}
+public(friend) request_add_stake_mul_coin(self#0#0: &mut SuiSystemStateInnerV2, stakes#0#0: vector<Coin<SUI>>, stake_amount#0#0: Option<u64>, validator_address#0#0: address, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[1](stakes#0#0: vector<Coin<SUI>>)
+	1: MoveLoc[2](stake_amount#0#0: Option<u64>)
+	2: CopyLoc[4](ctx#0#0: &mut TxContext)
+	3: Call extract_coin_balance(vector<Coin<SUI>>, Option<u64>, &mut TxContext): Balance<SUI>
+	4: StLoc[5](balance#1#0: Balance<SUI>)
+	5: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	6: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	7: MoveLoc[3](validator_address#0#0: address)
+	8: MoveLoc[5](balance#1#0: Balance<SUI>)
+	9: MoveLoc[4](ctx#0#0: &mut TxContext)
+	10: Call validator_set::request_add_stake(&mut ValidatorSet, address, Balance<SUI>, &mut TxContext)
+	11: Ret
+}
+public(friend) request_withdraw_stake(self#0#0: &mut SuiSystemStateInnerV2, staked_sui#0#0: StakedSui, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[1](staked_sui#0#0: StakedSui)
+	1: Call staking_pool::stake_activation_epoch(&StakedSui): u64
+	2: CopyLoc[2](ctx#0#0: &mut TxContext)
+	3: FreezeRef
+	4: Call tx_context::epoch(&TxContext): u64
+	5: Le
+	6: BrFalse(8)
+B1:
+	7: Branch(14)
+B2:
+	8: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	9: Pop
+	10: MoveLoc[2](ctx#0#0: &mut TxContext)
+	11: Pop
+	12: LdConst[9](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	15: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	16: MoveLoc[1](staked_sui#0#0: StakedSui)
+	17: MoveLoc[2](ctx#0#0: &mut TxContext)
+	18: Call validator_set::request_withdraw_stake(&mut ValidatorSet, StakedSui, &mut TxContext)
+	19: Ret
+}
+public(friend) report_validator(self#0#0: &mut SuiSystemStateInnerV2, cap#0#0: &UnverifiedValidatorOperationCap, reportee_addr#0#0: address) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: CopyLoc[2](reportee_addr#0#0: address)
+	3: Call validator_set::is_active_validator_by_sui_address(&ValidatorSet, address): bool
+	4: BrFalse(6)
+B1:
+	5: Branch(12)
+B2:
+	6: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	7: Pop
+	8: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	9: Pop
+	10: LdConst[4](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	13: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	14: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	15: LdConst[0](U8: [1])
+	16: Call validator_set::verify_cap(&mut ValidatorSet, &UnverifiedValidatorOperationCap, u8): ValidatorOperationCap
+	17: MoveLoc[2](reportee_addr#0#0: address)
+	18: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	19: MutBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	20: Call report_validator_impl(ValidatorOperationCap, address, &mut VecMap<address, VecSet<address>>)
+	21: Ret
+}
+public(friend) undo_report_validator(self#0#0: &mut SuiSystemStateInnerV2, cap#0#0: &UnverifiedValidatorOperationCap, reportee_addr#0#0: address) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](cap#0#0: &UnverifiedValidatorOperationCap)
+	3: LdConst[0](U8: [1])
+	4: Call validator_set::verify_cap(&mut ValidatorSet, &UnverifiedValidatorOperationCap, u8): ValidatorOperationCap
+	5: MoveLoc[2](reportee_addr#0#0: address)
+	6: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	7: MutBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	8: Call undo_report_validator_impl(ValidatorOperationCap, address, &mut VecMap<address, VecSet<address>>)
+	9: Ret
+}
+report_validator_impl(verified_cap#0#0: ValidatorOperationCap, reportee_addr#0#0: address, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>) {
+L0:	reporters#1#0: &mut VecSet<address>
+B0:
+	0: ImmBorrowLoc[0](verified_cap#0#0: ValidatorOperationCap)
+	1: Call validator_cap::verified_operation_cap_address(&ValidatorOperationCap): &address
+	2: ReadRef
+	3: StLoc[5](reporter_address#1#0: address)
+	4: CopyLoc[5](reporter_address#1#0: address)
+	5: CopyLoc[1](reportee_addr#0#0: address)
+	6: Neq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	10: Pop
+	11: LdConst[6](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	14: ImmBorrowLoc[1](reportee_addr#0#0: address)
+	15: StLoc[3](%#2: &address)
+	16: FreezeRef
+	17: MoveLoc[3](%#2: &address)
+	18: Call vec_map::contains<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): bool
+	19: Not
+	20: BrFalse(27)
+B4:
+	21: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	22: MoveLoc[1](reportee_addr#0#0: address)
+	23: MoveLoc[5](reporter_address#1#0: address)
+	24: Call vec_set::singleton<address>(address): VecSet<address>
+	25: Call vec_map::insert<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, address, VecSet<address>)
+	26: Branch(45)
+B5:
+	27: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	28: ImmBorrowLoc[1](reportee_addr#0#0: address)
+	29: Call vec_map::get_mut<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): &mut VecSet<address>
+	30: StLoc[6](reporters#1#0: &mut VecSet<address>)
+	31: CopyLoc[6](reporters#1#0: &mut VecSet<address>)
+	32: ImmBorrowLoc[5](reporter_address#1#0: address)
+	33: StLoc[4](%#4: &address)
+	34: FreezeRef
+	35: MoveLoc[4](%#4: &address)
+	36: Call vec_set::contains<address>(&VecSet<address>, &address): bool
+	37: Not
+	38: BrFalse(43)
+B6:
+	39: MoveLoc[6](reporters#1#0: &mut VecSet<address>)
+	40: MoveLoc[5](reporter_address#1#0: address)
+	41: Call vec_set::insert<address>(&mut VecSet<address>, address)
+	42: Branch(45)
+B7:
+	43: MoveLoc[6](reporters#1#0: &mut VecSet<address>)
+	44: Pop
+B8:
+	45: Ret
+}
+undo_report_validator_impl(verified_cap#0#0: ValidatorOperationCap, reportee_addr#0#0: address, validator_report_records#0#0: &mut VecMap<address, VecSet<address>>) {
+L0:	reporters#1#0: &mut VecSet<address>
+B0:
+	0: CopyLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	1: ImmBorrowLoc[1](reportee_addr#0#0: address)
+	2: StLoc[3](%#2: &address)
+	3: FreezeRef
+	4: MoveLoc[3](%#2: &address)
+	5: Call vec_map::contains<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): bool
+	6: BrFalse(8)
+B1:
+	7: Branch(12)
+B2:
+	8: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	9: Pop
+	10: LdConst[7](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	11: Abort
+B3:
+	12: CopyLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	13: ImmBorrowLoc[1](reportee_addr#0#0: address)
+	14: Call vec_map::get_mut<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): &mut VecSet<address>
+	15: StLoc[6](reporters#1#0: &mut VecSet<address>)
+	16: ImmBorrowLoc[0](verified_cap#0#0: ValidatorOperationCap)
+	17: Call validator_cap::verified_operation_cap_address(&ValidatorOperationCap): &address
+	18: ReadRef
+	19: StLoc[5](reporter_addr#1#0: address)
+	20: CopyLoc[6](reporters#1#0: &mut VecSet<address>)
+	21: ImmBorrowLoc[5](reporter_addr#1#0: address)
+	22: StLoc[4](%#4: &address)
+	23: FreezeRef
+	24: MoveLoc[4](%#4: &address)
+	25: Call vec_set::contains<address>(&VecSet<address>, &address): bool
+	26: BrFalse(28)
+B4:
+	27: Branch(34)
+B5:
+	28: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	29: Pop
+	30: MoveLoc[6](reporters#1#0: &mut VecSet<address>)
+	31: Pop
+	32: LdConst[7](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	33: Abort
+B6:
+	34: CopyLoc[6](reporters#1#0: &mut VecSet<address>)
+	35: ImmBorrowLoc[5](reporter_addr#1#0: address)
+	36: Call vec_set::remove<address>(&mut VecSet<address>, &address)
+	37: MoveLoc[6](reporters#1#0: &mut VecSet<address>)
+	38: FreezeRef
+	39: Call vec_set::is_empty<address>(&VecSet<address>): bool
+	40: BrFalse(47)
+B7:
+	41: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	42: ImmBorrowLoc[1](reportee_addr#0#0: address)
+	43: Call vec_map::remove<address, VecSet<address>>(&mut VecMap<address, VecSet<address>>, &address): address * VecSet<address>
+	44: Pop
+	45: Pop
+	46: Branch(49)
+B8:
+	47: MoveLoc[2](validator_report_records#0#0: &mut VecMap<address, VecSet<address>>)
+	48: Pop
+B9:
+	49: Ret
+}
+public(friend) rotate_operation_cap(self#0#0: &mut SuiSystemStateInnerV2, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: CopyLoc[1](ctx#0#0: &mut TxContext)
+	3: FreezeRef
+	4: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	5: MoveLoc[1](ctx#0#0: &mut TxContext)
+	6: Call validator::new_unverified_validator_operation_cap_and_transfer(&mut Validator, &mut TxContext)
+	7: Ret
+}
+public(friend) update_validator_name(self#0#0: &mut SuiSystemStateInnerV2, name#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](name#0#0: vector<u8>)
+	5: Call validator::update_name(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_description(self#0#0: &mut SuiSystemStateInnerV2, description#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](description#0#0: vector<u8>)
+	5: Call validator::update_description(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_image_url(self#0#0: &mut SuiSystemStateInnerV2, image_url#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](image_url#0#0: vector<u8>)
+	5: Call validator::update_image_url(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_project_url(self#0#0: &mut SuiSystemStateInnerV2, project_url#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](project_url#0#0: vector<u8>)
+	5: Call validator::update_project_url(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_network_address(self#0#0: &mut SuiSystemStateInnerV2, network_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: StLoc[3](validator#1#0: &mut Validator)
+	5: CopyLoc[3](validator#1#0: &mut Validator)
+	6: MoveLoc[1](network_address#0#0: vector<u8>)
+	7: Call validator::update_next_epoch_network_address(&mut Validator, vector<u8>)
+	8: MoveLoc[3](validator#1#0: &mut Validator)
+	9: FreezeRef
+	10: StLoc[4](validator#2#0: &Validator)
+	11: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	12: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	13: MoveLoc[4](validator#2#0: &Validator)
+	14: Call validator_set::assert_no_pending_or_active_duplicates(&ValidatorSet, &Validator)
+	15: Ret
+}
+public(friend) update_candidate_validator_network_address(self#0#0: &mut SuiSystemStateInnerV2, network_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](network_address#0#0: vector<u8>)
+	5: Call validator::update_candidate_network_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_p2p_address(self#0#0: &mut SuiSystemStateInnerV2, p2p_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: StLoc[3](validator#1#0: &mut Validator)
+	5: CopyLoc[3](validator#1#0: &mut Validator)
+	6: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	7: Call validator::update_next_epoch_p2p_address(&mut Validator, vector<u8>)
+	8: MoveLoc[3](validator#1#0: &mut Validator)
+	9: FreezeRef
+	10: StLoc[4](validator#2#0: &Validator)
+	11: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	12: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	13: MoveLoc[4](validator#2#0: &Validator)
+	14: Call validator_set::assert_no_pending_or_active_duplicates(&ValidatorSet, &Validator)
+	15: Ret
+}
+public(friend) update_candidate_validator_p2p_address(self#0#0: &mut SuiSystemStateInnerV2, p2p_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](p2p_address#0#0: vector<u8>)
+	5: Call validator::update_candidate_p2p_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_primary_address(self#0#0: &mut SuiSystemStateInnerV2, primary_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](primary_address#0#0: vector<u8>)
+	5: Call validator::update_next_epoch_primary_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_candidate_validator_primary_address(self#0#0: &mut SuiSystemStateInnerV2, primary_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](primary_address#0#0: vector<u8>)
+	5: Call validator::update_candidate_primary_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_worker_address(self#0#0: &mut SuiSystemStateInnerV2, worker_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](worker_address#0#0: vector<u8>)
+	5: Call validator::update_next_epoch_worker_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_candidate_validator_worker_address(self#0#0: &mut SuiSystemStateInnerV2, worker_address#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](worker_address#0#0: vector<u8>)
+	5: Call validator::update_candidate_worker_address(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_protocol_pubkey(self#0#0: &mut SuiSystemStateInnerV2, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[3](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: StLoc[4](validator#1#0: &mut Validator)
+	5: CopyLoc[4](validator#1#0: &mut Validator)
+	6: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	7: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	8: Call validator::update_next_epoch_protocol_pubkey(&mut Validator, vector<u8>, vector<u8>)
+	9: MoveLoc[4](validator#1#0: &mut Validator)
+	10: FreezeRef
+	11: StLoc[5](validator#2#0: &Validator)
+	12: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	13: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	14: MoveLoc[5](validator#2#0: &Validator)
+	15: Call validator_set::assert_no_pending_or_active_duplicates(&ValidatorSet, &Validator)
+	16: Ret
+}
+public(friend) update_candidate_validator_protocol_pubkey(self#0#0: &mut SuiSystemStateInnerV2, protocol_pubkey#0#0: vector<u8>, proof_of_possession#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[3](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](protocol_pubkey#0#0: vector<u8>)
+	5: MoveLoc[2](proof_of_possession#0#0: vector<u8>)
+	6: Call validator::update_candidate_protocol_pubkey(&mut Validator, vector<u8>, vector<u8>)
+	7: Ret
+}
+public(friend) update_validator_next_epoch_worker_pubkey(self#0#0: &mut SuiSystemStateInnerV2, worker_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: StLoc[3](validator#1#0: &mut Validator)
+	5: CopyLoc[3](validator#1#0: &mut Validator)
+	6: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	7: Call validator::update_next_epoch_worker_pubkey(&mut Validator, vector<u8>)
+	8: MoveLoc[3](validator#1#0: &mut Validator)
+	9: FreezeRef
+	10: StLoc[4](validator#2#0: &Validator)
+	11: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	12: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	13: MoveLoc[4](validator#2#0: &Validator)
+	14: Call validator_set::assert_no_pending_or_active_duplicates(&ValidatorSet, &Validator)
+	15: Ret
+}
+public(friend) update_candidate_validator_worker_pubkey(self#0#0: &mut SuiSystemStateInnerV2, worker_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](worker_pubkey#0#0: vector<u8>)
+	5: Call validator::update_candidate_worker_pubkey(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) update_validator_next_epoch_network_pubkey(self#0#0: &mut SuiSystemStateInnerV2, network_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx(&mut ValidatorSet, &TxContext): &mut Validator
+	4: StLoc[3](validator#1#0: &mut Validator)
+	5: CopyLoc[3](validator#1#0: &mut Validator)
+	6: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	7: Call validator::update_next_epoch_network_pubkey(&mut Validator, vector<u8>)
+	8: MoveLoc[3](validator#1#0: &mut Validator)
+	9: FreezeRef
+	10: StLoc[4](validator#2#0: &Validator)
+	11: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	12: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	13: MoveLoc[4](validator#2#0: &Validator)
+	14: Call validator_set::assert_no_pending_or_active_duplicates(&ValidatorSet, &Validator)
+	15: Ret
+}
+public(friend) update_candidate_validator_network_pubkey(self#0#0: &mut SuiSystemStateInnerV2, network_pubkey#0#0: vector<u8>, ctx#0#0: &TxContext) {
+B0:
+	0: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[2](ctx#0#0: &TxContext)
+	3: Call validator_set::get_validator_mut_with_ctx_including_candidates(&mut ValidatorSet, &TxContext): &mut Validator
+	4: MoveLoc[1](network_pubkey#0#0: vector<u8>)
+	5: Call validator::update_candidate_network_pubkey(&mut Validator, vector<u8>)
+	6: Ret
+}
+public(friend) advance_epoch(self#0#0: &mut SuiSystemStateInnerV2, new_epoch#0#0: u64, next_protocol_version#0#0: u64, storage_reward#0#0: Balance<SUI>, computation_reward#0#0: Balance<SUI>, storage_rebate_amount#0#0: u64, non_refundable_storage_fee_amount#0#0: u64, storage_fund_reinvest_rate#0#0: u64, reward_slashing_rate#0#0: u64, epoch_start_timestamp_ms#0#0: u64, ctx#0#0: &mut TxContext): Balance<SUI> {
+L0:	%#5: u64
+L1:	%#6: u64
+L2:	%#7: u64
+L3:	%#8: u64
+L4:	%#9: u64
+L5:	bps_denominator_u64#1#0: u64
+L6:	computation_charge#1#0: u64
+L7:	computation_charge_u128#1#0: u128
+L8:	computation_reward_amount_after_distribution#1#0: u64
+L9:	computation_reward_amount_before_distribution#1#0: u64
+L10:	computation_reward_distributed#1#0: u64
+L11:	leftover_staking_rewards#1#0: Balance<SUI>
+L12:	leftover_storage_fund_inflow#1#0: u64
+L13:	new_total_stake#1#0: u64
+L14:	refunded_storage_rebate#1#0: Balance<SUI>
+L15:	safe_mode_computation_rewards#1#0: Balance<SUI>
+L16:	safe_mode_storage_rewards#1#0: Balance<SUI>
+L17:	stake_subsidy#1#0: Balance<SUI>
+L18:	stake_subsidy_amount#1#0: u64
+L19:	storage_charge#1#0: u64
+L20:	storage_fund_balance#1#0: u64
+L21:	storage_fund_reinvestment#1#0: Balance<SUI>
+L22:	storage_fund_reinvestment_amount#1#0: u128
+L23:	storage_fund_reward#1#0: Balance<SUI>
+L24:	storage_fund_reward_amount#1#0: u128
+L25:	storage_fund_reward_amount_after_distribution#1#0: u64
+L26:	storage_fund_reward_amount_before_distribution#1#0: u64
+L27:	storage_fund_reward_distributed#1#0: u64
+L28:	total_stake#1#0: u64
+L29:	total_stake_u128#1#0: u128
+L30:	total_validators_stake#1#0: u64
+B0:
+	0: MoveLoc[9](epoch_start_timestamp_ms#0#0: u64)
+	1: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	2: MutBorrowField[6](SuiSystemStateInnerV2.epoch_start_timestamp_ms: u64)
+	3: WriteRef
+	4: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	5: CastU64
+	6: StLoc[27](bps_denominator_u64#1#0: u64)
+	7: CopyLoc[7](storage_fund_reinvest_rate#0#0: u64)
+	8: CopyLoc[27](bps_denominator_u64#1#0: u64)
+	9: Le
+	10: BrFalse(16)
+B1:
+	11: CopyLoc[8](reward_slashing_rate#0#0: u64)
+	12: MoveLoc[27](bps_denominator_u64#1#0: u64)
+	13: Le
+	14: StLoc[11](%#1: bool)
+	15: Branch(18)
+B2:
+	16: LdFalse
+	17: StLoc[11](%#1: bool)
+B3:
+	18: MoveLoc[11](%#1: bool)
+	19: BrFalse(21)
+B4:
+	20: Branch(27)
+B5:
+	21: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	22: Pop
+	23: MoveLoc[10](ctx#0#0: &mut TxContext)
+	24: Pop
+	25: LdConst[8](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	26: Abort
+B6:
+	27: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	28: MutBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
+	29: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
+	30: StLoc[38](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	31: MutBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
+	32: MoveLoc[38](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	33: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	34: Pop
+	35: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	36: MutBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
+	37: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
+	38: StLoc[37](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	39: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	40: MoveLoc[37](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	41: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	42: Pop
+	43: MoveLoc[5](storage_rebate_amount#0#0: u64)
+	44: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	45: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	46: ReadRef
+	47: Add
+	48: StLoc[5](storage_rebate_amount#0#0: u64)
+	49: LdU64(0)
+	50: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	51: MutBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	52: WriteRef
+	53: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	54: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	55: ImmBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
+	56: ReadRef
+	57: Add
+	58: StLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	59: LdU64(0)
+	60: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	61: MutBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
+	62: WriteRef
+	63: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	64: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	65: Call validator_set::total_stake(&ValidatorSet): u64
+	66: StLoc[52](total_validators_stake#1#0: u64)
+	67: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	68: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	69: Call storage_fund::total_balance(&StorageFund): u64
+	70: StLoc[42](storage_fund_balance#1#0: u64)
+	71: CopyLoc[42](storage_fund_balance#1#0: u64)
+	72: MoveLoc[52](total_validators_stake#1#0: u64)
+	73: Add
+	74: StLoc[50](total_stake#1#0: u64)
+	75: ImmBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
+	76: Call balance::value<SUI>(&Balance<SUI>): u64
+	77: StLoc[41](storage_charge#1#0: u64)
+	78: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	79: Call balance::value<SUI>(&Balance<SUI>): u64
+	80: StLoc[28](computation_charge#1#0: u64)
+	81: CopyLoc[10](ctx#0#0: &mut TxContext)
+	82: FreezeRef
+	83: Call tx_context::epoch(&TxContext): u64
+	84: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	85: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	86: ImmBorrowField[12](SystemParametersV2.stake_subsidy_start_epoch: u64)
+	87: ReadRef
+	88: Ge
+	89: BrFalse(95)
+B7:
+	90: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	91: MutBorrowField[13](SuiSystemStateInnerV2.stake_subsidy: StakeSubsidy)
+	92: Call stake_subsidy::advance_epoch(&mut StakeSubsidy): Balance<SUI>
+	93: StLoc[19](%#2: Balance<SUI>)
+	94: Branch(97)
+B8:
+	95: Call balance::zero<SUI>(): Balance<SUI>
+	96: StLoc[19](%#2: Balance<SUI>)
+B9:
+	97: MoveLoc[19](%#2: Balance<SUI>)
+	98: StLoc[39](stake_subsidy#1#0: Balance<SUI>)
+	99: ImmBorrowLoc[39](stake_subsidy#1#0: Balance<SUI>)
+	100: Call balance::value<SUI>(&Balance<SUI>): u64
+	101: StLoc[40](stake_subsidy_amount#1#0: u64)
+	102: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	103: MoveLoc[39](stake_subsidy#1#0: Balance<SUI>)
+	104: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	105: Pop
+	106: MoveLoc[50](total_stake#1#0: u64)
+	107: CastU128
+	108: StLoc[51](total_stake_u128#1#0: u128)
+	109: CopyLoc[28](computation_charge#1#0: u64)
+	110: CastU128
+	111: StLoc[29](computation_charge_u128#1#0: u128)
+	112: MoveLoc[42](storage_fund_balance#1#0: u64)
+	113: CastU128
+	114: MoveLoc[29](computation_charge_u128#1#0: u128)
+	115: Mul
+	116: MoveLoc[51](total_stake_u128#1#0: u128)
+	117: Div
+	118: StLoc[46](storage_fund_reward_amount#1#0: u128)
+	119: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	120: CopyLoc[46](storage_fund_reward_amount#1#0: u128)
+	121: CastU64
+	122: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	123: StLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	124: MoveLoc[46](storage_fund_reward_amount#1#0: u128)
+	125: MoveLoc[7](storage_fund_reinvest_rate#0#0: u64)
+	126: CastU128
+	127: Mul
+	128: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	129: Div
+	130: StLoc[44](storage_fund_reinvestment_amount#1#0: u128)
+	131: MutBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	132: CopyLoc[44](storage_fund_reinvestment_amount#1#0: u128)
+	133: CastU64
+	134: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	135: StLoc[43](storage_fund_reinvestment#1#0: Balance<SUI>)
+	136: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	137: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	138: ReadRef
+	139: LdU64(1)
+	140: Add
+	141: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	142: MutBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	143: WriteRef
+	144: MoveLoc[1](new_epoch#0#0: u64)
+	145: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	146: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	147: ReadRef
+	148: Eq
+	149: BrFalse(151)
+B10:
+	150: Branch(157)
+B11:
+	151: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	152: Pop
+	153: MoveLoc[10](ctx#0#0: &mut TxContext)
+	154: Pop
+	155: LdConst[11](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	156: Abort
+B12:
+	157: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	158: Call balance::value<SUI>(&Balance<SUI>): u64
+	159: StLoc[31](computation_reward_amount_before_distribution#1#0: u64)
+	160: ImmBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	161: Call balance::value<SUI>(&Balance<SUI>): u64
+	162: StLoc[48](storage_fund_reward_amount_before_distribution#1#0: u64)
+	163: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	164: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	165: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	166: MutBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	167: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	168: MutBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	169: MoveLoc[8](reward_slashing_rate#0#0: u64)
+	170: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	171: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	172: ImmBorrowField[15](SystemParametersV2.validator_low_stake_threshold: u64)
+	173: ReadRef
+	174: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	175: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	176: ImmBorrowField[16](SystemParametersV2.validator_very_low_stake_threshold: u64)
+	177: ReadRef
+	178: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	179: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	180: ImmBorrowField[17](SystemParametersV2.validator_low_stake_grace_period: u64)
+	181: ReadRef
+	182: MoveLoc[10](ctx#0#0: &mut TxContext)
+	183: Call validator_set::advance_epoch(&mut ValidatorSet, &mut Balance<SUI>, &mut Balance<SUI>, &mut VecMap<address, VecSet<address>>, u64, u64, u64, u64, &mut TxContext)
+	184: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	185: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	186: Call validator_set::total_stake(&ValidatorSet): u64
+	187: StLoc[35](new_total_stake#1#0: u64)
+	188: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	189: Call balance::value<SUI>(&Balance<SUI>): u64
+	190: StLoc[30](computation_reward_amount_after_distribution#1#0: u64)
+	191: ImmBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	192: Call balance::value<SUI>(&Balance<SUI>): u64
+	193: StLoc[47](storage_fund_reward_amount_after_distribution#1#0: u64)
+	194: MoveLoc[31](computation_reward_amount_before_distribution#1#0: u64)
+	195: MoveLoc[30](computation_reward_amount_after_distribution#1#0: u64)
+	196: Sub
+	197: StLoc[32](computation_reward_distributed#1#0: u64)
+	198: MoveLoc[48](storage_fund_reward_amount_before_distribution#1#0: u64)
+	199: MoveLoc[47](storage_fund_reward_amount_after_distribution#1#0: u64)
+	200: Sub
+	201: StLoc[49](storage_fund_reward_distributed#1#0: u64)
+	202: MoveLoc[2](next_protocol_version#0#0: u64)
+	203: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	204: MutBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
+	205: WriteRef
+	206: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	207: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	208: Call validator_set::derive_reference_gas_price(&ValidatorSet): u64
+	209: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	210: MutBorrowField[19](SuiSystemStateInnerV2.reference_gas_price: u64)
+	211: WriteRef
+	212: MoveLoc[45](storage_fund_reward#1#0: Balance<SUI>)
+	213: StLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
+	214: MutBorrowLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
+	215: MoveLoc[4](computation_reward#0#0: Balance<SUI>)
+	216: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	217: Pop
+	218: ImmBorrowLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
+	219: Call balance::value<SUI>(&Balance<SUI>): u64
+	220: StLoc[34](leftover_storage_fund_inflow#1#0: u64)
+	221: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	222: MutBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	223: MoveLoc[3](storage_reward#0#0: Balance<SUI>)
+	224: MoveLoc[43](storage_fund_reinvestment#1#0: Balance<SUI>)
+	225: MoveLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
+	226: CopyLoc[5](storage_rebate_amount#0#0: u64)
+	227: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	228: Call storage_fund::advance_epoch(&mut StorageFund, Balance<SUI>, Balance<SUI>, Balance<SUI>, u64, u64): Balance<SUI>
+	229: StLoc[36](refunded_storage_rebate#1#0: Balance<SUI>)
+	230: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	231: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	232: ReadRef
+	233: StLoc[20](%#3: u64)
+	234: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	235: ImmBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
+	236: ReadRef
+	237: StLoc[21](%#4: u64)
+	238: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	239: ImmBorrowField[19](SuiSystemStateInnerV2.reference_gas_price: u64)
+	240: ReadRef
+	241: StLoc[22](%#5: u64)
+	242: MoveLoc[35](new_total_stake#1#0: u64)
+	243: StLoc[23](%#6: u64)
+	244: MoveLoc[41](storage_charge#1#0: u64)
+	245: StLoc[24](%#7: u64)
+	246: MoveLoc[44](storage_fund_reinvestment_amount#1#0: u128)
+	247: CastU64
+	248: StLoc[25](%#8: u64)
+	249: MoveLoc[5](storage_rebate_amount#0#0: u64)
+	250: StLoc[26](%#9: u64)
+	251: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	252: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	253: Call storage_fund::total_balance(&StorageFund): u64
+	254: StLoc[12](%#10: u64)
+	255: MoveLoc[40](stake_subsidy_amount#1#0: u64)
+	256: StLoc[13](%#11: u64)
+	257: MoveLoc[28](computation_charge#1#0: u64)
+	258: StLoc[14](%#12: u64)
+	259: MoveLoc[32](computation_reward_distributed#1#0: u64)
+	260: MoveLoc[49](storage_fund_reward_distributed#1#0: u64)
+	261: Add
+	262: StLoc[15](%#13: u64)
+	263: MoveLoc[34](leftover_storage_fund_inflow#1#0: u64)
+	264: StLoc[16](%#14: u64)
+	265: MoveLoc[20](%#3: u64)
+	266: MoveLoc[21](%#4: u64)
+	267: MoveLoc[22](%#5: u64)
+	268: MoveLoc[23](%#6: u64)
+	269: MoveLoc[25](%#8: u64)
+	270: MoveLoc[24](%#7: u64)
+	271: MoveLoc[26](%#9: u64)
+	272: MoveLoc[12](%#10: u64)
+	273: MoveLoc[13](%#11: u64)
+	274: MoveLoc[14](%#12: u64)
+	275: MoveLoc[15](%#13: u64)
+	276: MoveLoc[16](%#14: u64)
+	277: Pack[4](SystemEpochInfoEvent)
+	278: Call event::emit<SystemEpochInfoEvent>(SystemEpochInfoEvent)
+	279: LdFalse
+	280: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	281: MutBorrowField[20](SuiSystemStateInnerV2.safe_mode: bool)
+	282: WriteRef
+	283: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	284: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	285: ReadRef
+	286: LdU64(0)
+	287: Eq
+	288: BrFalse(296)
+B13:
+	289: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	290: ImmBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
+	291: Call balance::value<SUI>(&Balance<SUI>): u64
+	292: LdU64(0)
+	293: Eq
+	294: StLoc[17](%#15: bool)
+	295: Branch(298)
+B14:
+	296: LdFalse
+	297: StLoc[17](%#15: bool)
+B15:
+	298: MoveLoc[17](%#15: bool)
+	299: BrFalse(307)
+B16:
+	300: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	301: ImmBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
+	302: Call balance::value<SUI>(&Balance<SUI>): u64
+	303: LdU64(0)
+	304: Eq
+	305: StLoc[18](%#16: bool)
+	306: Branch(311)
+B17:
+	307: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	308: Pop
+	309: LdFalse
+	310: StLoc[18](%#16: bool)
+B18:
+	311: MoveLoc[18](%#16: bool)
+	312: BrFalse(314)
+B19:
+	313: Branch(316)
+B20:
+	314: LdConst[10](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	315: Abort
+B21:
+	316: MoveLoc[36](refunded_storage_rebate#1#0: Balance<SUI>)
+	317: Ret
+}
+public(friend) epoch(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	2: ReadRef
+	3: Ret
+}
+public(friend) protocol_version(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
+	2: ReadRef
+	3: Ret
+}
+public(friend) system_state_version(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[21](SuiSystemStateInnerV2.system_state_version: u64)
+	2: ReadRef
+	3: Ret
+}
+public(friend) genesis_system_state_version(): u64 {
+B0:
+	0: LdConst[3](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	1: Ret
+}
+public(friend) epoch_start_timestamp_ms(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[6](SuiSystemStateInnerV2.epoch_start_timestamp_ms: u64)
+	2: ReadRef
+	3: Ret
+}
+public(friend) validator_stake_amount(self#0#0: &SuiSystemStateInnerV2, validator_addr#0#0: address): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](validator_addr#0#0: address)
+	3: Call validator_set::validator_total_stake_amount(&ValidatorSet, address): u64
+	4: Ret
+}
+public(friend) validator_staking_pool_id(self#0#0: &SuiSystemStateInnerV2, validator_addr#0#0: address): ID {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: MoveLoc[1](validator_addr#0#0: address)
+	3: Call validator_set::validator_staking_pool_id(&ValidatorSet, address): ID
+	4: Ret
+}
+public(friend) validator_staking_pool_mappings(self#0#0: &SuiSystemStateInnerV2): &Table<ID, address> {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	2: Call validator_set::staking_pool_mappings(&ValidatorSet): &Table<ID, address>
+	3: Ret
+}
+public(friend) get_reporters_of(self#0#0: &SuiSystemStateInnerV2, addr#0#0: address): VecSet<address> {
+B0:
+	0: CopyLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	2: ImmBorrowLoc[1](addr#0#0: address)
+	3: Call vec_map::contains<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): bool
+	4: BrFalse(12)
+B1:
+	5: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	6: ImmBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	7: ImmBorrowLoc[1](addr#0#0: address)
+	8: Call vec_map::get<address, VecSet<address>>(&VecMap<address, VecSet<address>>, &address): &VecSet<address>
+	9: ReadRef
+	10: StLoc[2](%#1: VecSet<address>)
+	11: Branch(16)
+B2:
+	12: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	13: Pop
+	14: Call vec_set::empty<address>(): VecSet<address>
+	15: StLoc[2](%#1: VecSet<address>)
+B3:
+	16: MoveLoc[2](%#1: VecSet<address>)
+	17: Ret
+}
+public(friend) get_storage_fund_total_balance(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	2: Call storage_fund::total_balance(&StorageFund): u64
+	3: Ret
+}
+public(friend) get_storage_fund_object_rebates(self#0#0: &SuiSystemStateInnerV2): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
+	1: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	2: Call storage_fund::total_object_storage_rebates(&StorageFund): u64
+	3: Ret
+}
+extract_coin_balance(coins#0#0: vector<Coin<SUI>>, amount#0#0: Option<u64>, ctx#0#0: &mut TxContext): Balance<SUI> {
+L0:	merged_coin#1#0: Coin<SUI>
+L1:	total_balance#1#0: Balance<SUI>
+B0:
+	0: MutBorrowLoc[0](coins#0#0: vector<Coin<SUI>>)
+	1: VecPopBack(91)
+	2: StLoc[6](merged_coin#1#0: Coin<SUI>)
+	3: MutBorrowLoc[6](merged_coin#1#0: Coin<SUI>)
+	4: MoveLoc[0](coins#0#0: vector<Coin<SUI>>)
+	5: Call pay::join_vec<SUI>(&mut Coin<SUI>, vector<Coin<SUI>>)
+	6: MoveLoc[6](merged_coin#1#0: Coin<SUI>)
+	7: Call coin::into_balance<SUI>(Coin<SUI>): Balance<SUI>
+	8: StLoc[7](total_balance#1#0: Balance<SUI>)
+	9: ImmBorrowLoc[1](amount#0#0: Option<u64>)
+	10: Call option::is_some<u64>(&Option<u64>): bool
+	11: BrFalse(39)
+B1:
+	12: MoveLoc[1](amount#0#0: Option<u64>)
+	13: Call option::destroy_some<u64>(Option<u64>): u64
+	14: StLoc[4](amount#1#0: u64)
+	15: MutBorrowLoc[7](total_balance#1#0: Balance<SUI>)
+	16: MoveLoc[4](amount#1#0: u64)
+	17: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	18: StLoc[5](balance#1#0: Balance<SUI>)
+	19: ImmBorrowLoc[7](total_balance#1#0: Balance<SUI>)
+	20: Call balance::value<SUI>(&Balance<SUI>): u64
+	21: LdU64(0)
+	22: Gt
+	23: BrFalse(32)
+B2:
+	24: MoveLoc[7](total_balance#1#0: Balance<SUI>)
+	25: CopyLoc[2](ctx#0#0: &mut TxContext)
+	26: Call coin::from_balance<SUI>(Balance<SUI>, &mut TxContext): Coin<SUI>
+	27: MoveLoc[2](ctx#0#0: &mut TxContext)
+	28: FreezeRef
+	29: Call tx_context::sender(&TxContext): address
+	30: Call transfer::public_transfer<Coin<SUI>>(Coin<SUI>, address)
+	31: Branch(36)
+B3:
+	32: MoveLoc[2](ctx#0#0: &mut TxContext)
+	33: Pop
+	34: MoveLoc[7](total_balance#1#0: Balance<SUI>)
+	35: Call balance::destroy_zero<SUI>(Balance<SUI>)
+B4:
+	36: MoveLoc[5](balance#1#0: Balance<SUI>)
+	37: StLoc[3](%#1: Balance<SUI>)
+	38: Branch(43)
+B5:
+	39: MoveLoc[2](ctx#0#0: &mut TxContext)
+	40: Pop
+	41: MoveLoc[7](total_balance#1#0: Balance<SUI>)
+	42: StLoc[3](%#1: Balance<SUI>)
+B6:
+	43: MoveLoc[3](%#1: Balance<SUI>)
+	44: Ret
+}
+}

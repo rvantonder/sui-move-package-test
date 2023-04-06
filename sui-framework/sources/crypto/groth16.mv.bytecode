@@ -1,0 +1,110 @@
+// Move bytecode v6
+module 2.groth16 {
+struct Curve has copy, drop, store {
+	id: u8
+}
+struct PreparedVerifyingKey has copy, drop, store {
+	vk_gamma_abc_g1_bytes: vector<u8>,
+	alpha_g1_beta_g2_bytes: vector<u8>,
+	gamma_g2_neg_pc_bytes: vector<u8>,
+	delta_g2_neg_pc_bytes: vector<u8>
+}
+struct PublicProofInputs has copy, drop, store {
+	bytes: vector<u8>
+}
+struct ProofPoints has copy, drop, store {
+	bytes: vector<u8>
+}
+
+public bls12381(): Curve {
+B0:
+	0: LdU8(0)
+	1: Pack[0](Curve)
+	2: Ret
+}
+public bn254(): Curve {
+B0:
+	0: LdU8(1)
+	1: Pack[0](Curve)
+	2: Ret
+}
+public pvk_from_bytes(vk_gamma_abc_g1_bytes#0#0: vector<u8>, alpha_g1_beta_g2_bytes#0#0: vector<u8>, gamma_g2_neg_pc_bytes#0#0: vector<u8>, delta_g2_neg_pc_bytes#0#0: vector<u8>): PreparedVerifyingKey {
+B0:
+	0: MoveLoc[0](vk_gamma_abc_g1_bytes#0#0: vector<u8>)
+	1: MoveLoc[1](alpha_g1_beta_g2_bytes#0#0: vector<u8>)
+	2: MoveLoc[2](gamma_g2_neg_pc_bytes#0#0: vector<u8>)
+	3: MoveLoc[3](delta_g2_neg_pc_bytes#0#0: vector<u8>)
+	4: Pack[1](PreparedVerifyingKey)
+	5: Ret
+}
+public pvk_to_bytes(pvk#0#0: PreparedVerifyingKey): vector<vector<u8>> {
+B0:
+	0: VecPack(5, 0)
+	1: StLoc[1](res#1#0: vector<vector<u8>>)
+	2: MutBorrowLoc[1](res#1#0: vector<vector<u8>>)
+	3: ImmBorrowLoc[0](pvk#0#0: PreparedVerifyingKey)
+	4: ImmBorrowField[0](PreparedVerifyingKey.vk_gamma_abc_g1_bytes: vector<u8>)
+	5: ReadRef
+	6: VecPushBack(5)
+	7: MutBorrowLoc[1](res#1#0: vector<vector<u8>>)
+	8: ImmBorrowLoc[0](pvk#0#0: PreparedVerifyingKey)
+	9: ImmBorrowField[1](PreparedVerifyingKey.alpha_g1_beta_g2_bytes: vector<u8>)
+	10: ReadRef
+	11: VecPushBack(5)
+	12: MutBorrowLoc[1](res#1#0: vector<vector<u8>>)
+	13: ImmBorrowLoc[0](pvk#0#0: PreparedVerifyingKey)
+	14: ImmBorrowField[2](PreparedVerifyingKey.gamma_g2_neg_pc_bytes: vector<u8>)
+	15: ReadRef
+	16: VecPushBack(5)
+	17: MutBorrowLoc[1](res#1#0: vector<vector<u8>>)
+	18: ImmBorrowLoc[0](pvk#0#0: PreparedVerifyingKey)
+	19: ImmBorrowField[3](PreparedVerifyingKey.delta_g2_neg_pc_bytes: vector<u8>)
+	20: ReadRef
+	21: VecPushBack(5)
+	22: MoveLoc[1](res#1#0: vector<vector<u8>>)
+	23: Ret
+}
+public public_proof_inputs_from_bytes(bytes#0#0: vector<u8>): PublicProofInputs {
+B0:
+	0: MoveLoc[0](bytes#0#0: vector<u8>)
+	1: Pack[2](PublicProofInputs)
+	2: Ret
+}
+public proof_points_from_bytes(bytes#0#0: vector<u8>): ProofPoints {
+B0:
+	0: MoveLoc[0](bytes#0#0: vector<u8>)
+	1: Pack[3](ProofPoints)
+	2: Ret
+}
+public prepare_verifying_key(curve#0#0: &Curve, verifying_key#0#0: &vector<u8>): PreparedVerifyingKey {
+B0:
+	0: MoveLoc[0](curve#0#0: &Curve)
+	1: ImmBorrowField[4](Curve.id: u8)
+	2: ReadRef
+	3: MoveLoc[1](verifying_key#0#0: &vector<u8>)
+	4: Call prepare_verifying_key_internal(u8, &vector<u8>): PreparedVerifyingKey
+	5: Ret
+}
+native prepare_verifying_key_internal(curve#0#0: u8, verifying_key#0#0: &vector<u8>): PreparedVerifyingKey
+public verify_groth16_proof(curve#0#0: &Curve, prepared_verifying_key#0#0: &PreparedVerifyingKey, public_proof_inputs#0#0: &PublicProofInputs, proof_points#0#0: &ProofPoints): bool {
+B0:
+	0: MoveLoc[0](curve#0#0: &Curve)
+	1: ImmBorrowField[4](Curve.id: u8)
+	2: ReadRef
+	3: CopyLoc[1](prepared_verifying_key#0#0: &PreparedVerifyingKey)
+	4: ImmBorrowField[0](PreparedVerifyingKey.vk_gamma_abc_g1_bytes: vector<u8>)
+	5: CopyLoc[1](prepared_verifying_key#0#0: &PreparedVerifyingKey)
+	6: ImmBorrowField[1](PreparedVerifyingKey.alpha_g1_beta_g2_bytes: vector<u8>)
+	7: CopyLoc[1](prepared_verifying_key#0#0: &PreparedVerifyingKey)
+	8: ImmBorrowField[2](PreparedVerifyingKey.gamma_g2_neg_pc_bytes: vector<u8>)
+	9: MoveLoc[1](prepared_verifying_key#0#0: &PreparedVerifyingKey)
+	10: ImmBorrowField[3](PreparedVerifyingKey.delta_g2_neg_pc_bytes: vector<u8>)
+	11: MoveLoc[2](public_proof_inputs#0#0: &PublicProofInputs)
+	12: ImmBorrowField[5](PublicProofInputs.bytes: vector<u8>)
+	13: MoveLoc[3](proof_points#0#0: &ProofPoints)
+	14: ImmBorrowField[6](ProofPoints.bytes: vector<u8>)
+	15: Call verify_groth16_proof_internal(u8, &vector<u8>, &vector<u8>, &vector<u8>, &vector<u8>, &vector<u8>, &vector<u8>): bool
+	16: Ret
+}
+native verify_groth16_proof_internal(curve#0#0: u8, vk_gamma_abc_g1_bytes#0#0: &vector<u8>, alpha_g1_beta_g2_bytes#0#0: &vector<u8>, gamma_g2_neg_pc_bytes#0#0: &vector<u8>, delta_g2_neg_pc_bytes#0#0: &vector<u8>, public_proof_inputs#0#0: &vector<u8>, proof_points#0#0: &vector<u8>): bool
+}

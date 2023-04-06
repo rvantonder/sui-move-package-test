@@ -1,0 +1,120 @@
+// Move bytecode v6
+module 3.stake_subsidy {
+use 0000000000000000000000000000000000000000000000000000000000000002::bag;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::math;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct StakeSubsidy has store {
+	balance: Balance<SUI>,
+	distribution_counter: u64,
+	current_distribution_amount: u64,
+	stake_subsidy_period_length: u64,
+	stake_subsidy_decrease_rate: u16,
+	extra_fields: Bag
+}
+
+public(friend) create(balance#0#0: Balance<SUI>, initial_distribution_amount#0#0: u64, stake_subsidy_period_length#0#0: u64, stake_subsidy_decrease_rate#0#0: u16, ctx#0#0: &mut TxContext): StakeSubsidy {
+B0:
+	0: CopyLoc[3](stake_subsidy_decrease_rate#0#0: u16)
+	1: LdConst[0](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	2: CastU16
+	3: Le
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[4](ctx#0#0: &mut TxContext)
+	7: Pop
+	8: LdConst[1](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[0](balance#0#0: Balance<SUI>)
+	11: LdU64(0)
+	12: MoveLoc[1](initial_distribution_amount#0#0: u64)
+	13: MoveLoc[2](stake_subsidy_period_length#0#0: u64)
+	14: MoveLoc[3](stake_subsidy_decrease_rate#0#0: u16)
+	15: MoveLoc[4](ctx#0#0: &mut TxContext)
+	16: Call bag::new(&mut TxContext): Bag
+	17: Pack[0](StakeSubsidy)
+	18: Ret
+}
+public(friend) advance_epoch(self#0#0: &mut StakeSubsidy): Balance<SUI> {
+L0:	stake_subsidy#1#0: Balance<SUI>
+L1:	to_withdraw#1#0: u64
+B0:
+	0: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	1: ImmBorrowField[0](StakeSubsidy.current_distribution_amount: u64)
+	2: ReadRef
+	3: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	4: ImmBorrowField[1](StakeSubsidy.balance: Balance<SUI>)
+	5: Call balance::value<SUI>(&Balance<SUI>): u64
+	6: Call math::min(u64, u64): u64
+	7: StLoc[3](to_withdraw#1#0: u64)
+	8: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	9: MutBorrowField[1](StakeSubsidy.balance: Balance<SUI>)
+	10: MoveLoc[3](to_withdraw#1#0: u64)
+	11: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	12: StLoc[2](stake_subsidy#1#0: Balance<SUI>)
+	13: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	14: ImmBorrowField[2](StakeSubsidy.distribution_counter: u64)
+	15: ReadRef
+	16: LdU64(1)
+	17: Add
+	18: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	19: MutBorrowField[2](StakeSubsidy.distribution_counter: u64)
+	20: WriteRef
+	21: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	22: ImmBorrowField[2](StakeSubsidy.distribution_counter: u64)
+	23: ReadRef
+	24: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	25: ImmBorrowField[3](StakeSubsidy.stake_subsidy_period_length: u64)
+	26: ReadRef
+	27: Mod
+	28: LdU64(0)
+	29: Eq
+	30: BrFalse(53)
+B1:
+	31: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	32: ImmBorrowField[0](StakeSubsidy.current_distribution_amount: u64)
+	33: ReadRef
+	34: CastU128
+	35: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	36: ImmBorrowField[4](StakeSubsidy.stake_subsidy_decrease_rate: u16)
+	37: ReadRef
+	38: CastU128
+	39: Mul
+	40: LdConst[0](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	41: Div
+	42: StLoc[1](decrease_amount#1#0: u128)
+	43: CopyLoc[0](self#0#0: &mut StakeSubsidy)
+	44: ImmBorrowField[0](StakeSubsidy.current_distribution_amount: u64)
+	45: ReadRef
+	46: MoveLoc[1](decrease_amount#1#0: u128)
+	47: CastU64
+	48: Sub
+	49: MoveLoc[0](self#0#0: &mut StakeSubsidy)
+	50: MutBorrowField[0](StakeSubsidy.current_distribution_amount: u64)
+	51: WriteRef
+	52: Branch(55)
+B2:
+	53: MoveLoc[0](self#0#0: &mut StakeSubsidy)
+	54: Pop
+B3:
+	55: MoveLoc[2](stake_subsidy#1#0: Balance<SUI>)
+	56: Ret
+}
+public current_epoch_subsidy_amount(self#0#0: &StakeSubsidy): u64 {
+B0:
+	0: CopyLoc[0](self#0#0: &StakeSubsidy)
+	1: ImmBorrowField[0](StakeSubsidy.current_distribution_amount: u64)
+	2: ReadRef
+	3: MoveLoc[0](self#0#0: &StakeSubsidy)
+	4: ImmBorrowField[1](StakeSubsidy.balance: Balance<SUI>)
+	5: Call balance::value<SUI>(&Balance<SUI>): u64
+	6: Call math::min(u64, u64): u64
+	7: Ret
+}
+}

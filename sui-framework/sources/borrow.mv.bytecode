@@ -1,0 +1,93 @@
+// Move bytecode v6
+module 2.borrow {
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct Referent<T: store + key> has store {
+	id: address,
+	value: Option<T>
+}
+struct Borrow {
+	ref: address,
+	obj: ID
+}
+
+public new<T: store + key>(value#0#0: T, ctx#0#0: &mut TxContext): Referent<T> {
+B0:
+	0: MoveLoc[1](ctx#0#0: &mut TxContext)
+	1: Call tx_context::fresh_object_address(&mut TxContext): address
+	2: MoveLoc[0](value#0#0: T)
+	3: Call option::some<T>(T): Option<T>
+	4: PackGeneric[0](Referent<T>)
+	5: Ret
+}
+public borrow<T: store + key>(self#0#0: &mut Referent<T>): T * Borrow {
+L0:	value#1#0: T
+B0:
+	0: CopyLoc[0](self#0#0: &mut Referent<T>)
+	1: MutBorrowFieldGeneric[0](Referent.value: Option<T>)
+	2: Call option::extract<T>(&mut Option<T>): T
+	3: StLoc[2](value#1#0: T)
+	4: ImmBorrowLoc[2](value#1#0: T)
+	5: Call object::id<T>(&T): ID
+	6: StLoc[1](id#1#0: ID)
+	7: MoveLoc[2](value#1#0: T)
+	8: MoveLoc[0](self#0#0: &mut Referent<T>)
+	9: ImmBorrowFieldGeneric[1](Referent.id: address)
+	10: ReadRef
+	11: MoveLoc[1](id#1#0: ID)
+	12: Pack[1](Borrow)
+	13: Ret
+}
+public put_back<T: store + key>(self#0#0: &mut Referent<T>, value#0#0: T, borrow#0#0: Borrow) {
+B0:
+	0: MoveLoc[2](borrow#0#0: Borrow)
+	1: Unpack[1](Borrow)
+	2: StLoc[3](obj#1#0: ID)
+	3: StLoc[4](ref#1#0: address)
+	4: ImmBorrowLoc[1](value#0#0: T)
+	5: Call object::id<T>(&T): ID
+	6: MoveLoc[3](obj#1#0: ID)
+	7: Eq
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](self#0#0: &mut Referent<T>)
+	11: Pop
+	12: LdConst[1](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: CopyLoc[0](self#0#0: &mut Referent<T>)
+	15: ImmBorrowFieldGeneric[1](Referent.id: address)
+	16: ReadRef
+	17: MoveLoc[4](ref#1#0: address)
+	18: Eq
+	19: BrFalse(21)
+B4:
+	20: Branch(25)
+B5:
+	21: MoveLoc[0](self#0#0: &mut Referent<T>)
+	22: Pop
+	23: LdConst[0](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	24: Abort
+B6:
+	25: MoveLoc[0](self#0#0: &mut Referent<T>)
+	26: MutBorrowFieldGeneric[0](Referent.value: Option<T>)
+	27: MoveLoc[1](value#0#0: T)
+	28: Call option::fill<T>(&mut Option<T>, T)
+	29: Ret
+}
+public destroy<T: store + key>(self#0#0: Referent<T>): T {
+B0:
+	0: MoveLoc[0](self#0#0: Referent<T>)
+	1: UnpackGeneric[0](Referent<T>)
+	2: StLoc[1](value#1#0: Option<T>)
+	3: Pop
+	4: MoveLoc[1](value#1#0: Option<T>)
+	5: Call option::destroy_some<T>(Option<T>): T
+	6: Ret
+}
+}

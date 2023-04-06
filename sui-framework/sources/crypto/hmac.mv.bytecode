@@ -1,0 +1,6 @@
+// Move bytecode v6
+module 2.hmac {
+
+
+native public hmac_sha3_256(key#0#0: &vector<u8>, msg#0#0: &vector<u8>): vector<u8>
+}

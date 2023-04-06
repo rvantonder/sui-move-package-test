@@ -1,0 +1,6 @@
+// Move bytecode v6
+module 2.ecvrf {
+
+
+native public ecvrf_verify(hash#0#0: &vector<u8>, alpha_string#0#0: &vector<u8>, public_key#0#0: &vector<u8>, proof#0#0: &vector<u8>): bool
+}

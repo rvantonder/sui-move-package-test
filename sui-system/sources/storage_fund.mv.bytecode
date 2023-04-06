@@ -1,0 +1,70 @@
+// Move bytecode v6
+module 3.storage_fund {
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+
+
+struct StorageFund has store {
+	total_object_storage_rebates: Balance<SUI>,
+	non_refundable_balance: Balance<SUI>
+}
+
+public(friend) new(initial_fund#0#0: Balance<SUI>): StorageFund {
+B0:
+	0: Call balance::zero<SUI>(): Balance<SUI>
+	1: MoveLoc[0](initial_fund#0#0: Balance<SUI>)
+	2: Pack[0](StorageFund)
+	3: Ret
+}
+public(friend) advance_epoch(self#0#0: &mut StorageFund, storage_charges#0#0: Balance<SUI>, storage_fund_reinvestment#0#0: Balance<SUI>, leftover_staking_rewards#0#0: Balance<SUI>, storage_rebate_amount#0#0: u64, non_refundable_storage_fee_amount#0#0: u64): Balance<SUI> {
+B0:
+	0: CopyLoc[0](self#0#0: &mut StorageFund)
+	1: MutBorrowField[0](StorageFund.non_refundable_balance: Balance<SUI>)
+	2: MoveLoc[2](storage_fund_reinvestment#0#0: Balance<SUI>)
+	3: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	4: Pop
+	5: CopyLoc[0](self#0#0: &mut StorageFund)
+	6: MutBorrowField[0](StorageFund.non_refundable_balance: Balance<SUI>)
+	7: MoveLoc[3](leftover_staking_rewards#0#0: Balance<SUI>)
+	8: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	9: Pop
+	10: CopyLoc[0](self#0#0: &mut StorageFund)
+	11: MutBorrowField[1](StorageFund.total_object_storage_rebates: Balance<SUI>)
+	12: MoveLoc[1](storage_charges#0#0: Balance<SUI>)
+	13: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	14: Pop
+	15: CopyLoc[0](self#0#0: &mut StorageFund)
+	16: MutBorrowField[1](StorageFund.total_object_storage_rebates: Balance<SUI>)
+	17: MoveLoc[5](non_refundable_storage_fee_amount#0#0: u64)
+	18: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	19: StLoc[6](non_refundable_storage_fee#1#0: Balance<SUI>)
+	20: CopyLoc[0](self#0#0: &mut StorageFund)
+	21: MutBorrowField[0](StorageFund.non_refundable_balance: Balance<SUI>)
+	22: MoveLoc[6](non_refundable_storage_fee#1#0: Balance<SUI>)
+	23: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	24: Pop
+	25: MoveLoc[0](self#0#0: &mut StorageFund)
+	26: MutBorrowField[1](StorageFund.total_object_storage_rebates: Balance<SUI>)
+	27: MoveLoc[4](storage_rebate_amount#0#0: u64)
+	28: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	29: Ret
+}
+public total_object_storage_rebates(self#0#0: &StorageFund): u64 {
+B0:
+	0: MoveLoc[0](self#0#0: &StorageFund)
+	1: ImmBorrowField[1](StorageFund.total_object_storage_rebates: Balance<SUI>)
+	2: Call balance::value<SUI>(&Balance<SUI>): u64
+	3: Ret
+}
+public total_balance(self#0#0: &StorageFund): u64 {
+B0:
+	0: CopyLoc[0](self#0#0: &StorageFund)
+	1: ImmBorrowField[1](StorageFund.total_object_storage_rebates: Balance<SUI>)
+	2: Call balance::value<SUI>(&Balance<SUI>): u64
+	3: MoveLoc[0](self#0#0: &StorageFund)
+	4: ImmBorrowField[0](StorageFund.non_refundable_balance: Balance<SUI>)
+	5: Call balance::value<SUI>(&Balance<SUI>): u64
+	6: Add
+	7: Ret
+}
+}
