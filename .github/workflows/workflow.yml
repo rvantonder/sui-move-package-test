@@ -1,0 +1,18 @@
+name: codecov workflow
+on: [push]
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    env:
+      OS: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@master
+    - uses: codecov/codecov-action@v3
+      with:
+        files: ./manual.json
+        name: codecov-test
+        verbose: true
+        #token: ${{ secrets.CODECOV_TOKEN }}
