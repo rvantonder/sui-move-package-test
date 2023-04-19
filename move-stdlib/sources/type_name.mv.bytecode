@@ -1,0 +1,118 @@
+// Move bytecode v6
+module 1.type_name {
+use 0000000000000000000000000000000000000000000000000000000000000001::address;
+use 0000000000000000000000000000000000000000000000000000000000000001::ascii;
+
+
+struct TypeName has copy, drop, store {
+	name: String
+}
+
+native public get<T>(): TypeName
+public borrow_string(self#0#0: &TypeName): &String {
+B0:
+	0: MoveLoc[0](self#0#0: &TypeName)
+	1: ImmBorrowField[0](TypeName.name: String)
+	2: Ret
+}
+public get_address(self#0#0: &TypeName): String {
+L0:	i#1#0: u64
+L1:	len#1#0: u64
+L2:	str_bytes#1#0: &vector<u8>
+B0:
+	0: Call address::length(): u64
+	1: LdU64(2)
+	2: Mul
+	3: StLoc[3](len#1#0: u64)
+	4: MoveLoc[0](self#0#0: &TypeName)
+	5: ImmBorrowField[0](TypeName.name: String)
+	6: Call ascii::as_bytes(&String): &vector<u8>
+	7: StLoc[4](str_bytes#1#0: &vector<u8>)
+	8: LdConst[1](Vector(U8): [0])
+	9: StLoc[1](addr_bytes#1#0: vector<u8>)
+	10: LdU64(0)
+	11: StLoc[2](i#1#0: u64)
+B1:
+	12: CopyLoc[2](i#1#0: u64)
+	13: CopyLoc[3](len#1#0: u64)
+	14: Lt
+	15: BrFalse(28)
+B2:
+	16: Branch(17)
+B3:
+	17: MutBorrowLoc[1](addr_bytes#1#0: vector<u8>)
+	18: CopyLoc[4](str_bytes#1#0: &vector<u8>)
+	19: CopyLoc[2](i#1#0: u64)
+	20: VecImmBorrow(8)
+	21: ReadRef
+	22: VecPushBack(8)
+	23: MoveLoc[2](i#1#0: u64)
+	24: LdU64(1)
+	25: Add
+	26: StLoc[2](i#1#0: u64)
+	27: Branch(12)
+B4:
+	28: MoveLoc[4](str_bytes#1#0: &vector<u8>)
+	29: Pop
+	30: MoveLoc[1](addr_bytes#1#0: vector<u8>)
+	31: Call ascii::string(vector<u8>): String
+	32: Ret
+}
+public get_module(self#0#0: &TypeName): String {
+L0:	char#1#0: &u8
+L1:	i#1#0: u64
+L2:	module_name#1#0: vector<u8>
+L3:	str_bytes#1#0: &vector<u8>
+B0:
+	0: Call address::length(): u64
+	1: LdU64(2)
+	2: Mul
+	3: LdU64(2)
+	4: Add
+	5: StLoc[3](i#1#0: u64)
+	6: MoveLoc[0](self#0#0: &TypeName)
+	7: ImmBorrowField[0](TypeName.name: String)
+	8: Call ascii::as_bytes(&String): &vector<u8>
+	9: StLoc[5](str_bytes#1#0: &vector<u8>)
+	10: LdConst[1](Vector(U8): [0])
+	11: StLoc[4](module_name#1#0: vector<u8>)
+B1:
+	12: CopyLoc[5](str_bytes#1#0: &vector<u8>)
+	13: CopyLoc[3](i#1#0: u64)
+	14: VecImmBorrow(8)
+	15: StLoc[2](char#1#0: &u8)
+	16: LdConst[0](U8: [58])
+	17: StLoc[1](%#1: u8)
+	18: CopyLoc[2](char#1#0: &u8)
+	19: ImmBorrowLoc[1](%#1: u8)
+	20: Neq
+	21: BrFalse(32)
+B2:
+	22: Branch(23)
+B3:
+	23: MutBorrowLoc[4](module_name#1#0: vector<u8>)
+	24: MoveLoc[2](char#1#0: &u8)
+	25: ReadRef
+	26: VecPushBack(8)
+	27: MoveLoc[3](i#1#0: u64)
+	28: LdU64(1)
+	29: Add
+	30: StLoc[3](i#1#0: u64)
+	31: Branch(12)
+B4:
+	32: MoveLoc[5](str_bytes#1#0: &vector<u8>)
+	33: Pop
+	34: MoveLoc[2](char#1#0: &u8)
+	35: Pop
+	36: MoveLoc[4](module_name#1#0: vector<u8>)
+	37: Call ascii::string(vector<u8>): String
+	38: Ret
+}
+public into_string(self#0#0: TypeName): String {
+B0:
+	0: ImmBorrowLoc[0](self#0#0: TypeName)
+	1: ImmBorrowField[0](TypeName.name: String)
+	2: ReadRef
+	3: Ret
+}
+}

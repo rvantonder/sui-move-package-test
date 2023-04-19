@@ -559,24 +559,7 @@ B0:
 }
 public split(self#0#0: &mut StakedSui, split_amount#0#0: u64, ctx#0#0: &mut TxContext): StakedSui {
 B0:
-	0: MoveLoc[2](ctx#0#0: &mut TxContext)
-	1: Call object::new(&mut TxContext): UID
-	2: CopyLoc[0](self#0#0: &mut StakedSui)
-	3: ImmBorrowField[3](StakedSui.pool_id: ID)
-	4: ReadRef
-	5: CopyLoc[0](self#0#0: &mut StakedSui)
-	6: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
-	7: ReadRef
-	8: MoveLoc[0](self#0#0: &mut StakedSui)
-	9: MutBorrowField[11](StakedSui.principal: Balance<SUI>)
-	10: MoveLoc[1](split_amount#0#0: u64)
-	11: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
-	12: Pack[2](StakedSui)
-	13: Ret
-}
-entry public split_staked_sui(stake#0#0: &mut StakedSui, split_amount#0#0: u64, ctx#0#0: &mut TxContext) {
-B0:
-	0: CopyLoc[0](stake#0#0: &mut StakedSui)
+	0: CopyLoc[0](self#0#0: &mut StakedSui)
 	1: ImmBorrowField[11](StakedSui.principal: Balance<SUI>)
 	2: Call balance::value<SUI>(&Balance<SUI>): u64
 	3: StLoc[3](original_amount#1#0: u64)
@@ -587,7 +570,7 @@ B0:
 B1:
 	8: Branch(15)
 B2:
-	9: MoveLoc[0](stake#0#0: &mut StakedSui)
+	9: MoveLoc[0](self#0#0: &mut StakedSui)
 	10: Pop
 	11: MoveLoc[2](ctx#0#0: &mut TxContext)
 	12: Pop
@@ -603,7 +586,7 @@ B3:
 B4:
 	21: Branch(28)
 B5:
-	22: MoveLoc[0](stake#0#0: &mut StakedSui)
+	22: MoveLoc[0](self#0#0: &mut StakedSui)
 	23: Pop
 	24: MoveLoc[2](ctx#0#0: &mut TxContext)
 	25: Pop
@@ -617,22 +600,39 @@ B6:
 B7:
 	32: Branch(39)
 B8:
-	33: MoveLoc[0](stake#0#0: &mut StakedSui)
+	33: MoveLoc[0](self#0#0: &mut StakedSui)
 	34: Pop
 	35: MoveLoc[2](ctx#0#0: &mut TxContext)
 	36: Pop
 	37: LdConst[19](U64: [18, 0, 0, 0, 0, 0, 0, 0])
 	38: Abort
 B9:
-	39: MoveLoc[0](stake#0#0: &mut StakedSui)
-	40: MoveLoc[1](split_amount#0#0: u64)
-	41: CopyLoc[2](ctx#0#0: &mut TxContext)
-	42: Call split(&mut StakedSui, u64, &mut TxContext): StakedSui
-	43: MoveLoc[2](ctx#0#0: &mut TxContext)
-	44: FreezeRef
-	45: Call tx_context::sender(&TxContext): address
-	46: Call transfer::transfer<StakedSui>(StakedSui, address)
-	47: Ret
+	39: MoveLoc[2](ctx#0#0: &mut TxContext)
+	40: Call object::new(&mut TxContext): UID
+	41: CopyLoc[0](self#0#0: &mut StakedSui)
+	42: ImmBorrowField[3](StakedSui.pool_id: ID)
+	43: ReadRef
+	44: CopyLoc[0](self#0#0: &mut StakedSui)
+	45: ImmBorrowField[4](StakedSui.stake_activation_epoch: u64)
+	46: ReadRef
+	47: MoveLoc[0](self#0#0: &mut StakedSui)
+	48: MutBorrowField[11](StakedSui.principal: Balance<SUI>)
+	49: MoveLoc[1](split_amount#0#0: u64)
+	50: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	51: Pack[2](StakedSui)
+	52: Ret
+}
+entry public split_staked_sui(stake#0#0: &mut StakedSui, split_amount#0#0: u64, ctx#0#0: &mut TxContext) {
+B0:
+	0: MoveLoc[0](stake#0#0: &mut StakedSui)
+	1: MoveLoc[1](split_amount#0#0: u64)
+	2: CopyLoc[2](ctx#0#0: &mut TxContext)
+	3: Call split(&mut StakedSui, u64, &mut TxContext): StakedSui
+	4: MoveLoc[2](ctx#0#0: &mut TxContext)
+	5: FreezeRef
+	6: Call tx_context::sender(&TxContext): address
+	7: Call transfer::transfer<StakedSui>(StakedSui, address)
+	8: Ret
 }
 entry public join_staked_sui(self#0#0: &mut StakedSui, other#0#0: StakedSui) {
 B0:

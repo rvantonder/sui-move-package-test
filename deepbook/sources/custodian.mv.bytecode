@@ -1,0 +1,214 @@
+// Move bytecode v6
+module dee9.custodian {
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct Account<phantom T> has store {
+	available_balance: Balance<T>,
+	locked_balance: Balance<T>
+}
+struct AccountCap has store, key {
+	id: UID
+}
+struct Custodian<phantom T> has store, key {
+	id: UID,
+	account_balances: Table<ID, Account<T>>
+}
+
+public mint_account_cap(ctx#0#0: &mut TxContext): AccountCap {
+B0:
+	0: MoveLoc[0](ctx#0#0: &mut TxContext)
+	1: Call object::new(&mut TxContext): UID
+	2: Pack[1](AccountCap)
+	3: Ret
+}
+public(friend) account_balance<Asset>(custodian#0#0: &Custodian<Asset>, user#0#0: ID): u64 * u64 {
+L0:	locked_balance#1#0: u64
+B0:
+	0: MoveLoc[0](custodian#0#0: &Custodian<Asset>)
+	1: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	2: MoveLoc[1](user#0#0: ID)
+	3: Call table::borrow<ID, Account<Asset>>(&Table<ID, Account<Asset>>, ID): &Account<Asset>
+	4: StLoc[2](account_balances#1#0: &Account<Asset>)
+	5: CopyLoc[2](account_balances#1#0: &Account<Asset>)
+	6: ImmBorrowFieldGeneric[1](Account.available_balance: Balance<T>)
+	7: Call balance::value<Asset>(&Balance<Asset>): u64
+	8: StLoc[3](avail_balance#1#0: u64)
+	9: MoveLoc[2](account_balances#1#0: &Account<Asset>)
+	10: ImmBorrowFieldGeneric[2](Account.locked_balance: Balance<T>)
+	11: Call balance::value<Asset>(&Balance<Asset>): u64
+	12: StLoc[4](locked_balance#1#0: u64)
+	13: MoveLoc[3](avail_balance#1#0: u64)
+	14: MoveLoc[4](locked_balance#1#0: u64)
+	15: Ret
+}
+public(friend) new<T>(ctx#0#0: &mut TxContext): Custodian<T> {
+B0:
+	0: CopyLoc[0](ctx#0#0: &mut TxContext)
+	1: Call object::new(&mut TxContext): UID
+	2: MoveLoc[0](ctx#0#0: &mut TxContext)
+	3: Call table::new<ID, Account<T>>(&mut TxContext): Table<ID, Account<T>>
+	4: PackGeneric[0](Custodian<T>)
+	5: Ret
+}
+public(friend) withdraw_base_asset<BaseAsset>(custodian#0#0: &mut Custodian<BaseAsset>, quantity#0#0: u64, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): Coin<BaseAsset> {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<BaseAsset>)
+	1: MoveLoc[2](account_cap#0#0: &AccountCap)
+	2: MoveLoc[1](quantity#0#0: u64)
+	3: Call decrease_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, &AccountCap, u64): Balance<BaseAsset>
+	4: MoveLoc[3](ctx#0#0: &mut TxContext)
+	5: Call coin::from_balance<BaseAsset>(Balance<BaseAsset>, &mut TxContext): Coin<BaseAsset>
+	6: Ret
+}
+public(friend) withdraw_quote_asset<QuoteAsset>(custodian#0#0: &mut Custodian<QuoteAsset>, quantity#0#0: u64, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): Coin<QuoteAsset> {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<QuoteAsset>)
+	1: MoveLoc[2](account_cap#0#0: &AccountCap)
+	2: MoveLoc[1](quantity#0#0: u64)
+	3: Call decrease_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, &AccountCap, u64): Balance<QuoteAsset>
+	4: MoveLoc[3](ctx#0#0: &mut TxContext)
+	5: Call coin::from_balance<QuoteAsset>(Balance<QuoteAsset>, &mut TxContext): Coin<QuoteAsset>
+	6: Ret
+}
+public(friend) increase_user_available_balance<T>(custodian#0#0: &mut Custodian<T>, user#0#0: ID, quantity#0#0: Balance<T>) {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: MoveLoc[1](user#0#0: ID)
+	2: Call borrow_mut_account_balance<T>(&mut Custodian<T>, ID): &mut Account<T>
+	3: MutBorrowFieldGeneric[1](Account.available_balance: Balance<T>)
+	4: MoveLoc[2](quantity#0#0: Balance<T>)
+	5: Call balance::join<T>(&mut Balance<T>, Balance<T>): u64
+	6: Pop
+	7: Ret
+}
+public(friend) decrease_user_available_balance<T>(custodian#0#0: &mut Custodian<T>, account_cap#0#0: &AccountCap, quantity#0#0: u64): Balance<T> {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: MoveLoc[1](account_cap#0#0: &AccountCap)
+	2: ImmBorrowField[3](AccountCap.id: UID)
+	3: Call object::uid_to_inner(&UID): ID
+	4: Call borrow_mut_account_balance<T>(&mut Custodian<T>, ID): &mut Account<T>
+	5: MutBorrowFieldGeneric[1](Account.available_balance: Balance<T>)
+	6: MoveLoc[2](quantity#0#0: u64)
+	7: Call balance::split<T>(&mut Balance<T>, u64): Balance<T>
+	8: Ret
+}
+public(friend) increase_user_locked_balance<T>(custodian#0#0: &mut Custodian<T>, account_cap#0#0: &AccountCap, quantity#0#0: Balance<T>) {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: MoveLoc[1](account_cap#0#0: &AccountCap)
+	2: ImmBorrowField[3](AccountCap.id: UID)
+	3: Call object::uid_to_inner(&UID): ID
+	4: Call borrow_mut_account_balance<T>(&mut Custodian<T>, ID): &mut Account<T>
+	5: MutBorrowFieldGeneric[2](Account.locked_balance: Balance<T>)
+	6: MoveLoc[2](quantity#0#0: Balance<T>)
+	7: Call balance::join<T>(&mut Balance<T>, Balance<T>): u64
+	8: Pop
+	9: Ret
+}
+public(friend) decrease_user_locked_balance<T>(custodian#0#0: &mut Custodian<T>, user#0#0: ID, quantity#0#0: u64): Balance<T> {
+B0:
+	0: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: MoveLoc[1](user#0#0: ID)
+	2: Call borrow_mut_account_balance<T>(&mut Custodian<T>, ID): &mut Account<T>
+	3: MutBorrowFieldGeneric[2](Account.locked_balance: Balance<T>)
+	4: MoveLoc[2](quantity#0#0: u64)
+	5: Call balance::split<T>(&mut Balance<T>, u64): Balance<T>
+	6: Ret
+}
+public(friend) lock_balance<T>(custodian#0#0: &mut Custodian<T>, account_cap#0#0: &AccountCap, quantity#0#0: u64) {
+B0:
+	0: CopyLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: CopyLoc[1](account_cap#0#0: &AccountCap)
+	2: MoveLoc[2](quantity#0#0: u64)
+	3: Call decrease_user_available_balance<T>(&mut Custodian<T>, &AccountCap, u64): Balance<T>
+	4: StLoc[3](to_lock#1#0: Balance<T>)
+	5: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	6: MoveLoc[1](account_cap#0#0: &AccountCap)
+	7: MoveLoc[3](to_lock#1#0: Balance<T>)
+	8: Call increase_user_locked_balance<T>(&mut Custodian<T>, &AccountCap, Balance<T>)
+	9: Ret
+}
+public(friend) unlock_balance<T>(custodian#0#0: &mut Custodian<T>, user#0#0: ID, quantity#0#0: u64) {
+B0:
+	0: CopyLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: CopyLoc[1](user#0#0: ID)
+	2: MoveLoc[2](quantity#0#0: u64)
+	3: Call decrease_user_locked_balance<T>(&mut Custodian<T>, ID, u64): Balance<T>
+	4: StLoc[3](locked_balance#1#0: Balance<T>)
+	5: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	6: MoveLoc[1](user#0#0: ID)
+	7: MoveLoc[3](locked_balance#1#0: Balance<T>)
+	8: Call increase_user_available_balance<T>(&mut Custodian<T>, ID, Balance<T>)
+	9: Ret
+}
+public(friend) account_available_balance<T>(custodian#0#0: &Custodian<T>, user#0#0: ID): u64 {
+B0:
+	0: MoveLoc[0](custodian#0#0: &Custodian<T>)
+	1: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	2: MoveLoc[1](user#0#0: ID)
+	3: Call table::borrow<ID, Account<T>>(&Table<ID, Account<T>>, ID): &Account<T>
+	4: ImmBorrowFieldGeneric[1](Account.available_balance: Balance<T>)
+	5: Call balance::value<T>(&Balance<T>): u64
+	6: Ret
+}
+public(friend) account_locked_balance<T>(custodian#0#0: &Custodian<T>, user#0#0: ID): u64 {
+B0:
+	0: MoveLoc[0](custodian#0#0: &Custodian<T>)
+	1: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	2: MoveLoc[1](user#0#0: ID)
+	3: Call table::borrow<ID, Account<T>>(&Table<ID, Account<T>>, ID): &Account<T>
+	4: ImmBorrowFieldGeneric[2](Account.locked_balance: Balance<T>)
+	5: Call balance::value<T>(&Balance<T>): u64
+	6: Ret
+}
+borrow_mut_account_balance<T>(custodian#0#0: &mut Custodian<T>, user#0#0: ID): &mut Account<T> {
+B0:
+	0: CopyLoc[0](custodian#0#0: &mut Custodian<T>)
+	1: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	2: CopyLoc[1](user#0#0: ID)
+	3: Call table::contains<ID, Account<T>>(&Table<ID, Account<T>>, ID): bool
+	4: Not
+	5: BrFalse(13)
+B1:
+	6: CopyLoc[0](custodian#0#0: &mut Custodian<T>)
+	7: MutBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	8: CopyLoc[1](user#0#0: ID)
+	9: Call balance::zero<T>(): Balance<T>
+	10: Call balance::zero<T>(): Balance<T>
+	11: PackGeneric[1](Account<T>)
+	12: Call table::add<ID, Account<T>>(&mut Table<ID, Account<T>>, ID, Account<T>)
+B2:
+	13: MoveLoc[0](custodian#0#0: &mut Custodian<T>)
+	14: MutBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	15: MoveLoc[1](user#0#0: ID)
+	16: Call table::borrow_mut<ID, Account<T>>(&mut Table<ID, Account<T>>, ID): &mut Account<T>
+	17: Ret
+}
+borrow_account_balance<T>(custodian#0#0: &Custodian<T>, user#0#0: ID): &Account<T> {
+B0:
+	0: CopyLoc[0](custodian#0#0: &Custodian<T>)
+	1: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	2: CopyLoc[1](user#0#0: ID)
+	3: Call table::contains<ID, Account<T>>(&Table<ID, Account<T>>, ID): bool
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](custodian#0#0: &Custodian<T>)
+	7: Pop
+	8: LdConst[0](U64: [1, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[0](custodian#0#0: &Custodian<T>)
+	11: ImmBorrowFieldGeneric[0](Custodian.account_balances: Table<ID, Account<T>>)
+	12: MoveLoc[1](user#0#0: ID)
+	13: Call table::borrow<ID, Account<T>>(&Table<ID, Account<T>>, ID): &Account<T>
+	14: Ret
+}
+}

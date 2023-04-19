@@ -1,0 +1,307 @@
+// Move bytecode v6
+module 1.vector {
+
+
+native public empty<Element>(): vector<Element>
+native public length<Element>(v#0#0: &vector<Element>): u64
+native public borrow<Element>(v#0#0: &vector<Element>, i#0#0: u64): &Element
+native public push_back<Element>(v#0#0: &mut vector<Element>, e#0#0: Element)
+native public borrow_mut<Element>(v#0#0: &mut vector<Element>, i#0#0: u64): &mut Element
+native public pop_back<Element>(v#0#0: &mut vector<Element>): Element
+native public destroy_empty<Element>(v#0#0: vector<Element>)
+native public swap<Element>(v#0#0: &mut vector<Element>, i#0#0: u64, j#0#0: u64)
+public singleton<Element>(e#0#0: Element): vector<Element> {
+B0:
+	0: VecPack(10, 0)
+	1: StLoc[1](v#1#0: vector<Element>)
+	2: MutBorrowLoc[1](v#1#0: vector<Element>)
+	3: MoveLoc[0](e#0#0: Element)
+	4: VecPushBack(10)
+	5: MoveLoc[1](v#1#0: vector<Element>)
+	6: Ret
+}
+public reverse<Element>(v#0#0: &mut vector<Element>) {
+L0:	front_index#1#0: u64
+L1:	len#1#0: u64
+B0:
+	0: CopyLoc[0](v#0#0: &mut vector<Element>)
+	1: FreezeRef
+	2: VecLen(10)
+	3: StLoc[3](len#1#0: u64)
+	4: CopyLoc[3](len#1#0: u64)
+	5: LdU64(0)
+	6: Eq
+	7: BrFalse(11)
+B1:
+	8: MoveLoc[0](v#0#0: &mut vector<Element>)
+	9: Pop
+	10: Ret
+B2:
+	11: LdU64(0)
+	12: StLoc[2](front_index#1#0: u64)
+	13: MoveLoc[3](len#1#0: u64)
+	14: LdU64(1)
+	15: Sub
+	16: StLoc[1](back_index#1#0: u64)
+B3:
+	17: CopyLoc[2](front_index#1#0: u64)
+	18: CopyLoc[1](back_index#1#0: u64)
+	19: Lt
+	20: BrFalse(35)
+B4:
+	21: Branch(22)
+B5:
+	22: CopyLoc[0](v#0#0: &mut vector<Element>)
+	23: CopyLoc[2](front_index#1#0: u64)
+	24: CopyLoc[1](back_index#1#0: u64)
+	25: VecSwap(10)
+	26: MoveLoc[2](front_index#1#0: u64)
+	27: LdU64(1)
+	28: Add
+	29: StLoc[2](front_index#1#0: u64)
+	30: MoveLoc[1](back_index#1#0: u64)
+	31: LdU64(1)
+	32: Sub
+	33: StLoc[1](back_index#1#0: u64)
+	34: Branch(17)
+B6:
+	35: MoveLoc[0](v#0#0: &mut vector<Element>)
+	36: Pop
+	37: Ret
+}
+public append<Element>(lhs#0#0: &mut vector<Element>, other#0#0: vector<Element>) {
+B0:
+	0: MutBorrowLoc[1](other#0#0: vector<Element>)
+	1: Call reverse<Element>(&mut vector<Element>)
+B1:
+	2: ImmBorrowLoc[1](other#0#0: vector<Element>)
+	3: Call is_empty<Element>(&vector<Element>): bool
+	4: Not
+	5: BrFalse(12)
+B2:
+	6: Branch(7)
+B3:
+	7: CopyLoc[0](lhs#0#0: &mut vector<Element>)
+	8: MutBorrowLoc[1](other#0#0: vector<Element>)
+	9: VecPopBack(10)
+	10: VecPushBack(10)
+	11: Branch(2)
+B4:
+	12: MoveLoc[0](lhs#0#0: &mut vector<Element>)
+	13: Pop
+	14: MoveLoc[1](other#0#0: vector<Element>)
+	15: VecUnpack(10, 0)
+	16: Ret
+}
+public is_empty<Element>(v#0#0: &vector<Element>): bool {
+B0:
+	0: MoveLoc[0](v#0#0: &vector<Element>)
+	1: VecLen(10)
+	2: LdU64(0)
+	3: Eq
+	4: Ret
+}
+public contains<Element>(v#0#0: &vector<Element>, e#0#0: &Element): bool {
+B0:
+	0: LdU64(0)
+	1: StLoc[2](i#1#0: u64)
+	2: CopyLoc[0](v#0#0: &vector<Element>)
+	3: VecLen(10)
+	4: StLoc[3](len#1#0: u64)
+B1:
+	5: CopyLoc[2](i#1#0: u64)
+	6: CopyLoc[3](len#1#0: u64)
+	7: Lt
+	8: BrFalse(27)
+B2:
+	9: Branch(10)
+B3:
+	10: CopyLoc[0](v#0#0: &vector<Element>)
+	11: CopyLoc[2](i#1#0: u64)
+	12: VecImmBorrow(10)
+	13: CopyLoc[1](e#0#0: &Element)
+	14: Eq
+	15: BrFalse(22)
+B4:
+	16: MoveLoc[0](v#0#0: &vector<Element>)
+	17: Pop
+	18: MoveLoc[1](e#0#0: &Element)
+	19: Pop
+	20: LdTrue
+	21: Ret
+B5:
+	22: MoveLoc[2](i#1#0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](i#1#0: u64)
+	26: Branch(5)
+B6:
+	27: MoveLoc[0](v#0#0: &vector<Element>)
+	28: Pop
+	29: MoveLoc[1](e#0#0: &Element)
+	30: Pop
+	31: LdFalse
+	32: Ret
+}
+public index_of<Element>(v#0#0: &vector<Element>, e#0#0: &Element): bool * u64 {
+B0:
+	0: LdU64(0)
+	1: StLoc[2](i#1#0: u64)
+	2: CopyLoc[0](v#0#0: &vector<Element>)
+	3: VecLen(10)
+	4: StLoc[3](len#1#0: u64)
+B1:
+	5: CopyLoc[2](i#1#0: u64)
+	6: CopyLoc[3](len#1#0: u64)
+	7: Lt
+	8: BrFalse(28)
+B2:
+	9: Branch(10)
+B3:
+	10: CopyLoc[0](v#0#0: &vector<Element>)
+	11: CopyLoc[2](i#1#0: u64)
+	12: VecImmBorrow(10)
+	13: CopyLoc[1](e#0#0: &Element)
+	14: Eq
+	15: BrFalse(23)
+B4:
+	16: MoveLoc[0](v#0#0: &vector<Element>)
+	17: Pop
+	18: MoveLoc[1](e#0#0: &Element)
+	19: Pop
+	20: LdTrue
+	21: MoveLoc[2](i#1#0: u64)
+	22: Ret
+B5:
+	23: MoveLoc[2](i#1#0: u64)
+	24: LdU64(1)
+	25: Add
+	26: StLoc[2](i#1#0: u64)
+	27: Branch(5)
+B6:
+	28: MoveLoc[0](v#0#0: &vector<Element>)
+	29: Pop
+	30: MoveLoc[1](e#0#0: &Element)
+	31: Pop
+	32: LdFalse
+	33: LdU64(0)
+	34: Ret
+}
+public remove<Element>(v#0#0: &mut vector<Element>, i#0#0: u64): Element {
+L0:	len#1#0: u64
+B0:
+	0: CopyLoc[0](v#0#0: &mut vector<Element>)
+	1: FreezeRef
+	2: VecLen(10)
+	3: StLoc[4](len#1#0: u64)
+	4: CopyLoc[1](i#0#0: u64)
+	5: CopyLoc[4](len#1#0: u64)
+	6: Ge
+	7: BrFalse(12)
+B1:
+	8: MoveLoc[0](v#0#0: &mut vector<Element>)
+	9: Pop
+	10: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	11: Abort
+B2:
+	12: MoveLoc[4](len#1#0: u64)
+	13: LdU64(1)
+	14: Sub
+	15: StLoc[4](len#1#0: u64)
+B3:
+	16: CopyLoc[1](i#0#0: u64)
+	17: CopyLoc[4](len#1#0: u64)
+	18: Lt
+	19: BrFalse(34)
+B4:
+	20: Branch(21)
+B5:
+	21: CopyLoc[0](v#0#0: &mut vector<Element>)
+	22: StLoc[3](%#2: &mut vector<Element>)
+	23: CopyLoc[1](i#0#0: u64)
+	24: StLoc[2](%#1: u64)
+	25: MoveLoc[1](i#0#0: u64)
+	26: LdU64(1)
+	27: Add
+	28: StLoc[1](i#0#0: u64)
+	29: MoveLoc[3](%#2: &mut vector<Element>)
+	30: MoveLoc[2](%#1: u64)
+	31: CopyLoc[1](i#0#0: u64)
+	32: VecSwap(10)
+	33: Branch(16)
+B6:
+	34: MoveLoc[0](v#0#0: &mut vector<Element>)
+	35: VecPopBack(10)
+	36: Ret
+}
+public insert<Element>(v#0#0: &mut vector<Element>, e#0#0: Element, i#0#0: u64) {
+B0:
+	0: CopyLoc[0](v#0#0: &mut vector<Element>)
+	1: FreezeRef
+	2: VecLen(10)
+	3: StLoc[3](len#1#0: u64)
+	4: CopyLoc[2](i#0#0: u64)
+	5: CopyLoc[3](len#1#0: u64)
+	6: Gt
+	7: BrFalse(12)
+B1:
+	8: MoveLoc[0](v#0#0: &mut vector<Element>)
+	9: Pop
+	10: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	11: Abort
+B2:
+	12: CopyLoc[0](v#0#0: &mut vector<Element>)
+	13: MoveLoc[1](e#0#0: Element)
+	14: VecPushBack(10)
+B3:
+	15: CopyLoc[2](i#0#0: u64)
+	16: CopyLoc[3](len#1#0: u64)
+	17: Lt
+	18: BrFalse(29)
+B4:
+	19: Branch(20)
+B5:
+	20: CopyLoc[0](v#0#0: &mut vector<Element>)
+	21: CopyLoc[2](i#0#0: u64)
+	22: CopyLoc[3](len#1#0: u64)
+	23: VecSwap(10)
+	24: MoveLoc[2](i#0#0: u64)
+	25: LdU64(1)
+	26: Add
+	27: StLoc[2](i#0#0: u64)
+	28: Branch(15)
+B6:
+	29: MoveLoc[0](v#0#0: &mut vector<Element>)
+	30: Pop
+	31: Ret
+}
+public swap_remove<Element>(v#0#0: &mut vector<Element>, i#0#0: u64): Element {
+B0:
+	0: CopyLoc[0](v#0#0: &mut vector<Element>)
+	1: FreezeRef
+	2: Call is_empty<Element>(&vector<Element>): bool
+	3: Not
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](v#0#0: &mut vector<Element>)
+	7: Pop
+	8: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: CopyLoc[0](v#0#0: &mut vector<Element>)
+	11: FreezeRef
+	12: VecLen(10)
+	13: LdU64(1)
+	14: Sub
+	15: StLoc[2](last_idx#1#0: u64)
+	16: CopyLoc[0](v#0#0: &mut vector<Element>)
+	17: MoveLoc[1](i#0#0: u64)
+	18: MoveLoc[2](last_idx#1#0: u64)
+	19: VecSwap(10)
+	20: MoveLoc[0](v#0#0: &mut vector<Element>)
+	21: VecPopBack(10)
+	22: Ret
+}
+}

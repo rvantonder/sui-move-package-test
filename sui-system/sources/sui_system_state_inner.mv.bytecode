@@ -833,396 +833,419 @@ B0:
 	6: Ret
 }
 public(friend) advance_epoch(self#0#0: &mut SuiSystemStateInnerV2, new_epoch#0#0: u64, next_protocol_version#0#0: u64, storage_reward#0#0: Balance<SUI>, computation_reward#0#0: Balance<SUI>, storage_rebate_amount#0#0: u64, non_refundable_storage_fee_amount#0#0: u64, storage_fund_reinvest_rate#0#0: u64, reward_slashing_rate#0#0: u64, epoch_start_timestamp_ms#0#0: u64, ctx#0#0: &mut TxContext): Balance<SUI> {
-L0:	%#5: u64
-L1:	%#6: u64
-L2:	%#7: u64
-L3:	%#8: u64
-L4:	%#9: u64
-L5:	bps_denominator_u64#1#0: u64
-L6:	computation_charge#1#0: u64
-L7:	computation_charge_u128#1#0: u128
-L8:	computation_reward_amount_after_distribution#1#0: u64
-L9:	computation_reward_amount_before_distribution#1#0: u64
-L10:	computation_reward_distributed#1#0: u64
-L11:	leftover_staking_rewards#1#0: Balance<SUI>
-L12:	leftover_storage_fund_inflow#1#0: u64
-L13:	new_total_stake#1#0: u64
-L14:	refunded_storage_rebate#1#0: Balance<SUI>
-L15:	safe_mode_computation_rewards#1#0: Balance<SUI>
-L16:	safe_mode_storage_rewards#1#0: Balance<SUI>
-L17:	stake_subsidy#1#0: Balance<SUI>
-L18:	stake_subsidy_amount#1#0: u64
-L19:	storage_charge#1#0: u64
-L20:	storage_fund_balance#1#0: u64
-L21:	storage_fund_reinvestment#1#0: Balance<SUI>
-L22:	storage_fund_reinvestment_amount#1#0: u128
-L23:	storage_fund_reward#1#0: Balance<SUI>
-L24:	storage_fund_reward_amount#1#0: u128
-L25:	storage_fund_reward_amount_after_distribution#1#0: u64
-L26:	storage_fund_reward_amount_before_distribution#1#0: u64
-L27:	storage_fund_reward_distributed#1#0: u64
-L28:	total_stake#1#0: u64
-L29:	total_stake_u128#1#0: u128
-L30:	total_validators_stake#1#0: u64
+L0:	%#4: u64
+L1:	%#5: u64
+L2:	%#6: u64
+L3:	%#7: u64
+L4:	%#8: u64
+L5:	%#9: u64
+L6:	bps_denominator_u64#1#0: u64
+L7:	computation_charge#1#0: u64
+L8:	computation_charge_u128#1#0: u128
+L9:	computation_reward_amount_after_distribution#1#0: u64
+L10:	computation_reward_amount_before_distribution#1#0: u64
+L11:	computation_reward_distributed#1#0: u64
+L12:	leftover_staking_rewards#1#0: Balance<SUI>
+L13:	leftover_storage_fund_inflow#1#0: u64
+L14:	new_total_stake#1#0: u64
+L15:	prev_epoch_start_timestamp#1#0: u64
+L16:	refunded_storage_rebate#1#0: Balance<SUI>
+L17:	safe_mode_computation_rewards#1#0: Balance<SUI>
+L18:	safe_mode_storage_rewards#1#0: Balance<SUI>
+L19:	stake_subsidy#1#0: Balance<SUI>
+L20:	stake_subsidy_amount#1#0: u64
+L21:	storage_charge#1#0: u64
+L22:	storage_fund_balance#1#0: u64
+L23:	storage_fund_reinvestment#1#0: Balance<SUI>
+L24:	storage_fund_reinvestment_amount#1#0: u128
+L25:	storage_fund_reward#1#0: Balance<SUI>
+L26:	storage_fund_reward_amount#1#0: u128
+L27:	storage_fund_reward_amount_after_distribution#1#0: u64
+L28:	storage_fund_reward_amount_before_distribution#1#0: u64
+L29:	storage_fund_reward_distributed#1#0: u64
+L30:	total_stake#1#0: u64
+L31:	total_stake_u128#1#0: u128
+L32:	total_validators_stake#1#0: u64
 B0:
-	0: MoveLoc[9](epoch_start_timestamp_ms#0#0: u64)
-	1: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	2: MutBorrowField[6](SuiSystemStateInnerV2.epoch_start_timestamp_ms: u64)
-	3: WriteRef
-	4: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-	5: CastU64
-	6: StLoc[27](bps_denominator_u64#1#0: u64)
-	7: CopyLoc[7](storage_fund_reinvest_rate#0#0: u64)
-	8: CopyLoc[27](bps_denominator_u64#1#0: u64)
-	9: Le
-	10: BrFalse(16)
-B1:
-	11: CopyLoc[8](reward_slashing_rate#0#0: u64)
-	12: MoveLoc[27](bps_denominator_u64#1#0: u64)
+	0: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	1: ImmBorrowField[6](SuiSystemStateInnerV2.epoch_start_timestamp_ms: u64)
+	2: ReadRef
+	3: StLoc[37](prev_epoch_start_timestamp#1#0: u64)
+	4: CopyLoc[9](epoch_start_timestamp_ms#0#0: u64)
+	5: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	6: MutBorrowField[6](SuiSystemStateInnerV2.epoch_start_timestamp_ms: u64)
+	7: WriteRef
+	8: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	9: CastU64
+	10: StLoc[28](bps_denominator_u64#1#0: u64)
+	11: CopyLoc[7](storage_fund_reinvest_rate#0#0: u64)
+	12: CopyLoc[28](bps_denominator_u64#1#0: u64)
 	13: Le
-	14: StLoc[11](%#1: bool)
-	15: Branch(18)
+	14: BrFalse(20)
+B1:
+	15: CopyLoc[8](reward_slashing_rate#0#0: u64)
+	16: MoveLoc[28](bps_denominator_u64#1#0: u64)
+	17: Le
+	18: StLoc[11](%#1: bool)
+	19: Branch(22)
 B2:
-	16: LdFalse
-	17: StLoc[11](%#1: bool)
+	20: LdFalse
+	21: StLoc[11](%#1: bool)
 B3:
-	18: MoveLoc[11](%#1: bool)
-	19: BrFalse(21)
+	22: MoveLoc[11](%#1: bool)
+	23: BrFalse(25)
 B4:
-	20: Branch(27)
+	24: Branch(31)
 B5:
-	21: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	22: Pop
-	23: MoveLoc[10](ctx#0#0: &mut TxContext)
-	24: Pop
-	25: LdConst[8](U64: [5, 0, 0, 0, 0, 0, 0, 0])
-	26: Abort
+	25: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	26: Pop
+	27: MoveLoc[10](ctx#0#0: &mut TxContext)
+	28: Pop
+	29: LdConst[8](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	30: Abort
 B6:
-	27: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	28: MutBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
-	29: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
-	30: StLoc[38](safe_mode_storage_rewards#1#0: Balance<SUI>)
-	31: MutBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
-	32: MoveLoc[38](safe_mode_storage_rewards#1#0: Balance<SUI>)
-	33: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
-	34: Pop
-	35: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	36: MutBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
-	37: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
-	38: StLoc[37](safe_mode_computation_rewards#1#0: Balance<SUI>)
-	39: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	40: MoveLoc[37](safe_mode_computation_rewards#1#0: Balance<SUI>)
-	41: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
-	42: Pop
-	43: MoveLoc[5](storage_rebate_amount#0#0: u64)
-	44: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	45: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
-	46: ReadRef
-	47: Add
-	48: StLoc[5](storage_rebate_amount#0#0: u64)
-	49: LdU64(0)
-	50: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	51: MutBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
-	52: WriteRef
-	53: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	31: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	32: MutBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
+	33: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
+	34: StLoc[40](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	35: MutBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
+	36: MoveLoc[40](safe_mode_storage_rewards#1#0: Balance<SUI>)
+	37: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	38: Pop
+	39: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	40: MutBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
+	41: Call balance::withdraw_all<SUI>(&mut Balance<SUI>): Balance<SUI>
+	42: StLoc[39](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	43: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	44: MoveLoc[39](safe_mode_computation_rewards#1#0: Balance<SUI>)
+	45: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	46: Pop
+	47: MoveLoc[5](storage_rebate_amount#0#0: u64)
+	48: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	49: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	50: ReadRef
+	51: Add
+	52: StLoc[5](storage_rebate_amount#0#0: u64)
+	53: LdU64(0)
 	54: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	55: ImmBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
-	56: ReadRef
-	57: Add
-	58: StLoc[6](non_refundable_storage_fee_amount#0#0: u64)
-	59: LdU64(0)
-	60: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	61: MutBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
-	62: WriteRef
-	63: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	64: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
-	65: Call validator_set::total_stake(&ValidatorSet): u64
-	66: StLoc[52](total_validators_stake#1#0: u64)
+	55: MutBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	56: WriteRef
+	57: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	58: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	59: ImmBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
+	60: ReadRef
+	61: Add
+	62: StLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	63: LdU64(0)
+	64: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	65: MutBorrowField[10](SuiSystemStateInnerV2.safe_mode_non_refundable_storage_fee: u64)
+	66: WriteRef
 	67: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	68: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
-	69: Call storage_fund::total_balance(&StorageFund): u64
-	70: StLoc[42](storage_fund_balance#1#0: u64)
-	71: CopyLoc[42](storage_fund_balance#1#0: u64)
-	72: MoveLoc[52](total_validators_stake#1#0: u64)
-	73: Add
-	74: StLoc[50](total_stake#1#0: u64)
-	75: ImmBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
-	76: Call balance::value<SUI>(&Balance<SUI>): u64
-	77: StLoc[41](storage_charge#1#0: u64)
-	78: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	79: Call balance::value<SUI>(&Balance<SUI>): u64
-	80: StLoc[28](computation_charge#1#0: u64)
-	81: CopyLoc[10](ctx#0#0: &mut TxContext)
-	82: FreezeRef
-	83: Call tx_context::epoch(&TxContext): u64
-	84: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	85: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
-	86: ImmBorrowField[12](SystemParametersV2.stake_subsidy_start_epoch: u64)
-	87: ReadRef
-	88: Ge
-	89: BrFalse(95)
+	68: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	69: Call validator_set::total_stake(&ValidatorSet): u64
+	70: StLoc[54](total_validators_stake#1#0: u64)
+	71: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	72: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	73: Call storage_fund::total_balance(&StorageFund): u64
+	74: StLoc[44](storage_fund_balance#1#0: u64)
+	75: CopyLoc[44](storage_fund_balance#1#0: u64)
+	76: MoveLoc[54](total_validators_stake#1#0: u64)
+	77: Add
+	78: StLoc[52](total_stake#1#0: u64)
+	79: ImmBorrowLoc[3](storage_reward#0#0: Balance<SUI>)
+	80: Call balance::value<SUI>(&Balance<SUI>): u64
+	81: StLoc[43](storage_charge#1#0: u64)
+	82: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	83: Call balance::value<SUI>(&Balance<SUI>): u64
+	84: StLoc[29](computation_charge#1#0: u64)
+	85: CopyLoc[10](ctx#0#0: &mut TxContext)
+	86: FreezeRef
+	87: Call tx_context::epoch(&TxContext): u64
+	88: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	89: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	90: ImmBorrowField[12](SystemParametersV2.stake_subsidy_start_epoch: u64)
+	91: ReadRef
+	92: Ge
+	93: BrFalse(104)
 B7:
-	90: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	91: MutBorrowField[13](SuiSystemStateInnerV2.stake_subsidy: StakeSubsidy)
-	92: Call stake_subsidy::advance_epoch(&mut StakeSubsidy): Balance<SUI>
-	93: StLoc[19](%#2: Balance<SUI>)
-	94: Branch(97)
+	94: MoveLoc[9](epoch_start_timestamp_ms#0#0: u64)
+	95: MoveLoc[37](prev_epoch_start_timestamp#1#0: u64)
+	96: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	97: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	98: ImmBorrowField[13](SystemParametersV2.epoch_duration_ms: u64)
+	99: ReadRef
+	100: Add
+	101: Ge
+	102: StLoc[20](%#2: bool)
+	103: Branch(106)
 B8:
-	95: Call balance::zero<SUI>(): Balance<SUI>
-	96: StLoc[19](%#2: Balance<SUI>)
+	104: LdFalse
+	105: StLoc[20](%#2: bool)
 B9:
-	97: MoveLoc[19](%#2: Balance<SUI>)
-	98: StLoc[39](stake_subsidy#1#0: Balance<SUI>)
-	99: ImmBorrowLoc[39](stake_subsidy#1#0: Balance<SUI>)
-	100: Call balance::value<SUI>(&Balance<SUI>): u64
-	101: StLoc[40](stake_subsidy_amount#1#0: u64)
-	102: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	103: MoveLoc[39](stake_subsidy#1#0: Balance<SUI>)
-	104: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
-	105: Pop
-	106: MoveLoc[50](total_stake#1#0: u64)
-	107: CastU128
-	108: StLoc[51](total_stake_u128#1#0: u128)
-	109: CopyLoc[28](computation_charge#1#0: u64)
-	110: CastU128
-	111: StLoc[29](computation_charge_u128#1#0: u128)
-	112: MoveLoc[42](storage_fund_balance#1#0: u64)
-	113: CastU128
-	114: MoveLoc[29](computation_charge_u128#1#0: u128)
-	115: Mul
-	116: MoveLoc[51](total_stake_u128#1#0: u128)
-	117: Div
-	118: StLoc[46](storage_fund_reward_amount#1#0: u128)
-	119: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	120: CopyLoc[46](storage_fund_reward_amount#1#0: u128)
-	121: CastU64
-	122: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
-	123: StLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	124: MoveLoc[46](storage_fund_reward_amount#1#0: u128)
-	125: MoveLoc[7](storage_fund_reinvest_rate#0#0: u64)
-	126: CastU128
-	127: Mul
-	128: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-	129: Div
-	130: StLoc[44](storage_fund_reinvestment_amount#1#0: u128)
-	131: MutBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	132: CopyLoc[44](storage_fund_reinvestment_amount#1#0: u128)
-	133: CastU64
-	134: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
-	135: StLoc[43](storage_fund_reinvestment#1#0: Balance<SUI>)
-	136: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	137: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
-	138: ReadRef
-	139: LdU64(1)
-	140: Add
-	141: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	142: MutBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
-	143: WriteRef
-	144: MoveLoc[1](new_epoch#0#0: u64)
-	145: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	146: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
-	147: ReadRef
-	148: Eq
-	149: BrFalse(151)
+	106: MoveLoc[20](%#2: bool)
+	107: BrFalse(113)
 B10:
-	150: Branch(157)
+	108: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	109: MutBorrowField[14](SuiSystemStateInnerV2.stake_subsidy: StakeSubsidy)
+	110: Call stake_subsidy::advance_epoch(&mut StakeSubsidy): Balance<SUI>
+	111: StLoc[21](%#3: Balance<SUI>)
+	112: Branch(115)
 B11:
-	151: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	152: Pop
-	153: MoveLoc[10](ctx#0#0: &mut TxContext)
-	154: Pop
-	155: LdConst[11](U64: [8, 0, 0, 0, 0, 0, 0, 0])
-	156: Abort
+	113: Call balance::zero<SUI>(): Balance<SUI>
+	114: StLoc[21](%#3: Balance<SUI>)
 B12:
-	157: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	158: Call balance::value<SUI>(&Balance<SUI>): u64
-	159: StLoc[31](computation_reward_amount_before_distribution#1#0: u64)
-	160: ImmBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	161: Call balance::value<SUI>(&Balance<SUI>): u64
-	162: StLoc[48](storage_fund_reward_amount_before_distribution#1#0: u64)
+	115: MoveLoc[21](%#3: Balance<SUI>)
+	116: StLoc[41](stake_subsidy#1#0: Balance<SUI>)
+	117: ImmBorrowLoc[41](stake_subsidy#1#0: Balance<SUI>)
+	118: Call balance::value<SUI>(&Balance<SUI>): u64
+	119: StLoc[42](stake_subsidy_amount#1#0: u64)
+	120: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	121: MoveLoc[41](stake_subsidy#1#0: Balance<SUI>)
+	122: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	123: Pop
+	124: MoveLoc[52](total_stake#1#0: u64)
+	125: CastU128
+	126: StLoc[53](total_stake_u128#1#0: u128)
+	127: CopyLoc[29](computation_charge#1#0: u64)
+	128: CastU128
+	129: StLoc[30](computation_charge_u128#1#0: u128)
+	130: MoveLoc[44](storage_fund_balance#1#0: u64)
+	131: CastU128
+	132: MoveLoc[30](computation_charge_u128#1#0: u128)
+	133: Mul
+	134: MoveLoc[53](total_stake_u128#1#0: u128)
+	135: Div
+	136: StLoc[48](storage_fund_reward_amount#1#0: u128)
+	137: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	138: CopyLoc[48](storage_fund_reward_amount#1#0: u128)
+	139: CastU64
+	140: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	141: StLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	142: MoveLoc[48](storage_fund_reward_amount#1#0: u128)
+	143: MoveLoc[7](storage_fund_reinvest_rate#0#0: u64)
+	144: CastU128
+	145: Mul
+	146: LdConst[12](U128: [16, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	147: Div
+	148: StLoc[46](storage_fund_reinvestment_amount#1#0: u128)
+	149: MutBorrowLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	150: CopyLoc[46](storage_fund_reinvestment_amount#1#0: u128)
+	151: CastU64
+	152: Call balance::split<SUI>(&mut Balance<SUI>, u64): Balance<SUI>
+	153: StLoc[45](storage_fund_reinvestment#1#0: Balance<SUI>)
+	154: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	155: ImmBorrowField[15](SuiSystemStateInnerV2.epoch: u64)
+	156: ReadRef
+	157: LdU64(1)
+	158: Add
+	159: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	160: MutBorrowField[15](SuiSystemStateInnerV2.epoch: u64)
+	161: WriteRef
+	162: MoveLoc[1](new_epoch#0#0: u64)
 	163: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	164: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
-	165: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	166: MutBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	167: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	168: MutBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
-	169: MoveLoc[8](reward_slashing_rate#0#0: u64)
-	170: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	171: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
-	172: ImmBorrowField[15](SystemParametersV2.validator_low_stake_threshold: u64)
-	173: ReadRef
-	174: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	175: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
-	176: ImmBorrowField[16](SystemParametersV2.validator_very_low_stake_threshold: u64)
-	177: ReadRef
-	178: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	179: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
-	180: ImmBorrowField[17](SystemParametersV2.validator_low_stake_grace_period: u64)
-	181: ReadRef
-	182: MoveLoc[10](ctx#0#0: &mut TxContext)
-	183: Call validator_set::advance_epoch(&mut ValidatorSet, &mut Balance<SUI>, &mut Balance<SUI>, &mut VecMap<address, VecSet<address>>, u64, u64, u64, u64, &mut TxContext)
-	184: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	185: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
-	186: Call validator_set::total_stake(&ValidatorSet): u64
-	187: StLoc[35](new_total_stake#1#0: u64)
-	188: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
-	189: Call balance::value<SUI>(&Balance<SUI>): u64
-	190: StLoc[30](computation_reward_amount_after_distribution#1#0: u64)
-	191: ImmBorrowLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	192: Call balance::value<SUI>(&Balance<SUI>): u64
-	193: StLoc[47](storage_fund_reward_amount_after_distribution#1#0: u64)
-	194: MoveLoc[31](computation_reward_amount_before_distribution#1#0: u64)
-	195: MoveLoc[30](computation_reward_amount_after_distribution#1#0: u64)
-	196: Sub
-	197: StLoc[32](computation_reward_distributed#1#0: u64)
-	198: MoveLoc[48](storage_fund_reward_amount_before_distribution#1#0: u64)
-	199: MoveLoc[47](storage_fund_reward_amount_after_distribution#1#0: u64)
-	200: Sub
-	201: StLoc[49](storage_fund_reward_distributed#1#0: u64)
-	202: MoveLoc[2](next_protocol_version#0#0: u64)
-	203: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	204: MutBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
-	205: WriteRef
-	206: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	207: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
-	208: Call validator_set::derive_reference_gas_price(&ValidatorSet): u64
-	209: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	210: MutBorrowField[19](SuiSystemStateInnerV2.reference_gas_price: u64)
-	211: WriteRef
-	212: MoveLoc[45](storage_fund_reward#1#0: Balance<SUI>)
-	213: StLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
-	214: MutBorrowLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
-	215: MoveLoc[4](computation_reward#0#0: Balance<SUI>)
-	216: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
-	217: Pop
-	218: ImmBorrowLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
-	219: Call balance::value<SUI>(&Balance<SUI>): u64
-	220: StLoc[34](leftover_storage_fund_inflow#1#0: u64)
-	221: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	222: MutBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
-	223: MoveLoc[3](storage_reward#0#0: Balance<SUI>)
-	224: MoveLoc[43](storage_fund_reinvestment#1#0: Balance<SUI>)
-	225: MoveLoc[33](leftover_staking_rewards#1#0: Balance<SUI>)
-	226: CopyLoc[5](storage_rebate_amount#0#0: u64)
-	227: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
-	228: Call storage_fund::advance_epoch(&mut StorageFund, Balance<SUI>, Balance<SUI>, Balance<SUI>, u64, u64): Balance<SUI>
-	229: StLoc[36](refunded_storage_rebate#1#0: Balance<SUI>)
-	230: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	231: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
-	232: ReadRef
-	233: StLoc[20](%#3: u64)
-	234: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	235: ImmBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
-	236: ReadRef
-	237: StLoc[21](%#4: u64)
-	238: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	239: ImmBorrowField[19](SuiSystemStateInnerV2.reference_gas_price: u64)
-	240: ReadRef
-	241: StLoc[22](%#5: u64)
-	242: MoveLoc[35](new_total_stake#1#0: u64)
-	243: StLoc[23](%#6: u64)
-	244: MoveLoc[41](storage_charge#1#0: u64)
-	245: StLoc[24](%#7: u64)
-	246: MoveLoc[44](storage_fund_reinvestment_amount#1#0: u128)
-	247: CastU64
-	248: StLoc[25](%#8: u64)
-	249: MoveLoc[5](storage_rebate_amount#0#0: u64)
-	250: StLoc[26](%#9: u64)
-	251: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	252: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
-	253: Call storage_fund::total_balance(&StorageFund): u64
-	254: StLoc[12](%#10: u64)
-	255: MoveLoc[40](stake_subsidy_amount#1#0: u64)
-	256: StLoc[13](%#11: u64)
-	257: MoveLoc[28](computation_charge#1#0: u64)
-	258: StLoc[14](%#12: u64)
-	259: MoveLoc[32](computation_reward_distributed#1#0: u64)
-	260: MoveLoc[49](storage_fund_reward_distributed#1#0: u64)
-	261: Add
-	262: StLoc[15](%#13: u64)
-	263: MoveLoc[34](leftover_storage_fund_inflow#1#0: u64)
-	264: StLoc[16](%#14: u64)
-	265: MoveLoc[20](%#3: u64)
-	266: MoveLoc[21](%#4: u64)
-	267: MoveLoc[22](%#5: u64)
-	268: MoveLoc[23](%#6: u64)
-	269: MoveLoc[25](%#8: u64)
-	270: MoveLoc[24](%#7: u64)
-	271: MoveLoc[26](%#9: u64)
-	272: MoveLoc[12](%#10: u64)
-	273: MoveLoc[13](%#11: u64)
-	274: MoveLoc[14](%#12: u64)
-	275: MoveLoc[15](%#13: u64)
-	276: MoveLoc[16](%#14: u64)
-	277: Pack[4](SystemEpochInfoEvent)
-	278: Call event::emit<SystemEpochInfoEvent>(SystemEpochInfoEvent)
-	279: LdFalse
-	280: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	281: MutBorrowField[20](SuiSystemStateInnerV2.safe_mode: bool)
-	282: WriteRef
-	283: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	284: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
-	285: ReadRef
-	286: LdU64(0)
-	287: Eq
-	288: BrFalse(296)
+	164: ImmBorrowField[15](SuiSystemStateInnerV2.epoch: u64)
+	165: ReadRef
+	166: Eq
+	167: BrFalse(169)
 B13:
-	289: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	290: ImmBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
-	291: Call balance::value<SUI>(&Balance<SUI>): u64
-	292: LdU64(0)
-	293: Eq
-	294: StLoc[17](%#15: bool)
-	295: Branch(298)
+	168: Branch(175)
 B14:
-	296: LdFalse
-	297: StLoc[17](%#15: bool)
+	169: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	170: Pop
+	171: MoveLoc[10](ctx#0#0: &mut TxContext)
+	172: Pop
+	173: LdConst[11](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	174: Abort
 B15:
-	298: MoveLoc[17](%#15: bool)
-	299: BrFalse(307)
+	175: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	176: Call balance::value<SUI>(&Balance<SUI>): u64
+	177: StLoc[32](computation_reward_amount_before_distribution#1#0: u64)
+	178: ImmBorrowLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	179: Call balance::value<SUI>(&Balance<SUI>): u64
+	180: StLoc[50](storage_fund_reward_amount_before_distribution#1#0: u64)
+	181: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	182: MutBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	183: MutBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	184: MutBorrowLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	185: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	186: MutBorrowField[5](SuiSystemStateInnerV2.validator_report_records: VecMap<address, VecSet<address>>)
+	187: MoveLoc[8](reward_slashing_rate#0#0: u64)
+	188: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	189: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	190: ImmBorrowField[16](SystemParametersV2.validator_low_stake_threshold: u64)
+	191: ReadRef
+	192: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	193: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	194: ImmBorrowField[17](SystemParametersV2.validator_very_low_stake_threshold: u64)
+	195: ReadRef
+	196: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	197: ImmBorrowField[1](SuiSystemStateInnerV2.parameters: SystemParametersV2)
+	198: ImmBorrowField[18](SystemParametersV2.validator_low_stake_grace_period: u64)
+	199: ReadRef
+	200: MoveLoc[10](ctx#0#0: &mut TxContext)
+	201: Call validator_set::advance_epoch(&mut ValidatorSet, &mut Balance<SUI>, &mut Balance<SUI>, &mut VecMap<address, VecSet<address>>, u64, u64, u64, u64, &mut TxContext)
+	202: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	203: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	204: Call validator_set::total_stake(&ValidatorSet): u64
+	205: StLoc[36](new_total_stake#1#0: u64)
+	206: ImmBorrowLoc[4](computation_reward#0#0: Balance<SUI>)
+	207: Call balance::value<SUI>(&Balance<SUI>): u64
+	208: StLoc[31](computation_reward_amount_after_distribution#1#0: u64)
+	209: ImmBorrowLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	210: Call balance::value<SUI>(&Balance<SUI>): u64
+	211: StLoc[49](storage_fund_reward_amount_after_distribution#1#0: u64)
+	212: MoveLoc[32](computation_reward_amount_before_distribution#1#0: u64)
+	213: MoveLoc[31](computation_reward_amount_after_distribution#1#0: u64)
+	214: Sub
+	215: StLoc[33](computation_reward_distributed#1#0: u64)
+	216: MoveLoc[50](storage_fund_reward_amount_before_distribution#1#0: u64)
+	217: MoveLoc[49](storage_fund_reward_amount_after_distribution#1#0: u64)
+	218: Sub
+	219: StLoc[51](storage_fund_reward_distributed#1#0: u64)
+	220: MoveLoc[2](next_protocol_version#0#0: u64)
+	221: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	222: MutBorrowField[19](SuiSystemStateInnerV2.protocol_version: u64)
+	223: WriteRef
+	224: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	225: ImmBorrowField[0](SuiSystemStateInnerV2.validators: ValidatorSet)
+	226: Call validator_set::derive_reference_gas_price(&ValidatorSet): u64
+	227: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	228: MutBorrowField[20](SuiSystemStateInnerV2.reference_gas_price: u64)
+	229: WriteRef
+	230: MoveLoc[47](storage_fund_reward#1#0: Balance<SUI>)
+	231: StLoc[34](leftover_staking_rewards#1#0: Balance<SUI>)
+	232: MutBorrowLoc[34](leftover_staking_rewards#1#0: Balance<SUI>)
+	233: MoveLoc[4](computation_reward#0#0: Balance<SUI>)
+	234: Call balance::join<SUI>(&mut Balance<SUI>, Balance<SUI>): u64
+	235: Pop
+	236: ImmBorrowLoc[34](leftover_staking_rewards#1#0: Balance<SUI>)
+	237: Call balance::value<SUI>(&Balance<SUI>): u64
+	238: StLoc[35](leftover_storage_fund_inflow#1#0: u64)
+	239: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	240: MutBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	241: MoveLoc[3](storage_reward#0#0: Balance<SUI>)
+	242: MoveLoc[45](storage_fund_reinvestment#1#0: Balance<SUI>)
+	243: MoveLoc[34](leftover_staking_rewards#1#0: Balance<SUI>)
+	244: CopyLoc[5](storage_rebate_amount#0#0: u64)
+	245: MoveLoc[6](non_refundable_storage_fee_amount#0#0: u64)
+	246: Call storage_fund::advance_epoch(&mut StorageFund, Balance<SUI>, Balance<SUI>, Balance<SUI>, u64, u64): Balance<SUI>
+	247: StLoc[38](refunded_storage_rebate#1#0: Balance<SUI>)
+	248: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	249: ImmBorrowField[15](SuiSystemStateInnerV2.epoch: u64)
+	250: ReadRef
+	251: StLoc[22](%#4: u64)
+	252: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	253: ImmBorrowField[19](SuiSystemStateInnerV2.protocol_version: u64)
+	254: ReadRef
+	255: StLoc[23](%#5: u64)
+	256: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	257: ImmBorrowField[20](SuiSystemStateInnerV2.reference_gas_price: u64)
+	258: ReadRef
+	259: StLoc[24](%#6: u64)
+	260: MoveLoc[36](new_total_stake#1#0: u64)
+	261: StLoc[25](%#7: u64)
+	262: MoveLoc[43](storage_charge#1#0: u64)
+	263: StLoc[26](%#8: u64)
+	264: MoveLoc[46](storage_fund_reinvestment_amount#1#0: u128)
+	265: CastU64
+	266: StLoc[27](%#9: u64)
+	267: MoveLoc[5](storage_rebate_amount#0#0: u64)
+	268: StLoc[12](%#10: u64)
+	269: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	270: ImmBorrowField[11](SuiSystemStateInnerV2.storage_fund: StorageFund)
+	271: Call storage_fund::total_balance(&StorageFund): u64
+	272: StLoc[13](%#11: u64)
+	273: MoveLoc[42](stake_subsidy_amount#1#0: u64)
+	274: StLoc[14](%#12: u64)
+	275: MoveLoc[29](computation_charge#1#0: u64)
+	276: StLoc[15](%#13: u64)
+	277: MoveLoc[33](computation_reward_distributed#1#0: u64)
+	278: MoveLoc[51](storage_fund_reward_distributed#1#0: u64)
+	279: Add
+	280: StLoc[16](%#14: u64)
+	281: MoveLoc[35](leftover_storage_fund_inflow#1#0: u64)
+	282: StLoc[17](%#15: u64)
+	283: MoveLoc[22](%#4: u64)
+	284: MoveLoc[23](%#5: u64)
+	285: MoveLoc[24](%#6: u64)
+	286: MoveLoc[25](%#7: u64)
+	287: MoveLoc[27](%#9: u64)
+	288: MoveLoc[26](%#8: u64)
+	289: MoveLoc[12](%#10: u64)
+	290: MoveLoc[13](%#11: u64)
+	291: MoveLoc[14](%#12: u64)
+	292: MoveLoc[15](%#13: u64)
+	293: MoveLoc[16](%#14: u64)
+	294: MoveLoc[17](%#15: u64)
+	295: Pack[4](SystemEpochInfoEvent)
+	296: Call event::emit<SystemEpochInfoEvent>(SystemEpochInfoEvent)
+	297: LdFalse
+	298: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	299: MutBorrowField[21](SuiSystemStateInnerV2.safe_mode: bool)
+	300: WriteRef
+	301: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	302: ImmBorrowField[9](SuiSystemStateInnerV2.safe_mode_storage_rebates: u64)
+	303: ReadRef
+	304: LdU64(0)
+	305: Eq
+	306: BrFalse(314)
 B16:
-	300: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	301: ImmBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
-	302: Call balance::value<SUI>(&Balance<SUI>): u64
-	303: LdU64(0)
-	304: Eq
-	305: StLoc[18](%#16: bool)
-	306: Branch(311)
-B17:
-	307: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
-	308: Pop
-	309: LdFalse
-	310: StLoc[18](%#16: bool)
-B18:
-	311: MoveLoc[18](%#16: bool)
-	312: BrFalse(314)
-B19:
+	307: CopyLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	308: ImmBorrowField[7](SuiSystemStateInnerV2.safe_mode_storage_rewards: Balance<SUI>)
+	309: Call balance::value<SUI>(&Balance<SUI>): u64
+	310: LdU64(0)
+	311: Eq
+	312: StLoc[18](%#16: bool)
 	313: Branch(316)
+B17:
+	314: LdFalse
+	315: StLoc[18](%#16: bool)
+B18:
+	316: MoveLoc[18](%#16: bool)
+	317: BrFalse(325)
+B19:
+	318: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	319: ImmBorrowField[8](SuiSystemStateInnerV2.safe_mode_computation_rewards: Balance<SUI>)
+	320: Call balance::value<SUI>(&Balance<SUI>): u64
+	321: LdU64(0)
+	322: Eq
+	323: StLoc[19](%#17: bool)
+	324: Branch(329)
 B20:
-	314: LdConst[10](U64: [7, 0, 0, 0, 0, 0, 0, 0])
-	315: Abort
+	325: MoveLoc[0](self#0#0: &mut SuiSystemStateInnerV2)
+	326: Pop
+	327: LdFalse
+	328: StLoc[19](%#17: bool)
 B21:
-	316: MoveLoc[36](refunded_storage_rebate#1#0: Balance<SUI>)
-	317: Ret
+	329: MoveLoc[19](%#17: bool)
+	330: BrFalse(332)
+B22:
+	331: Branch(334)
+B23:
+	332: LdConst[10](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	333: Abort
+B24:
+	334: MoveLoc[38](refunded_storage_rebate#1#0: Balance<SUI>)
+	335: Ret
 }
 public(friend) epoch(self#0#0: &SuiSystemStateInnerV2): u64 {
 B0:
 	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
-	1: ImmBorrowField[14](SuiSystemStateInnerV2.epoch: u64)
+	1: ImmBorrowField[15](SuiSystemStateInnerV2.epoch: u64)
 	2: ReadRef
 	3: Ret
 }
 public(friend) protocol_version(self#0#0: &SuiSystemStateInnerV2): u64 {
 B0:
 	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
-	1: ImmBorrowField[18](SuiSystemStateInnerV2.protocol_version: u64)
+	1: ImmBorrowField[19](SuiSystemStateInnerV2.protocol_version: u64)
 	2: ReadRef
 	3: Ret
 }
 public(friend) system_state_version(self#0#0: &SuiSystemStateInnerV2): u64 {
 B0:
 	0: MoveLoc[0](self#0#0: &SuiSystemStateInnerV2)
-	1: ImmBorrowField[21](SuiSystemStateInnerV2.system_state_version: u64)
+	1: ImmBorrowField[22](SuiSystemStateInnerV2.system_state_version: u64)
 	2: ReadRef
 	3: Ret
 }

@@ -1,0 +1,1261 @@
+// Move bytecode v6
+module dee9.critbit {
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct Leaf<V> has drop, store {
+	key: u64,
+	value: V,
+	parent: u64
+}
+struct InternalNode has drop, store {
+	mask: u64,
+	left_child: u64,
+	right_child: u64,
+	parent: u64
+}
+struct CritbitTree<V: store> has store {
+	root: u64,
+	internal_nodes: Table<u64, InternalNode>,
+	leaves: Table<u64, Leaf<V>>,
+	min_leaf: u64,
+	max_leaf: u64,
+	next_internal_node_index: u64,
+	next_leaf_index: u64
+}
+
+public(friend) new<V: store>(ctx#0#0: &mut TxContext): CritbitTree<V> {
+B0:
+	0: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	1: CopyLoc[0](ctx#0#0: &mut TxContext)
+	2: Call table::new<u64, InternalNode>(&mut TxContext): Table<u64, InternalNode>
+	3: MoveLoc[0](ctx#0#0: &mut TxContext)
+	4: Call table::new<u64, Leaf<V>>(&mut TxContext): Table<u64, Leaf<V>>
+	5: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	6: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	7: LdU64(0)
+	8: LdU64(0)
+	9: PackGeneric[0](CritbitTree<V>)
+	10: Ret
+}
+public(friend) size<V: store>(tree#0#0: &CritbitTree<V>): u64 {
+B0:
+	0: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: Call table::length<u64, Leaf<V>>(&Table<u64, Leaf<V>>): u64
+	3: Ret
+}
+public(friend) is_empty<V: store>(tree#0#0: &CritbitTree<V>): bool {
+B0:
+	0: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: Call table::is_empty<u64, Leaf<V>>(&Table<u64, Leaf<V>>): bool
+	3: Ret
+}
+public(friend) min_leaf<V: store>(tree#0#0: &CritbitTree<V>): u64 * u64 {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: Call is_empty<V>(&CritbitTree<V>): bool
+	2: Not
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	6: Pop
+	7: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	10: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	11: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	12: ImmBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	13: ReadRef
+	14: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	15: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	16: ReadRef
+	17: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	18: ImmBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	19: ReadRef
+	20: Ret
+}
+public(friend) max_leaf<V: store>(tree#0#0: &CritbitTree<V>): u64 * u64 {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: Call is_empty<V>(&CritbitTree<V>): bool
+	2: Not
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	6: Pop
+	7: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	10: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	11: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	12: ImmBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	13: ReadRef
+	14: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	15: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	16: ReadRef
+	17: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	18: ImmBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	19: ReadRef
+	20: Ret
+}
+public previous_leaf<V: store>(tree#0#0: &CritbitTree<V>, _key#0#0: u64): u64 * u64 {
+L0:	parent#1#0: u64
+L1:	ptr#1#0: u64
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: MoveLoc[1](_key#0#0: u64)
+	2: Call find_leaf<V>(&CritbitTree<V>, u64): bool * u64
+	3: StLoc[3](index#1#0: u64)
+	4: Pop
+	5: CopyLoc[3](index#1#0: u64)
+	6: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	7: Neq
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	11: Pop
+	12: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	15: CopyLoc[3](index#1#0: u64)
+	16: Sub
+	17: StLoc[5](ptr#1#0: u64)
+	18: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	19: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	20: MoveLoc[3](index#1#0: u64)
+	21: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	22: ImmBorrowFieldGeneric[4](Leaf.parent: u64)
+	23: ReadRef
+	24: StLoc[4](parent#1#0: u64)
+B4:
+	25: CopyLoc[4](parent#1#0: u64)
+	26: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	27: Neq
+	28: BrFalse(36)
+B5:
+	29: Branch(30)
+B6:
+	30: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	31: CopyLoc[4](parent#1#0: u64)
+	32: MoveLoc[5](ptr#1#0: u64)
+	33: Call is_left_child<V>(&CritbitTree<V>, u64, u64): bool
+	34: StLoc[2](%#1: bool)
+	35: Branch(38)
+B7:
+	36: LdFalse
+	37: StLoc[2](%#1: bool)
+B8:
+	38: MoveLoc[2](%#1: bool)
+	39: BrFalse(50)
+B9:
+	40: MoveLoc[4](parent#1#0: u64)
+	41: StLoc[5](ptr#1#0: u64)
+	42: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	43: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	44: CopyLoc[5](ptr#1#0: u64)
+	45: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	46: ImmBorrowField[6](InternalNode.parent: u64)
+	47: ReadRef
+	48: StLoc[4](parent#1#0: u64)
+	49: Branch(25)
+B10:
+	50: CopyLoc[4](parent#1#0: u64)
+	51: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	52: Eq
+	53: BrFalse(59)
+B11:
+	54: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	55: Pop
+	56: LdU64(0)
+	57: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	58: Ret
+B12:
+	59: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	60: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	61: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	62: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	63: MoveLoc[4](parent#1#0: u64)
+	64: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	65: ImmBorrowField[7](InternalNode.left_child: u64)
+	66: ReadRef
+	67: Call right_most_leaf<V>(&CritbitTree<V>, u64): u64
+	68: Sub
+	69: StLoc[3](index#1#0: u64)
+	70: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	71: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	72: CopyLoc[3](index#1#0: u64)
+	73: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	74: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	75: ReadRef
+	76: MoveLoc[3](index#1#0: u64)
+	77: Ret
+}
+public(friend) next_leaf<V: store>(tree#0#0: &CritbitTree<V>, _key#0#0: u64): u64 * u64 {
+L0:	parent#1#0: u64
+L1:	ptr#1#0: u64
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: MoveLoc[1](_key#0#0: u64)
+	2: Call find_leaf<V>(&CritbitTree<V>, u64): bool * u64
+	3: StLoc[3](index#1#0: u64)
+	4: Pop
+	5: CopyLoc[3](index#1#0: u64)
+	6: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	7: Neq
+	8: BrFalse(10)
+B1:
+	9: Branch(14)
+B2:
+	10: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	11: Pop
+	12: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	13: Abort
+B3:
+	14: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	15: CopyLoc[3](index#1#0: u64)
+	16: Sub
+	17: StLoc[5](ptr#1#0: u64)
+	18: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	19: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	20: MoveLoc[3](index#1#0: u64)
+	21: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	22: ImmBorrowFieldGeneric[4](Leaf.parent: u64)
+	23: ReadRef
+	24: StLoc[4](parent#1#0: u64)
+B4:
+	25: CopyLoc[4](parent#1#0: u64)
+	26: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	27: Neq
+	28: BrFalse(37)
+B5:
+	29: Branch(30)
+B6:
+	30: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	31: CopyLoc[4](parent#1#0: u64)
+	32: MoveLoc[5](ptr#1#0: u64)
+	33: Call is_left_child<V>(&CritbitTree<V>, u64, u64): bool
+	34: Not
+	35: StLoc[2](%#1: bool)
+	36: Branch(39)
+B7:
+	37: LdFalse
+	38: StLoc[2](%#1: bool)
+B8:
+	39: MoveLoc[2](%#1: bool)
+	40: BrFalse(51)
+B9:
+	41: MoveLoc[4](parent#1#0: u64)
+	42: StLoc[5](ptr#1#0: u64)
+	43: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	44: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	45: CopyLoc[5](ptr#1#0: u64)
+	46: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	47: ImmBorrowField[6](InternalNode.parent: u64)
+	48: ReadRef
+	49: StLoc[4](parent#1#0: u64)
+	50: Branch(25)
+B10:
+	51: CopyLoc[4](parent#1#0: u64)
+	52: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	53: Eq
+	54: BrFalse(60)
+B11:
+	55: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	56: Pop
+	57: LdU64(0)
+	58: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	59: Ret
+B12:
+	60: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	61: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	62: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	63: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	64: MoveLoc[4](parent#1#0: u64)
+	65: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	66: ImmBorrowField[8](InternalNode.right_child: u64)
+	67: ReadRef
+	68: Call left_most_leaf<V>(&CritbitTree<V>, u64): u64
+	69: Sub
+	70: StLoc[3](index#1#0: u64)
+	71: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	72: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	73: CopyLoc[3](index#1#0: u64)
+	74: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	75: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	76: ReadRef
+	77: MoveLoc[3](index#1#0: u64)
+	78: Ret
+}
+left_most_leaf<V: store>(tree#0#0: &CritbitTree<V>, root#0#0: u64): u64 {
+B0:
+	0: MoveLoc[1](root#0#0: u64)
+	1: StLoc[2](ptr#1#0: u64)
+B1:
+	2: CopyLoc[2](ptr#1#0: u64)
+	3: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	4: Lt
+	5: BrFalse(15)
+B2:
+	6: Branch(7)
+B3:
+	7: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	8: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	9: MoveLoc[2](ptr#1#0: u64)
+	10: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	11: ImmBorrowField[7](InternalNode.left_child: u64)
+	12: ReadRef
+	13: StLoc[2](ptr#1#0: u64)
+	14: Branch(2)
+B4:
+	15: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	16: Pop
+	17: MoveLoc[2](ptr#1#0: u64)
+	18: Ret
+}
+right_most_leaf<V: store>(tree#0#0: &CritbitTree<V>, root#0#0: u64): u64 {
+B0:
+	0: MoveLoc[1](root#0#0: u64)
+	1: StLoc[2](ptr#1#0: u64)
+B1:
+	2: CopyLoc[2](ptr#1#0: u64)
+	3: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	4: Lt
+	5: BrFalse(15)
+B2:
+	6: Branch(7)
+B3:
+	7: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	8: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	9: MoveLoc[2](ptr#1#0: u64)
+	10: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	11: ImmBorrowField[8](InternalNode.right_child: u64)
+	12: ReadRef
+	13: StLoc[2](ptr#1#0: u64)
+	14: Branch(2)
+B4:
+	15: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	16: Pop
+	17: MoveLoc[2](ptr#1#0: u64)
+	18: Ret
+}
+public(friend) insert_leaf<V: store>(tree#0#0: &mut CritbitTree<V>, _key#0#0: u64, _value#0#0: V): u64 {
+L0:	closest_key#1#0: u64
+L1:	closest_leaf_index#1#0: u64
+L2:	critbit#1#0: u8
+L3:	internal_node#1#0: &InternalNode
+L4:	is_left_child#1#0: bool
+L5:	is_left_child#2#0: bool
+L6:	new_internal_node#1#0: InternalNode
+L7:	new_internal_node_index#1#0: u64
+L8:	new_internal_node_parent_index#1#0: u64
+L9:	new_leaf#1#0: Leaf<V>
+L10:	new_leaf_index#1#0: u64
+L11:	new_mask#1#0: u64
+L12:	ptr#1#0: u64
+B0:
+	0: CopyLoc[1](_key#0#0: u64)
+	1: MoveLoc[2](_value#0#0: V)
+	2: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	3: PackGeneric[1](Leaf<V>)
+	4: StLoc[15](new_leaf#1#0: Leaf<V>)
+	5: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	6: ImmBorrowFieldGeneric[6](CritbitTree.next_leaf_index: u64)
+	7: ReadRef
+	8: StLoc[16](new_leaf_index#1#0: u64)
+	9: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	10: ImmBorrowFieldGeneric[6](CritbitTree.next_leaf_index: u64)
+	11: ReadRef
+	12: LdU64(1)
+	13: Add
+	14: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	15: MutBorrowFieldGeneric[6](CritbitTree.next_leaf_index: u64)
+	16: WriteRef
+	17: CopyLoc[16](new_leaf_index#1#0: u64)
+	18: LdConst[11](U64: [255, 255, 255, 255, 255, 255, 255, 127])
+	19: LdU64(1)
+	20: Sub
+	21: Lt
+	22: BrFalse(24)
+B1:
+	23: Branch(28)
+B2:
+	24: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	25: Pop
+	26: LdConst[1](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	27: Abort
+B3:
+	28: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	29: MutBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	30: CopyLoc[16](new_leaf_index#1#0: u64)
+	31: MoveLoc[15](new_leaf#1#0: Leaf<V>)
+	32: Call table::add<u64, Leaf<V>>(&mut Table<u64, Leaf<V>>, u64, Leaf<V>)
+	33: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	34: CopyLoc[1](_key#0#0: u64)
+	35: StLoc[3](%#2: u64)
+	36: FreezeRef
+	37: MoveLoc[3](%#2: u64)
+	38: Call get_closest_leaf_index_by_key<V>(&CritbitTree<V>, u64): u64
+	39: StLoc[7](closest_leaf_index#1#0: u64)
+	40: CopyLoc[7](closest_leaf_index#1#0: u64)
+	41: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	42: Eq
+	43: BrFalse(69)
+B4:
+	44: CopyLoc[16](new_leaf_index#1#0: u64)
+	45: LdU64(0)
+	46: Eq
+	47: BrFalse(49)
+B5:
+	48: Branch(53)
+B6:
+	49: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	50: Pop
+	51: LdConst[2](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	52: Abort
+B7:
+	53: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	54: CopyLoc[16](new_leaf_index#1#0: u64)
+	55: Sub
+	56: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	57: MutBorrowFieldGeneric[7](CritbitTree.root: u64)
+	58: WriteRef
+	59: CopyLoc[16](new_leaf_index#1#0: u64)
+	60: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	61: MutBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	62: WriteRef
+	63: MoveLoc[16](new_leaf_index#1#0: u64)
+	64: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	65: MutBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	66: WriteRef
+	67: LdU64(0)
+	68: Ret
+B8:
+	69: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	70: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	71: MoveLoc[7](closest_leaf_index#1#0: u64)
+	72: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	73: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	74: ReadRef
+	75: StLoc[6](closest_key#1#0: u64)
+	76: CopyLoc[6](closest_key#1#0: u64)
+	77: CopyLoc[1](_key#0#0: u64)
+	78: Neq
+	79: BrFalse(81)
+B9:
+	80: Branch(85)
+B10:
+	81: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	82: Pop
+	83: LdConst[3](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	84: Abort
+B11:
+	85: LdU8(64)
+	86: MoveLoc[6](closest_key#1#0: u64)
+	87: CopyLoc[1](_key#0#0: u64)
+	88: Xor
+	89: CastU128
+	90: Call count_leading_zeros(u128): u8
+	91: LdU8(64)
+	92: Sub
+	93: Sub
+	94: StLoc[8](critbit#1#0: u8)
+	95: LdU64(1)
+	96: MoveLoc[8](critbit#1#0: u8)
+	97: LdU8(1)
+	98: Sub
+	99: Shl
+	100: StLoc[17](new_mask#1#0: u64)
+	101: CopyLoc[17](new_mask#1#0: u64)
+	102: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	103: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	104: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	105: Pack[1](InternalNode)
+	106: StLoc[12](new_internal_node#1#0: InternalNode)
+	107: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	108: ImmBorrowFieldGeneric[8](CritbitTree.next_internal_node_index: u64)
+	109: ReadRef
+	110: StLoc[13](new_internal_node_index#1#0: u64)
+	111: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	112: ImmBorrowFieldGeneric[8](CritbitTree.next_internal_node_index: u64)
+	113: ReadRef
+	114: LdU64(1)
+	115: Add
+	116: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	117: MutBorrowFieldGeneric[8](CritbitTree.next_internal_node_index: u64)
+	118: WriteRef
+	119: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	120: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	121: CopyLoc[13](new_internal_node_index#1#0: u64)
+	122: MoveLoc[12](new_internal_node#1#0: InternalNode)
+	123: Call table::add<u64, InternalNode>(&mut Table<u64, InternalNode>, u64, InternalNode)
+	124: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	125: ImmBorrowFieldGeneric[7](CritbitTree.root: u64)
+	126: ReadRef
+	127: StLoc[18](ptr#1#0: u64)
+	128: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	129: StLoc[14](new_internal_node_parent_index#1#0: u64)
+B12:
+	130: CopyLoc[18](ptr#1#0: u64)
+	131: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	132: Lt
+	133: BrFalse(169)
+B13:
+	134: Branch(135)
+B14:
+	135: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	136: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	137: CopyLoc[18](ptr#1#0: u64)
+	138: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	139: StLoc[9](internal_node#1#0: &InternalNode)
+	140: CopyLoc[17](new_mask#1#0: u64)
+	141: CopyLoc[9](internal_node#1#0: &InternalNode)
+	142: ImmBorrowField[12](InternalNode.mask: u64)
+	143: ReadRef
+	144: Gt
+	145: BrFalse(149)
+B15:
+	146: MoveLoc[9](internal_node#1#0: &InternalNode)
+	147: Pop
+	148: Branch(169)
+B16:
+	149: MoveLoc[18](ptr#1#0: u64)
+	150: StLoc[14](new_internal_node_parent_index#1#0: u64)
+	151: CopyLoc[1](_key#0#0: u64)
+	152: CopyLoc[9](internal_node#1#0: &InternalNode)
+	153: ImmBorrowField[12](InternalNode.mask: u64)
+	154: ReadRef
+	155: BitAnd
+	156: LdU64(0)
+	157: Eq
+	158: BrFalse(164)
+B17:
+	159: MoveLoc[9](internal_node#1#0: &InternalNode)
+	160: ImmBorrowField[7](InternalNode.left_child: u64)
+	161: ReadRef
+	162: StLoc[18](ptr#1#0: u64)
+	163: Branch(168)
+B18:
+	164: MoveLoc[9](internal_node#1#0: &InternalNode)
+	165: ImmBorrowField[8](InternalNode.right_child: u64)
+	166: ReadRef
+	167: StLoc[18](ptr#1#0: u64)
+B19:
+	168: Branch(130)
+B20:
+	169: CopyLoc[14](new_internal_node_parent_index#1#0: u64)
+	170: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	171: Eq
+	172: BrFalse(178)
+B21:
+	173: CopyLoc[13](new_internal_node_index#1#0: u64)
+	174: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	175: MutBorrowFieldGeneric[7](CritbitTree.root: u64)
+	176: WriteRef
+	177: Branch(193)
+B22:
+	178: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	179: CopyLoc[14](new_internal_node_parent_index#1#0: u64)
+	180: CopyLoc[18](ptr#1#0: u64)
+	181: StLoc[5](%#5: u64)
+	182: StLoc[4](%#4: u64)
+	183: FreezeRef
+	184: MoveLoc[4](%#4: u64)
+	185: MoveLoc[5](%#5: u64)
+	186: Call is_left_child<V>(&CritbitTree<V>, u64, u64): bool
+	187: StLoc[10](is_left_child#1#0: bool)
+	188: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	189: MoveLoc[14](new_internal_node_parent_index#1#0: u64)
+	190: CopyLoc[13](new_internal_node_index#1#0: u64)
+	191: MoveLoc[10](is_left_child#1#0: bool)
+	192: Call update_child<V>(&mut CritbitTree<V>, u64, u64, bool)
+B23:
+	193: MoveLoc[17](new_mask#1#0: u64)
+	194: CopyLoc[1](_key#0#0: u64)
+	195: BitAnd
+	196: LdU64(0)
+	197: Eq
+	198: StLoc[11](is_left_child#2#0: bool)
+	199: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	200: CopyLoc[13](new_internal_node_index#1#0: u64)
+	201: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	202: CopyLoc[16](new_leaf_index#1#0: u64)
+	203: Sub
+	204: CopyLoc[11](is_left_child#2#0: bool)
+	205: Call update_child<V>(&mut CritbitTree<V>, u64, u64, bool)
+	206: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	207: MoveLoc[13](new_internal_node_index#1#0: u64)
+	208: MoveLoc[18](ptr#1#0: u64)
+	209: MoveLoc[11](is_left_child#2#0: bool)
+	210: Not
+	211: Call update_child<V>(&mut CritbitTree<V>, u64, u64, bool)
+	212: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	213: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	214: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	215: ImmBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	216: ReadRef
+	217: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	218: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	219: ReadRef
+	220: CopyLoc[1](_key#0#0: u64)
+	221: Gt
+	222: BrFalse(227)
+B24:
+	223: CopyLoc[16](new_leaf_index#1#0: u64)
+	224: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	225: MutBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	226: WriteRef
+B25:
+	227: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	228: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	229: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	230: ImmBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	231: ReadRef
+	232: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	233: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	234: ReadRef
+	235: MoveLoc[1](_key#0#0: u64)
+	236: Lt
+	237: BrFalse(243)
+B26:
+	238: CopyLoc[16](new_leaf_index#1#0: u64)
+	239: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	240: MutBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	241: WriteRef
+	242: Branch(245)
+B27:
+	243: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	244: Pop
+B28:
+	245: MoveLoc[16](new_leaf_index#1#0: u64)
+	246: Ret
+}
+public(friend) find_leaf<V: store>(tree#0#0: &CritbitTree<V>, _key#0#0: u64): bool * u64 {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: Call is_empty<V>(&CritbitTree<V>): bool
+	2: BrFalse(8)
+B1:
+	3: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	4: Pop
+	5: LdFalse
+	6: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	7: Ret
+B2:
+	8: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	9: CopyLoc[1](_key#0#0: u64)
+	10: Call get_closest_leaf_index_by_key<V>(&CritbitTree<V>, u64): u64
+	11: StLoc[2](closest_leaf_index#1#0: u64)
+	12: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	13: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	14: CopyLoc[2](closest_leaf_index#1#0: u64)
+	15: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	16: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	17: ReadRef
+	18: MoveLoc[1](_key#0#0: u64)
+	19: Neq
+	20: BrFalse(24)
+B3:
+	21: LdFalse
+	22: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	23: Ret
+B4:
+	24: LdTrue
+	25: MoveLoc[2](closest_leaf_index#1#0: u64)
+	26: Ret
+}
+public(friend) find_closest_key<V: store>(tree#0#0: &CritbitTree<V>, _key#0#0: u64): u64 {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: Call is_empty<V>(&CritbitTree<V>): bool
+	2: BrFalse(7)
+B1:
+	3: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	4: Pop
+	5: LdU64(0)
+	6: Ret
+B2:
+	7: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	8: MoveLoc[1](_key#0#0: u64)
+	9: Call get_closest_leaf_index_by_key<V>(&CritbitTree<V>, u64): u64
+	10: StLoc[2](closest_leaf_index#1#0: u64)
+	11: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	12: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	13: MoveLoc[2](closest_leaf_index#1#0: u64)
+	14: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	15: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	16: ReadRef
+	17: Ret
+}
+public(friend) remove_leaf_by_index<V: store>(tree#0#0: &mut CritbitTree<V>, _index#0#0: u64): V {
+L0:	%#2: u64
+L1:	%#4: u64
+L2:	%#6: u64
+L3:	%#7: u64
+L4:	%#8: u64
+L5:	index#1#0: u64
+L6:	index#2#0: u64
+L7:	is_left_child_#1#0: bool
+L8:	key#1#0: u64
+L9:	removed_leaf_grand_parent_index#1#0: u64
+L10:	removed_leaf_parent#1#0: &InternalNode
+L11:	removed_leaf_parent_index#1#0: u64
+L12:	sibling_index#1#0: u64
+L13:	value#1#0: V
+B0:
+	0: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: CopyLoc[1](_index#0#0: u64)
+	3: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	4: ImmBorrowFieldGeneric[2](Leaf.key: u64)
+	5: ReadRef
+	6: StLoc[12](key#1#0: u64)
+	7: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	8: ImmBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	9: ReadRef
+	10: CopyLoc[1](_index#0#0: u64)
+	11: Eq
+	12: BrFalse(25)
+B1:
+	13: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	14: CopyLoc[12](key#1#0: u64)
+	15: StLoc[4](%#2: u64)
+	16: FreezeRef
+	17: MoveLoc[4](%#2: u64)
+	18: Call next_leaf<V>(&CritbitTree<V>, u64): u64 * u64
+	19: StLoc[9](index#1#0: u64)
+	20: Pop
+	21: MoveLoc[9](index#1#0: u64)
+	22: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	23: MutBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	24: WriteRef
+B2:
+	25: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	26: ImmBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	27: ReadRef
+	28: CopyLoc[1](_index#0#0: u64)
+	29: Eq
+	30: BrFalse(43)
+B3:
+	31: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	32: MoveLoc[12](key#1#0: u64)
+	33: StLoc[5](%#4: u64)
+	34: FreezeRef
+	35: MoveLoc[5](%#4: u64)
+	36: Call previous_leaf<V>(&CritbitTree<V>, u64): u64 * u64
+	37: StLoc[10](index#2#0: u64)
+	38: Pop
+	39: MoveLoc[10](index#2#0: u64)
+	40: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	41: MutBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	42: WriteRef
+B4:
+	43: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	44: MutBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	45: CopyLoc[1](_index#0#0: u64)
+	46: Call table::remove<u64, Leaf<V>>(&mut Table<u64, Leaf<V>>, u64): Leaf<V>
+	47: UnpackGeneric[1](Leaf<V>)
+	48: StLoc[15](removed_leaf_parent_index#1#0: u64)
+	49: StLoc[17](value#1#0: V)
+	50: Pop
+	51: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	52: FreezeRef
+	53: Call size<V>(&CritbitTree<V>): u64
+	54: LdU64(0)
+	55: Eq
+	56: BrFalse(78)
+B5:
+	57: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	58: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	59: MutBorrowFieldGeneric[7](CritbitTree.root: u64)
+	60: WriteRef
+	61: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	62: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	63: MutBorrowFieldGeneric[1](CritbitTree.min_leaf: u64)
+	64: WriteRef
+	65: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	66: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	67: MutBorrowFieldGeneric[3](CritbitTree.max_leaf: u64)
+	68: WriteRef
+	69: LdU64(0)
+	70: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	71: MutBorrowFieldGeneric[8](CritbitTree.next_internal_node_index: u64)
+	72: WriteRef
+	73: LdU64(0)
+	74: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	75: MutBorrowFieldGeneric[6](CritbitTree.next_leaf_index: u64)
+	76: WriteRef
+	77: Branch(169)
+B6:
+	78: CopyLoc[15](removed_leaf_parent_index#1#0: u64)
+	79: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	80: Neq
+	81: BrFalse(83)
+B7:
+	82: Branch(87)
+B8:
+	83: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	84: Pop
+	85: LdConst[6](U64: [7, 0, 0, 0, 0, 0, 0, 0])
+	86: Abort
+B9:
+	87: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	88: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	89: CopyLoc[15](removed_leaf_parent_index#1#0: u64)
+	90: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	91: StLoc[14](removed_leaf_parent#1#0: &InternalNode)
+	92: CopyLoc[14](removed_leaf_parent#1#0: &InternalNode)
+	93: ImmBorrowField[6](InternalNode.parent: u64)
+	94: ReadRef
+	95: StLoc[13](removed_leaf_grand_parent_index#1#0: u64)
+	96: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	97: CopyLoc[15](removed_leaf_parent_index#1#0: u64)
+	98: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	99: MoveLoc[1](_index#0#0: u64)
+	100: Sub
+	101: StLoc[7](%#7: u64)
+	102: StLoc[6](%#6: u64)
+	103: FreezeRef
+	104: MoveLoc[6](%#6: u64)
+	105: MoveLoc[7](%#7: u64)
+	106: Call is_left_child<V>(&CritbitTree<V>, u64, u64): bool
+	107: BrFalse(113)
+B10:
+	108: MoveLoc[14](removed_leaf_parent#1#0: &InternalNode)
+	109: ImmBorrowField[8](InternalNode.right_child: u64)
+	110: ReadRef
+	111: StLoc[8](%#8: u64)
+	112: Branch(117)
+B11:
+	113: MoveLoc[14](removed_leaf_parent#1#0: &InternalNode)
+	114: ImmBorrowField[7](InternalNode.left_child: u64)
+	115: ReadRef
+	116: StLoc[8](%#8: u64)
+B12:
+	117: MoveLoc[8](%#8: u64)
+	118: StLoc[16](sibling_index#1#0: u64)
+	119: CopyLoc[13](removed_leaf_grand_parent_index#1#0: u64)
+	120: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	121: Eq
+	122: BrFalse(149)
+B13:
+	123: CopyLoc[16](sibling_index#1#0: u64)
+	124: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	125: Lt
+	126: BrFalse(135)
+B14:
+	127: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	128: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	129: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	130: CopyLoc[16](sibling_index#1#0: u64)
+	131: Call table::borrow_mut<u64, InternalNode>(&mut Table<u64, InternalNode>, u64): &mut InternalNode
+	132: MutBorrowField[6](InternalNode.parent: u64)
+	133: WriteRef
+	134: Branch(144)
+B15:
+	135: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	136: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	137: MutBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	138: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	139: CopyLoc[16](sibling_index#1#0: u64)
+	140: Sub
+	141: Call table::borrow_mut<u64, Leaf<V>>(&mut Table<u64, Leaf<V>>, u64): &mut Leaf<V>
+	142: MutBorrowFieldGeneric[4](Leaf.parent: u64)
+	143: WriteRef
+B16:
+	144: MoveLoc[16](sibling_index#1#0: u64)
+	145: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	146: MutBorrowFieldGeneric[7](CritbitTree.root: u64)
+	147: WriteRef
+	148: Branch(164)
+B17:
+	149: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	150: CopyLoc[13](removed_leaf_grand_parent_index#1#0: u64)
+	151: CopyLoc[15](removed_leaf_parent_index#1#0: u64)
+	152: StLoc[3](%#11: u64)
+	153: StLoc[2](%#10: u64)
+	154: FreezeRef
+	155: MoveLoc[2](%#10: u64)
+	156: MoveLoc[3](%#11: u64)
+	157: Call is_left_child<V>(&CritbitTree<V>, u64, u64): bool
+	158: StLoc[11](is_left_child_#1#0: bool)
+	159: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	160: MoveLoc[13](removed_leaf_grand_parent_index#1#0: u64)
+	161: MoveLoc[16](sibling_index#1#0: u64)
+	162: MoveLoc[11](is_left_child_#1#0: bool)
+	163: Call update_child<V>(&mut CritbitTree<V>, u64, u64, bool)
+B18:
+	164: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	165: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	166: MoveLoc[15](removed_leaf_parent_index#1#0: u64)
+	167: Call table::remove<u64, InternalNode>(&mut Table<u64, InternalNode>, u64): InternalNode
+	168: Pop
+B19:
+	169: MoveLoc[17](value#1#0: V)
+	170: Ret
+}
+public(friend) borrow_mut_leaf_by_index<V: store>(tree#0#0: &mut CritbitTree<V>, index#0#0: u64): &mut V {
+B0:
+	0: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	1: MutBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: MoveLoc[1](index#0#0: u64)
+	3: Call table::borrow_mut<u64, Leaf<V>>(&mut Table<u64, Leaf<V>>, u64): &mut Leaf<V>
+	4: MutBorrowFieldGeneric[9](Leaf.value: V)
+	5: Ret
+}
+public(friend) borrow_leaf_by_index<V: store>(tree#0#0: &CritbitTree<V>, index#0#0: u64): &V {
+B0:
+	0: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: MoveLoc[1](index#0#0: u64)
+	3: Call table::borrow<u64, Leaf<V>>(&Table<u64, Leaf<V>>, u64): &Leaf<V>
+	4: ImmBorrowFieldGeneric[9](Leaf.value: V)
+	5: Ret
+}
+public(friend) borrow_leaf_by_key<V: store>(tree#0#0: &CritbitTree<V>, key#0#0: u64): &V {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: MoveLoc[1](key#0#0: u64)
+	2: Call find_leaf<V>(&CritbitTree<V>, u64): bool * u64
+	3: StLoc[2](index#1#0: u64)
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	7: Pop
+	8: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	11: MoveLoc[2](index#1#0: u64)
+	12: Call borrow_leaf_by_index<V>(&CritbitTree<V>, u64): &V
+	13: Ret
+}
+public(friend) drop<V: drop + store>(tree#0#0: CritbitTree<V>) {
+L0:	leaves#1#0: Table<u64, Leaf<V>>
+B0:
+	0: MoveLoc[0](tree#0#0: CritbitTree<V>)
+	1: UnpackGeneric[0](CritbitTree<V>)
+	2: Pop
+	3: Pop
+	4: Pop
+	5: Pop
+	6: StLoc[2](leaves#1#0: Table<u64, Leaf<V>>)
+	7: StLoc[1](internal_nodes#1#0: Table<u64, InternalNode>)
+	8: Pop
+	9: MoveLoc[1](internal_nodes#1#0: Table<u64, InternalNode>)
+	10: Call table::drop<u64, InternalNode>(Table<u64, InternalNode>)
+	11: MoveLoc[2](leaves#1#0: Table<u64, Leaf<V>>)
+	12: Call table::drop<u64, Leaf<V>>(Table<u64, Leaf<V>>)
+	13: Ret
+}
+public(friend) destroy_empty<V: store>(tree#0#0: CritbitTree<V>) {
+L0:	leaves#1#0: Table<u64, Leaf<V>>
+B0:
+	0: ImmBorrowLoc[0](tree#0#0: CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	2: Call table::length<u64, Leaf<V>>(&Table<u64, Leaf<V>>): u64
+	3: LdU64(0)
+	4: Eq
+	5: BrFalse(7)
+B1:
+	6: Branch(9)
+B2:
+	7: LdU64(0)
+	8: Abort
+B3:
+	9: MoveLoc[0](tree#0#0: CritbitTree<V>)
+	10: UnpackGeneric[0](CritbitTree<V>)
+	11: Pop
+	12: Pop
+	13: Pop
+	14: Pop
+	15: StLoc[2](leaves#1#0: Table<u64, Leaf<V>>)
+	16: StLoc[1](internal_nodes#1#0: Table<u64, InternalNode>)
+	17: Pop
+	18: MoveLoc[2](leaves#1#0: Table<u64, Leaf<V>>)
+	19: Call table::destroy_empty<u64, Leaf<V>>(Table<u64, Leaf<V>>)
+	20: MoveLoc[1](internal_nodes#1#0: Table<u64, InternalNode>)
+	21: Call table::destroy_empty<u64, InternalNode>(Table<u64, InternalNode>)
+	22: Ret
+}
+get_closest_leaf_index_by_key<V: store>(tree#0#0: &CritbitTree<V>, _key#0#0: u64): u64 {
+B0:
+	0: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[7](CritbitTree.root: u64)
+	2: ReadRef
+	3: StLoc[3](ptr#1#0: u64)
+	4: CopyLoc[3](ptr#1#0: u64)
+	5: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	6: Eq
+	7: BrFalse(12)
+B1:
+	8: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	9: Pop
+	10: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	11: Ret
+B2:
+	12: CopyLoc[3](ptr#1#0: u64)
+	13: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	14: Lt
+	15: BrFalse(40)
+B3:
+	16: Branch(17)
+B4:
+	17: CopyLoc[0](tree#0#0: &CritbitTree<V>)
+	18: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	19: MoveLoc[3](ptr#1#0: u64)
+	20: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	21: StLoc[2](node#1#0: &InternalNode)
+	22: CopyLoc[1](_key#0#0: u64)
+	23: CopyLoc[2](node#1#0: &InternalNode)
+	24: ImmBorrowField[12](InternalNode.mask: u64)
+	25: ReadRef
+	26: BitAnd
+	27: LdU64(0)
+	28: Eq
+	29: BrFalse(35)
+B5:
+	30: MoveLoc[2](node#1#0: &InternalNode)
+	31: ImmBorrowField[7](InternalNode.left_child: u64)
+	32: ReadRef
+	33: StLoc[3](ptr#1#0: u64)
+	34: Branch(39)
+B6:
+	35: MoveLoc[2](node#1#0: &InternalNode)
+	36: ImmBorrowField[8](InternalNode.right_child: u64)
+	37: ReadRef
+	38: StLoc[3](ptr#1#0: u64)
+B7:
+	39: Branch(12)
+B8:
+	40: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	41: Pop
+	42: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	43: MoveLoc[3](ptr#1#0: u64)
+	44: Sub
+	45: Ret
+}
+update_child<V: store>(tree#0#0: &mut CritbitTree<V>, parent_index#0#0: u64, new_child#0#0: u64, is_left_child#0#0: bool) {
+B0:
+	0: CopyLoc[1](parent_index#0#0: u64)
+	1: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	2: Neq
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	6: Pop
+	7: LdConst[7](U64: [8, 0, 0, 0, 0, 0, 0, 0])
+	8: Abort
+B3:
+	9: MoveLoc[3](is_left_child#0#0: bool)
+	10: BrFalse(19)
+B4:
+	11: CopyLoc[2](new_child#0#0: u64)
+	12: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	13: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	14: CopyLoc[1](parent_index#0#0: u64)
+	15: Call table::borrow_mut<u64, InternalNode>(&mut Table<u64, InternalNode>, u64): &mut InternalNode
+	16: MutBorrowField[7](InternalNode.left_child: u64)
+	17: WriteRef
+	18: Branch(26)
+B5:
+	19: CopyLoc[2](new_child#0#0: u64)
+	20: CopyLoc[0](tree#0#0: &mut CritbitTree<V>)
+	21: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	22: CopyLoc[1](parent_index#0#0: u64)
+	23: Call table::borrow_mut<u64, InternalNode>(&mut Table<u64, InternalNode>, u64): &mut InternalNode
+	24: MutBorrowField[8](InternalNode.right_child: u64)
+	25: WriteRef
+B6:
+	26: CopyLoc[2](new_child#0#0: u64)
+	27: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	28: Neq
+	29: BrFalse(52)
+B7:
+	30: CopyLoc[2](new_child#0#0: u64)
+	31: LdConst[9](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	32: Gt
+	33: BrFalse(44)
+B8:
+	34: MoveLoc[1](parent_index#0#0: u64)
+	35: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	36: MutBorrowFieldGeneric[0](CritbitTree.leaves: Table<u64, Leaf<V>>)
+	37: LdConst[10](U64: [255, 255, 255, 255, 255, 255, 255, 255])
+	38: MoveLoc[2](new_child#0#0: u64)
+	39: Sub
+	40: Call table::borrow_mut<u64, Leaf<V>>(&mut Table<u64, Leaf<V>>, u64): &mut Leaf<V>
+	41: MutBorrowFieldGeneric[4](Leaf.parent: u64)
+	42: WriteRef
+	43: Branch(51)
+B9:
+	44: MoveLoc[1](parent_index#0#0: u64)
+	45: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	46: MutBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	47: MoveLoc[2](new_child#0#0: u64)
+	48: Call table::borrow_mut<u64, InternalNode>(&mut Table<u64, InternalNode>, u64): &mut InternalNode
+	49: MutBorrowField[6](InternalNode.parent: u64)
+	50: WriteRef
+B10:
+	51: Branch(54)
+B11:
+	52: MoveLoc[0](tree#0#0: &mut CritbitTree<V>)
+	53: Pop
+B12:
+	54: Ret
+}
+is_left_child<V: store>(tree#0#0: &CritbitTree<V>, parent_index#0#0: u64, index#0#0: u64): bool {
+B0:
+	0: MoveLoc[0](tree#0#0: &CritbitTree<V>)
+	1: ImmBorrowFieldGeneric[5](CritbitTree.internal_nodes: Table<u64, InternalNode>)
+	2: MoveLoc[1](parent_index#0#0: u64)
+	3: Call table::borrow<u64, InternalNode>(&Table<u64, InternalNode>, u64): &InternalNode
+	4: ImmBorrowField[7](InternalNode.left_child: u64)
+	5: ReadRef
+	6: MoveLoc[2](index#0#0: u64)
+	7: Eq
+	8: Ret
+}
+count_leading_zeros(x#0#0: u128): u8 {
+L0:	n#1#0: u8
+B0:
+	0: CopyLoc[0](x#0#0: u128)
+	1: LdU128(0)
+	2: Eq
+	3: BrFalse(7)
+B1:
+	4: LdU8(128)
+	5: StLoc[1](%#1: u8)
+	6: Branch(105)
+B2:
+	7: LdU8(0)
+	8: StLoc[2](n#1#0: u8)
+	9: CopyLoc[0](x#0#0: u128)
+	10: LdU128(340282366920938463444927863358058659840)
+	11: BitAnd
+	12: LdU128(0)
+	13: Eq
+	14: BrFalse(23)
+B3:
+	15: MoveLoc[0](x#0#0: u128)
+	16: LdU8(64)
+	17: Shl
+	18: StLoc[0](x#0#0: u128)
+	19: MoveLoc[2](n#1#0: u8)
+	20: LdU8(64)
+	21: Add
+	22: StLoc[2](n#1#0: u8)
+B4:
+	23: CopyLoc[0](x#0#0: u128)
+	24: LdU128(340282366841710300949110269838224261120)
+	25: BitAnd
+	26: LdU128(0)
+	27: Eq
+	28: BrFalse(37)
+B5:
+	29: MoveLoc[0](x#0#0: u128)
+	30: LdU8(32)
+	31: Shl
+	32: StLoc[0](x#0#0: u128)
+	33: MoveLoc[2](n#1#0: u8)
+	34: LdU8(32)
+	35: Add
+	36: StLoc[2](n#1#0: u8)
+B6:
+	37: CopyLoc[0](x#0#0: u128)
+	38: LdU128(340277174624079928635746076935438991360)
+	39: BitAnd
+	40: LdU128(0)
+	41: Eq
+	42: BrFalse(51)
+B7:
+	43: MoveLoc[0](x#0#0: u128)
+	44: LdU8(16)
+	45: Shl
+	46: StLoc[0](x#0#0: u128)
+	47: MoveLoc[2](n#1#0: u8)
+	48: LdU8(16)
+	49: Add
+	50: StLoc[2](n#1#0: u8)
+B8:
+	51: CopyLoc[0](x#0#0: u128)
+	52: LdU128(338953138925153547590470800371487866880)
+	53: BitAnd
+	54: LdU128(0)
+	55: Eq
+	56: BrFalse(65)
+B9:
+	57: MoveLoc[0](x#0#0: u128)
+	58: LdU8(8)
+	59: Shl
+	60: StLoc[0](x#0#0: u128)
+	61: MoveLoc[2](n#1#0: u8)
+	62: LdU8(8)
+	63: Add
+	64: StLoc[2](n#1#0: u8)
+B10:
+	65: CopyLoc[0](x#0#0: u128)
+	66: LdU128(319014718988379809496913694467282698240)
+	67: BitAnd
+	68: LdU128(0)
+	69: Eq
+	70: BrFalse(79)
+B11:
+	71: MoveLoc[0](x#0#0: u128)
+	72: LdU8(4)
+	73: Shl
+	74: StLoc[0](x#0#0: u128)
+	75: MoveLoc[2](n#1#0: u8)
+	76: LdU8(4)
+	77: Add
+	78: StLoc[2](n#1#0: u8)
+B12:
+	79: CopyLoc[0](x#0#0: u128)
+	80: LdU128(255211775190703847597530955573826158592)
+	81: BitAnd
+	82: LdU128(0)
+	83: Eq
+	84: BrFalse(93)
+B13:
+	85: MoveLoc[0](x#0#0: u128)
+	86: LdU8(2)
+	87: Shl
+	88: StLoc[0](x#0#0: u128)
+	89: MoveLoc[2](n#1#0: u8)
+	90: LdU8(2)
+	91: Add
+	92: StLoc[2](n#1#0: u8)
+B14:
+	93: MoveLoc[0](x#0#0: u128)
+	94: LdU128(170141183460469231731687303715884105728)
+	95: BitAnd
+	96: LdU128(0)
+	97: Eq
+	98: BrFalse(103)
+B15:
+	99: MoveLoc[2](n#1#0: u8)
+	100: LdU8(1)
+	101: Add
+	102: StLoc[2](n#1#0: u8)
+B16:
+	103: MoveLoc[2](n#1#0: u8)
+	104: StLoc[1](%#1: u8)
+B17:
+	105: MoveLoc[1](%#1: u8)
+	106: Ret
+}
+}

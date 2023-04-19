@@ -1,0 +1,87 @@
+// Move bytecode v6
+module dee9.math {
+
+
+public mul(x#0#0: u64, y#0#0: u64): u64 {
+B0:
+	0: MoveLoc[0](x#0#0: u64)
+	1: CastU128
+	2: StLoc[2](x#1#0: u128)
+	3: MoveLoc[1](y#0#0: u64)
+	4: CastU128
+	5: StLoc[3](y#1#0: u128)
+	6: MoveLoc[2](x#1#0: u128)
+	7: MoveLoc[3](y#1#0: u128)
+	8: Mul
+	9: LdConst[1](U128: [0, 202, 154, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	10: Div
+	11: CastU64
+	12: Ret
+}
+public mul_round(x#0#0: u64, y#0#0: u64): bool * u64 {
+L0:	y#1#0: u128
+B0:
+	0: MoveLoc[0](x#0#0: u64)
+	1: CastU128
+	2: StLoc[3](x#1#0: u128)
+	3: MoveLoc[1](y#0#0: u64)
+	4: CastU128
+	5: StLoc[4](y#1#0: u128)
+	6: LdTrue
+	7: StLoc[2](is_round_down#1#0: bool)
+	8: CopyLoc[3](x#1#0: u128)
+	9: CopyLoc[4](y#1#0: u128)
+	10: Mul
+	11: LdConst[1](U128: [0, 202, 154, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	12: Mod
+	13: LdU128(0)
+	14: Eq
+	15: BrFalse(18)
+B1:
+	16: LdFalse
+	17: StLoc[2](is_round_down#1#0: bool)
+B2:
+	18: MoveLoc[2](is_round_down#1#0: bool)
+	19: MoveLoc[3](x#1#0: u128)
+	20: MoveLoc[4](y#1#0: u128)
+	21: Mul
+	22: LdConst[1](U128: [0, 202, 154, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+	23: Div
+	24: CastU64
+	25: Ret
+}
+public div_round(x#0#0: u64, y#0#0: u64): bool * u64 {
+L0:	y#1#0: u128
+B0:
+	0: MoveLoc[0](x#0#0: u64)
+	1: CastU128
+	2: StLoc[3](x#1#0: u128)
+	3: MoveLoc[1](y#0#0: u64)
+	4: CastU128
+	5: StLoc[4](y#1#0: u128)
+	6: LdTrue
+	7: StLoc[2](is_round_down#1#0: bool)
+	8: CopyLoc[3](x#1#0: u128)
+	9: LdConst[0](U64: [0, 202, 154, 59, 0, 0, 0, 0])
+	10: CastU128
+	11: Mul
+	12: CopyLoc[4](y#1#0: u128)
+	13: Mod
+	14: LdU128(0)
+	15: Eq
+	16: BrFalse(19)
+B1:
+	17: LdFalse
+	18: StLoc[2](is_round_down#1#0: bool)
+B2:
+	19: MoveLoc[2](is_round_down#1#0: bool)
+	20: MoveLoc[3](x#1#0: u128)
+	21: LdConst[0](U64: [0, 202, 154, 59, 0, 0, 0, 0])
+	22: CastU128
+	23: Mul
+	24: MoveLoc[4](y#1#0: u128)
+	25: Div
+	26: CastU64
+	27: Ret
+}
+}

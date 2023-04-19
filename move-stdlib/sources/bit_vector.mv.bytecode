@@ -1,0 +1,303 @@
+// Move bytecode v6
+module 1.bit_vector {
+struct BitVector has copy, drop, store {
+	length: u64,
+	bit_field: vector<bool>
+}
+
+public new(length#0#0: u64): BitVector {
+L0:	counter#1#0: u64
+B0:
+	0: CopyLoc[0](length#0#0: u64)
+	1: LdU64(0)
+	2: Gt
+	3: BrFalse(5)
+B1:
+	4: Branch(7)
+B2:
+	5: LdConst[1](U64: [1, 0, 2, 0, 0, 0, 0, 0])
+	6: Abort
+B3:
+	7: CopyLoc[0](length#0#0: u64)
+	8: LdConst[3](U64: [0, 4, 0, 0, 0, 0, 0, 0])
+	9: Lt
+	10: BrFalse(12)
+B4:
+	11: Branch(14)
+B5:
+	12: LdConst[1](U64: [1, 0, 2, 0, 0, 0, 0, 0])
+	13: Abort
+B6:
+	14: LdU64(0)
+	15: StLoc[2](counter#1#0: u64)
+	16: VecPack(5, 0)
+	17: StLoc[1](bit_field#1#0: vector<bool>)
+B7:
+	18: Nop
+	19: CopyLoc[2](counter#1#0: u64)
+	20: CopyLoc[0](length#0#0: u64)
+	21: Lt
+	22: BrFalse(32)
+B8:
+	23: Branch(24)
+B9:
+	24: MutBorrowLoc[1](bit_field#1#0: vector<bool>)
+	25: LdFalse
+	26: VecPushBack(5)
+	27: MoveLoc[2](counter#1#0: u64)
+	28: LdU64(1)
+	29: Add
+	30: StLoc[2](counter#1#0: u64)
+	31: Branch(18)
+B10:
+	32: Nop
+	33: MoveLoc[0](length#0#0: u64)
+	34: MoveLoc[1](bit_field#1#0: vector<bool>)
+	35: Pack[0](BitVector)
+	36: Ret
+}
+public set(bitvector#0#0: &mut BitVector, bit_index#0#0: u64) {
+B0:
+	0: CopyLoc[1](bit_index#0#0: u64)
+	1: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	2: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	3: VecLen(5)
+	4: Lt
+	5: BrFalse(7)
+B1:
+	6: Branch(11)
+B2:
+	7: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	8: Pop
+	9: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	10: Abort
+B3:
+	11: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	12: MutBorrowField[0](BitVector.bit_field: vector<bool>)
+	13: MoveLoc[1](bit_index#0#0: u64)
+	14: VecMutBorrow(5)
+	15: StLoc[2](x#1#0: &mut bool)
+	16: LdTrue
+	17: MoveLoc[2](x#1#0: &mut bool)
+	18: WriteRef
+	19: Ret
+}
+public unset(bitvector#0#0: &mut BitVector, bit_index#0#0: u64) {
+B0:
+	0: CopyLoc[1](bit_index#0#0: u64)
+	1: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	2: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	3: VecLen(5)
+	4: Lt
+	5: BrFalse(7)
+B1:
+	6: Branch(11)
+B2:
+	7: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	8: Pop
+	9: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	10: Abort
+B3:
+	11: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	12: MutBorrowField[0](BitVector.bit_field: vector<bool>)
+	13: MoveLoc[1](bit_index#0#0: u64)
+	14: VecMutBorrow(5)
+	15: StLoc[2](x#1#0: &mut bool)
+	16: LdFalse
+	17: MoveLoc[2](x#1#0: &mut bool)
+	18: WriteRef
+	19: Ret
+}
+public shift_left(bitvector#0#0: &mut BitVector, amount#0#0: u64) {
+L0:	i#1#0: u64
+L1:	i#2#0: u64
+L2:	len#1#0: u64
+B0:
+	0: CopyLoc[1](amount#0#0: u64)
+	1: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	2: ImmBorrowField[1](BitVector.length: u64)
+	3: ReadRef
+	4: Ge
+	5: BrFalse(33)
+B1:
+	6: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	7: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	8: VecLen(5)
+	9: StLoc[6](len#1#0: u64)
+	10: LdU64(0)
+	11: StLoc[4](i#1#0: u64)
+B2:
+	12: CopyLoc[4](i#1#0: u64)
+	13: CopyLoc[6](len#1#0: u64)
+	14: Lt
+	15: BrFalse(30)
+B3:
+	16: Branch(17)
+B4:
+	17: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	18: MutBorrowField[0](BitVector.bit_field: vector<bool>)
+	19: CopyLoc[4](i#1#0: u64)
+	20: VecMutBorrow(5)
+	21: StLoc[3](elem#1#0: &mut bool)
+	22: LdFalse
+	23: MoveLoc[3](elem#1#0: &mut bool)
+	24: WriteRef
+	25: MoveLoc[4](i#1#0: u64)
+	26: LdU64(1)
+	27: Add
+	28: StLoc[4](i#1#0: u64)
+	29: Branch(12)
+B5:
+	30: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	31: Pop
+	32: Branch(88)
+B6:
+	33: CopyLoc[1](amount#0#0: u64)
+	34: StLoc[5](i#2#0: u64)
+B7:
+	35: CopyLoc[5](i#2#0: u64)
+	36: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	37: ImmBorrowField[1](BitVector.length: u64)
+	38: ReadRef
+	39: Lt
+	40: BrFalse(65)
+B8:
+	41: Branch(42)
+B9:
+	42: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	43: CopyLoc[5](i#2#0: u64)
+	44: StLoc[2](%#2: u64)
+	45: FreezeRef
+	46: MoveLoc[2](%#2: u64)
+	47: Call is_index_set(&BitVector, u64): bool
+	48: BrFalse(55)
+B10:
+	49: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	50: CopyLoc[5](i#2#0: u64)
+	51: CopyLoc[1](amount#0#0: u64)
+	52: Sub
+	53: Call set(&mut BitVector, u64)
+	54: Branch(60)
+B11:
+	55: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	56: CopyLoc[5](i#2#0: u64)
+	57: CopyLoc[1](amount#0#0: u64)
+	58: Sub
+	59: Call unset(&mut BitVector, u64)
+B12:
+	60: MoveLoc[5](i#2#0: u64)
+	61: LdU64(1)
+	62: Add
+	63: StLoc[5](i#2#0: u64)
+	64: Branch(35)
+B13:
+	65: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	66: ImmBorrowField[1](BitVector.length: u64)
+	67: ReadRef
+	68: MoveLoc[1](amount#0#0: u64)
+	69: Sub
+	70: StLoc[5](i#2#0: u64)
+B14:
+	71: CopyLoc[5](i#2#0: u64)
+	72: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	73: ImmBorrowField[1](BitVector.length: u64)
+	74: ReadRef
+	75: Lt
+	76: BrFalse(86)
+B15:
+	77: Branch(78)
+B16:
+	78: CopyLoc[0](bitvector#0#0: &mut BitVector)
+	79: CopyLoc[5](i#2#0: u64)
+	80: Call unset(&mut BitVector, u64)
+	81: MoveLoc[5](i#2#0: u64)
+	82: LdU64(1)
+	83: Add
+	84: StLoc[5](i#2#0: u64)
+	85: Branch(71)
+B17:
+	86: MoveLoc[0](bitvector#0#0: &mut BitVector)
+	87: Pop
+B18:
+	88: Ret
+}
+public is_index_set(bitvector#0#0: &BitVector, bit_index#0#0: u64): bool {
+B0:
+	0: CopyLoc[1](bit_index#0#0: u64)
+	1: CopyLoc[0](bitvector#0#0: &BitVector)
+	2: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	3: VecLen(5)
+	4: Lt
+	5: BrFalse(7)
+B1:
+	6: Branch(11)
+B2:
+	7: MoveLoc[0](bitvector#0#0: &BitVector)
+	8: Pop
+	9: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	10: Abort
+B3:
+	11: MoveLoc[0](bitvector#0#0: &BitVector)
+	12: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	13: MoveLoc[1](bit_index#0#0: u64)
+	14: VecImmBorrow(5)
+	15: ReadRef
+	16: Ret
+}
+public length(bitvector#0#0: &BitVector): u64 {
+B0:
+	0: MoveLoc[0](bitvector#0#0: &BitVector)
+	1: ImmBorrowField[0](BitVector.bit_field: vector<bool>)
+	2: VecLen(5)
+	3: Ret
+}
+public longest_set_sequence_starting_at(bitvector#0#0: &BitVector, start_index#0#0: u64): u64 {
+B0:
+	0: CopyLoc[1](start_index#0#0: u64)
+	1: CopyLoc[0](bitvector#0#0: &BitVector)
+	2: ImmBorrowField[1](BitVector.length: u64)
+	3: ReadRef
+	4: Lt
+	5: BrFalse(7)
+B1:
+	6: Branch(11)
+B2:
+	7: MoveLoc[0](bitvector#0#0: &BitVector)
+	8: Pop
+	9: LdConst[0](U64: [0, 0, 2, 0, 0, 0, 0, 0])
+	10: Abort
+B3:
+	11: CopyLoc[1](start_index#0#0: u64)
+	12: StLoc[2](index#1#0: u64)
+B4:
+	13: CopyLoc[2](index#1#0: u64)
+	14: CopyLoc[0](bitvector#0#0: &BitVector)
+	15: ImmBorrowField[1](BitVector.length: u64)
+	16: ReadRef
+	17: Lt
+	18: BrFalse(33)
+B5:
+	19: Branch(20)
+B6:
+	20: CopyLoc[0](bitvector#0#0: &BitVector)
+	21: CopyLoc[2](index#1#0: u64)
+	22: Call is_index_set(&BitVector, u64): bool
+	23: Not
+	24: BrFalse(28)
+B7:
+	25: MoveLoc[0](bitvector#0#0: &BitVector)
+	26: Pop
+	27: Branch(33)
+B8:
+	28: MoveLoc[2](index#1#0: u64)
+	29: LdU64(1)
+	30: Add
+	31: StLoc[2](index#1#0: u64)
+	32: Branch(13)
+B9:
+	33: MoveLoc[2](index#1#0: u64)
+	34: MoveLoc[1](start_index#0#0: u64)
+	35: Sub
+	36: Ret
+}
+}

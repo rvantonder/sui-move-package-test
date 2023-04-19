@@ -1,0 +1,7 @@
+// Move bytecode v6
+module 1.debug {
+
+
+native public print<T>(x#0#0: &T)
+native public print_stack_trace()
+}

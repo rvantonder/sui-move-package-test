@@ -1,0 +1,2849 @@
+// Move bytecode v6
+module dee9.clob {
+use 000000000000000000000000000000000000000000000000000000000000dee9::critbit;
+use 000000000000000000000000000000000000000000000000000000000000dee9::custodian;
+use 000000000000000000000000000000000000000000000000000000000000dee9::math;
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000001::type_name;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::clock;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::event;
+use 0000000000000000000000000000000000000000000000000000000000000002::linked_table;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::sui;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::transfer;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+
+
+struct PoolCreated has copy, drop, store {
+	pool_id: ID,
+	base_asset: TypeName,
+	quote_asset: TypeName,
+	taker_fee_rate: u64,
+	maker_rebate_rate: u64,
+	tick_size: u64,
+	lot_size: u64
+}
+struct OrderPlaced<phantom BaseAsset, phantom QuoteAsset> has copy, drop, store {
+	pool_id: ID,
+	order_id: u64,
+	is_bid: bool,
+	owner: ID,
+	base_asset_quantity_placed: u64,
+	price: u64
+}
+struct OrderCanceled<phantom BaseAsset, phantom QuoteAsset> has copy, drop, store {
+	pool_id: ID,
+	order_id: u64,
+	is_bid: bool,
+	owner: ID,
+	base_asset_quantity_canceled: u64,
+	price: u64
+}
+struct OrderFilled<phantom BaseAsset, phantom QuoteAsset> has copy, drop, store {
+	pool_id: ID,
+	order_id: u64,
+	is_bid: bool,
+	owner: ID,
+	total_quantity: u64,
+	base_asset_quantity_filled: u64,
+	base_asset_quantity_remaining: u64,
+	price: u64
+}
+struct Order has drop, store {
+	order_id: u64,
+	price: u64,
+	quantity: u64,
+	is_bid: bool,
+	owner: ID,
+	expire_timestamp: u64
+}
+struct TickLevel has store {
+	price: u64,
+	open_orders: LinkedTable<u64, Order>
+}
+struct Pool<phantom BaseAsset, phantom QuoteAsset> has key {
+	id: UID,
+	bids: CritbitTree<TickLevel>,
+	asks: CritbitTree<TickLevel>,
+	next_bid_order_id: u64,
+	next_ask_order_id: u64,
+	usr_open_orders: Table<ID, LinkedTable<u64, u64>>,
+	taker_fee_rate: u64,
+	maker_rebate_rate: u64,
+	tick_size: u64,
+	lot_size: u64,
+	base_custodian: Custodian<BaseAsset>,
+	quote_custodian: Custodian<QuoteAsset>,
+	creation_fee: Balance<SUI>,
+	base_asset_trading_fees: Balance<BaseAsset>,
+	quote_asset_trading_fees: Balance<QuoteAsset>
+}
+
+destroy_empty_level(level#0#0: TickLevel) {
+B0:
+	0: MoveLoc[0](level#0#0: TickLevel)
+	1: Unpack[5](TickLevel)
+	2: StLoc[1](orders#1#0: LinkedTable<u64, Order>)
+	3: Pop
+	4: MoveLoc[1](orders#1#0: LinkedTable<u64, Order>)
+	5: Call linked_table::destroy_empty<u64, Order>(LinkedTable<u64, Order>)
+	6: Ret
+}
+public create_account(ctx#0#0: &mut TxContext): AccountCap {
+B0:
+	0: MoveLoc[0](ctx#0#0: &mut TxContext)
+	1: Call custodian::mint_account_cap(&mut TxContext): AccountCap
+	2: Ret
+}
+create_pool_<BaseAsset, QuoteAsset>(taker_fee_rate#0#0: u64, maker_rebate_rate#0#0: u64, tick_size#0#0: u64, lot_size#0#0: u64, creation_fee#0#0: Balance<SUI>, ctx#0#0: &mut TxContext) {
+B0:
+	0: Call type_name::get<BaseAsset>(): TypeName
+	1: StLoc[6](base_type_name#1#0: TypeName)
+	2: Call type_name::get<QuoteAsset>(): TypeName
+	3: StLoc[9](quote_type_name#1#0: TypeName)
+	4: CopyLoc[6](base_type_name#1#0: TypeName)
+	5: CopyLoc[9](quote_type_name#1#0: TypeName)
+	6: Neq
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[5](ctx#0#0: &mut TxContext)
+	10: Pop
+	11: LdConst[15](U64: [17, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](taker_fee_rate#0#0: u64)
+	14: CopyLoc[1](maker_rebate_rate#0#0: u64)
+	15: Ge
+	16: BrFalse(18)
+B4:
+	17: Branch(22)
+B5:
+	18: MoveLoc[5](ctx#0#0: &mut TxContext)
+	19: Pop
+	20: LdConst[1](U64: [2, 0, 0, 0, 0, 0, 0, 0])
+	21: Abort
+B6:
+	22: CopyLoc[5](ctx#0#0: &mut TxContext)
+	23: Call object::new(&mut TxContext): UID
+	24: StLoc[8](pool_uid#1#0: UID)
+	25: ImmBorrowLoc[8](pool_uid#1#0: UID)
+	26: Call object::uid_as_inner(&UID): &ID
+	27: ReadRef
+	28: StLoc[7](pool_id#1#0: ID)
+	29: MoveLoc[8](pool_uid#1#0: UID)
+	30: CopyLoc[5](ctx#0#0: &mut TxContext)
+	31: Call critbit::new<TickLevel>(&mut TxContext): CritbitTree<TickLevel>
+	32: CopyLoc[5](ctx#0#0: &mut TxContext)
+	33: Call critbit::new<TickLevel>(&mut TxContext): CritbitTree<TickLevel>
+	34: LdConst[26](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	35: LdConst[27](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	36: CopyLoc[5](ctx#0#0: &mut TxContext)
+	37: Call table::new<ID, LinkedTable<u64, u64>>(&mut TxContext): Table<ID, LinkedTable<u64, u64>>
+	38: CopyLoc[0](taker_fee_rate#0#0: u64)
+	39: CopyLoc[1](maker_rebate_rate#0#0: u64)
+	40: CopyLoc[2](tick_size#0#0: u64)
+	41: CopyLoc[3](lot_size#0#0: u64)
+	42: CopyLoc[5](ctx#0#0: &mut TxContext)
+	43: Call custodian::new<BaseAsset>(&mut TxContext): Custodian<BaseAsset>
+	44: MoveLoc[5](ctx#0#0: &mut TxContext)
+	45: Call custodian::new<QuoteAsset>(&mut TxContext): Custodian<QuoteAsset>
+	46: MoveLoc[4](creation_fee#0#0: Balance<SUI>)
+	47: Call balance::zero<BaseAsset>(): Balance<BaseAsset>
+	48: Call balance::zero<QuoteAsset>(): Balance<QuoteAsset>
+	49: PackGeneric[0](Pool<BaseAsset, QuoteAsset>)
+	50: Call transfer::share_object<Pool<BaseAsset, QuoteAsset>>(Pool<BaseAsset, QuoteAsset>)
+	51: MoveLoc[7](pool_id#1#0: ID)
+	52: MoveLoc[6](base_type_name#1#0: TypeName)
+	53: MoveLoc[9](quote_type_name#1#0: TypeName)
+	54: MoveLoc[0](taker_fee_rate#0#0: u64)
+	55: MoveLoc[1](maker_rebate_rate#0#0: u64)
+	56: MoveLoc[2](tick_size#0#0: u64)
+	57: MoveLoc[3](lot_size#0#0: u64)
+	58: Pack[0](PoolCreated)
+	59: Call event::emit<PoolCreated>(PoolCreated)
+	60: Ret
+}
+public create_pool<BaseAsset, QuoteAsset>(tick_size#0#0: u64, lot_size#0#0: u64, creation_fee#0#0: Coin<SUI>, ctx#0#0: &mut TxContext) {
+B0:
+	0: ImmBorrowLoc[2](creation_fee#0#0: Coin<SUI>)
+	1: Call coin::value<SUI>(&Coin<SUI>): u64
+	2: LdConst[30](U64: [0, 232, 118, 72, 23, 0, 0, 0])
+	3: Eq
+	4: BrFalse(6)
+B1:
+	5: Branch(10)
+B2:
+	6: MoveLoc[3](ctx#0#0: &mut TxContext)
+	7: Pop
+	8: LdConst[19](U64: [21, 0, 0, 0, 0, 0, 0, 0])
+	9: Abort
+B3:
+	10: LdConst[28](U64: [64, 75, 76, 0, 0, 0, 0, 0])
+	11: LdConst[29](U64: [160, 37, 38, 0, 0, 0, 0, 0])
+	12: MoveLoc[0](tick_size#0#0: u64)
+	13: MoveLoc[1](lot_size#0#0: u64)
+	14: MoveLoc[2](creation_fee#0#0: Coin<SUI>)
+	15: Call coin::into_balance<SUI>(Coin<SUI>): Balance<SUI>
+	16: MoveLoc[3](ctx#0#0: &mut TxContext)
+	17: Call create_pool_<BaseAsset, QuoteAsset>(u64, u64, u64, u64, Balance<SUI>, &mut TxContext)
+	18: Ret
+}
+public deposit_base<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, coin#0#0: Coin<BaseAsset>, account_cap#0#0: &AccountCap) {
+B0:
+	0: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	2: MoveLoc[2](account_cap#0#0: &AccountCap)
+	3: Call object::id<AccountCap>(&AccountCap): ID
+	4: MoveLoc[1](coin#0#0: Coin<BaseAsset>)
+	5: Call coin::into_balance<BaseAsset>(Coin<BaseAsset>): Balance<BaseAsset>
+	6: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	7: Ret
+}
+public deposit_quote<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, coin#0#0: Coin<QuoteAsset>, account_cap#0#0: &AccountCap) {
+B0:
+	0: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	2: MoveLoc[2](account_cap#0#0: &AccountCap)
+	3: Call object::id<AccountCap>(&AccountCap): ID
+	4: MoveLoc[1](coin#0#0: Coin<QuoteAsset>)
+	5: Call coin::into_balance<QuoteAsset>(Coin<QuoteAsset>): Balance<QuoteAsset>
+	6: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+	7: Ret
+}
+public withdraw_base<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): Coin<BaseAsset> {
+B0:
+	0: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	2: MoveLoc[1](quantity#0#0: u64)
+	3: MoveLoc[2](account_cap#0#0: &AccountCap)
+	4: MoveLoc[3](ctx#0#0: &mut TxContext)
+	5: Call custodian::withdraw_base_asset<BaseAsset>(&mut Custodian<BaseAsset>, u64, &AccountCap, &mut TxContext): Coin<BaseAsset>
+	6: Ret
+}
+public withdraw_quote<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): Coin<QuoteAsset> {
+B0:
+	0: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	2: MoveLoc[1](quantity#0#0: u64)
+	3: MoveLoc[2](account_cap#0#0: &AccountCap)
+	4: MoveLoc[3](ctx#0#0: &mut TxContext)
+	5: Call custodian::withdraw_quote_asset<QuoteAsset>(&mut Custodian<QuoteAsset>, u64, &AccountCap, &mut TxContext): Coin<QuoteAsset>
+	6: Ret
+}
+public swap_exact_base_for_quote<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, base_coin#0#0: Coin<BaseAsset>, quote_coin#0#0: Coin<QuoteAsset>, clock#0#0: &Clock, ctx#0#0: &mut TxContext): Coin<BaseAsset> * Coin<QuoteAsset> * u64 {
+B0:
+	0: ImmBorrowLoc[3](quote_coin#0#0: Coin<QuoteAsset>)
+	1: Call coin::value<QuoteAsset>(&Coin<QuoteAsset>): u64
+	2: StLoc[6](original_val#1#0: u64)
+	3: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	4: MoveLoc[1](quantity#0#0: u64)
+	5: LdFalse
+	6: MoveLoc[2](base_coin#0#0: Coin<BaseAsset>)
+	7: MoveLoc[3](quote_coin#0#0: Coin<QuoteAsset>)
+	8: MoveLoc[4](clock#0#0: &Clock)
+	9: MoveLoc[5](ctx#0#0: &mut TxContext)
+	10: Call place_market_order<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, bool, Coin<BaseAsset>, Coin<QuoteAsset>, &Clock, &mut TxContext): Coin<BaseAsset> * Coin<QuoteAsset>
+	11: StLoc[8](ret_quote_coin#1#0: Coin<QuoteAsset>)
+	12: StLoc[7](ret_base_coin#1#0: Coin<BaseAsset>)
+	13: ImmBorrowLoc[8](ret_quote_coin#1#0: Coin<QuoteAsset>)
+	14: Call coin::value<QuoteAsset>(&Coin<QuoteAsset>): u64
+	15: StLoc[9](ret_val#1#0: u64)
+	16: MoveLoc[7](ret_base_coin#1#0: Coin<BaseAsset>)
+	17: MoveLoc[8](ret_quote_coin#1#0: Coin<QuoteAsset>)
+	18: MoveLoc[9](ret_val#1#0: u64)
+	19: MoveLoc[6](original_val#1#0: u64)
+	20: Sub
+	21: Ret
+}
+public swap_exact_quote_for_base<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, clock#0#0: &Clock, quote_coin#0#0: Coin<QuoteAsset>, ctx#0#0: &mut TxContext): Coin<BaseAsset> * Coin<QuoteAsset> * u64 {
+B0:
+	0: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: MoveLoc[1](quantity#0#0: u64)
+	2: LdConst[27](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	3: MoveLoc[2](clock#0#0: &Clock)
+	4: Call clock::timestamp_ms(&Clock): u64
+	5: MoveLoc[3](quote_coin#0#0: Coin<QuoteAsset>)
+	6: Call coin::into_balance<QuoteAsset>(Coin<QuoteAsset>): Balance<QuoteAsset>
+	7: Call match_bid_with_quote_quantity<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, u64, Balance<QuoteAsset>): Balance<BaseAsset> * Balance<QuoteAsset>
+	8: StLoc[6](quote_asset_balance#1#0: Balance<QuoteAsset>)
+	9: StLoc[5](base_asset_balance#1#0: Balance<BaseAsset>)
+	10: ImmBorrowLoc[5](base_asset_balance#1#0: Balance<BaseAsset>)
+	11: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	12: StLoc[7](val#1#0: u64)
+	13: MoveLoc[5](base_asset_balance#1#0: Balance<BaseAsset>)
+	14: CopyLoc[4](ctx#0#0: &mut TxContext)
+	15: Call coin::from_balance<BaseAsset>(Balance<BaseAsset>, &mut TxContext): Coin<BaseAsset>
+	16: MoveLoc[6](quote_asset_balance#1#0: Balance<QuoteAsset>)
+	17: MoveLoc[4](ctx#0#0: &mut TxContext)
+	18: Call coin::from_balance<QuoteAsset>(Balance<QuoteAsset>, &mut TxContext): Coin<QuoteAsset>
+	19: MoveLoc[7](val#1#0: u64)
+	20: Ret
+}
+match_bid_with_quote_quantity<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, price_limit#0#0: u64, current_timestamp#0#0: u64, quote_balance#0#0: Balance<QuoteAsset>): Balance<BaseAsset> * Balance<QuoteAsset> {
+L0:	all_open_orders#1#0: &mut CritbitTree<TickLevel>
+L1:	base_balance_filled#1#0: Balance<BaseAsset>
+L2:	filled_base_quantity#1#0: u64
+L3:	filled_quote_quantity#1#0: u64
+L4:	locked_base_balance#1#0: Balance<BaseAsset>
+L5:	maker_base_quantity#1#0: u64
+L6:	maker_order#1#0: &Order
+L7:	maker_order_mut#1#0: &mut Order
+L8:	maker_quote_quantity#1#0: u64
+L9:	maker_rebate#1#0: u64
+L10:	maybe_order_id#1#0: &Option<u64>
+L11:	old_order_id#1#0: u64
+L12:	order_id#1#0: u64
+L13:	quote_balance_left#1#0: Balance<QuoteAsset>
+L14:	skip_order#1#0: bool
+L15:	taker_commission#1#0: u64
+L16:	taker_commission_balance#1#0: Balance<BaseAsset>
+L17:	taker_quote_quantity_remaining#1#0: u64
+L18:	tick_index#1#0: u64
+L19:	tick_level#1#0: &mut TickLevel
+L20:	tick_price#1#0: u64
+B0:
+	0: MoveLoc[1](quantity#0#0: u64)
+	1: StLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	2: Call balance::zero<BaseAsset>(): Balance<BaseAsset>
+	3: StLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	4: MoveLoc[4](quote_balance#0#0: Balance<QuoteAsset>)
+	5: StLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	6: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	7: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	8: StLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	9: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	10: FreezeRef
+	11: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	12: BrFalse(20)
+B1:
+	13: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	14: Pop
+	15: MoveLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	16: Pop
+	17: MoveLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	18: MoveLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	19: Ret
+B2:
+	20: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	21: FreezeRef
+	22: Call critbit::min_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	23: StLoc[28](tick_index#1#0: u64)
+	24: StLoc[30](tick_price#1#0: u64)
+B3:
+	25: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	26: FreezeRef
+	27: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	28: Not
+	29: BrFalse(36)
+B4:
+	30: Branch(31)
+B5:
+	31: CopyLoc[30](tick_price#1#0: u64)
+	32: CopyLoc[2](price_limit#0#0: u64)
+	33: Le
+	34: StLoc[5](%#1: bool)
+	35: Branch(38)
+B6:
+	36: LdFalse
+	37: StLoc[5](%#1: bool)
+B7:
+	38: MoveLoc[5](%#1: bool)
+	39: BrFalse(298)
+B8:
+	40: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	41: CopyLoc[28](tick_index#1#0: u64)
+	42: Call critbit::borrow_mut_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): &mut TickLevel
+	43: StLoc[29](tick_level#1#0: &mut TickLevel)
+	44: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	45: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	46: Call linked_table::front<u64, Order>(&LinkedTable<u64, Order>): &Option<u64>
+	47: Call option::borrow<u64>(&Option<u64>): &u64
+	48: ReadRef
+	49: StLoc[22](order_id#1#0: u64)
+B9:
+	50: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	51: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	52: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	53: Not
+	54: BrFalse(264)
+B10:
+	55: Branch(56)
+B11:
+	56: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	57: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	58: CopyLoc[22](order_id#1#0: u64)
+	59: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	60: StLoc[16](maker_order#1#0: &Order)
+	61: CopyLoc[16](maker_order#1#0: &Order)
+	62: ImmBorrowField[4](Order.quantity: u64)
+	63: ReadRef
+	64: StLoc[15](maker_base_quantity#1#0: u64)
+	65: LdFalse
+	66: StLoc[24](skip_order#1#0: bool)
+	67: CopyLoc[16](maker_order#1#0: &Order)
+	68: ImmBorrowField[5](Order.expire_timestamp: u64)
+	69: ReadRef
+	70: CopyLoc[3](current_timestamp#0#0: u64)
+	71: Le
+	72: BrFalse(85)
+B12:
+	73: LdTrue
+	74: StLoc[24](skip_order#1#0: bool)
+	75: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	76: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	77: CopyLoc[16](maker_order#1#0: &Order)
+	78: ImmBorrowField[6](Order.owner: ID)
+	79: ReadRef
+	80: CopyLoc[16](maker_order#1#0: &Order)
+	81: ImmBorrowField[4](Order.quantity: u64)
+	82: ReadRef
+	83: Call custodian::unlock_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64)
+	84: Branch(203)
+B13:
+	85: CopyLoc[15](maker_base_quantity#1#0: u64)
+	86: CopyLoc[16](maker_order#1#0: &Order)
+	87: ImmBorrowField[7](Order.price: u64)
+	88: ReadRef
+	89: Call math::mul_round(u64, u64): bool * u64
+	90: StLoc[18](maker_quote_quantity#1#0: u64)
+	91: BrFalse(96)
+B14:
+	92: MoveLoc[18](maker_quote_quantity#1#0: u64)
+	93: LdU64(1)
+	94: Add
+	95: StLoc[18](maker_quote_quantity#1#0: u64)
+B15:
+	96: CopyLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	97: CopyLoc[18](maker_quote_quantity#1#0: u64)
+	98: Ge
+	99: BrFalse(103)
+B16:
+	100: MoveLoc[18](maker_quote_quantity#1#0: u64)
+	101: StLoc[6](%#2: u64)
+	102: Branch(105)
+B17:
+	103: CopyLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	104: StLoc[6](%#2: u64)
+B18:
+	105: MoveLoc[6](%#2: u64)
+	106: StLoc[13](filled_quote_quantity#1#0: u64)
+	107: CopyLoc[13](filled_quote_quantity#1#0: u64)
+	108: CopyLoc[16](maker_order#1#0: &Order)
+	109: ImmBorrowField[7](Order.price: u64)
+	110: ReadRef
+	111: Call math::div_round(u64, u64): bool * u64
+	112: StLoc[12](filled_base_quantity#1#0: u64)
+	113: BrFalse(118)
+B19:
+	114: MoveLoc[12](filled_base_quantity#1#0: u64)
+	115: LdU64(1)
+	116: Add
+	117: StLoc[12](filled_base_quantity#1#0: u64)
+B20:
+	118: CopyLoc[12](filled_base_quantity#1#0: u64)
+	119: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	120: ImmBorrowFieldGeneric[3](Pool.maker_rebate_rate: u64)
+	121: ReadRef
+	122: Call math::mul(u64, u64): u64
+	123: StLoc[19](maker_rebate#1#0: u64)
+	124: CopyLoc[12](filled_base_quantity#1#0: u64)
+	125: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	126: ImmBorrowFieldGeneric[4](Pool.taker_fee_rate: u64)
+	127: ReadRef
+	128: Call math::mul_round(u64, u64): bool * u64
+	129: StLoc[25](taker_commission#1#0: u64)
+	130: BrFalse(135)
+B21:
+	131: MoveLoc[25](taker_commission#1#0: u64)
+	132: LdU64(1)
+	133: Add
+	134: StLoc[25](taker_commission#1#0: u64)
+B22:
+	135: MoveLoc[15](maker_base_quantity#1#0: u64)
+	136: CopyLoc[12](filled_base_quantity#1#0: u64)
+	137: Sub
+	138: StLoc[15](maker_base_quantity#1#0: u64)
+	139: MoveLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	140: CopyLoc[13](filled_quote_quantity#1#0: u64)
+	141: Sub
+	142: StLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	143: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	144: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	145: CopyLoc[16](maker_order#1#0: &Order)
+	146: ImmBorrowField[6](Order.owner: ID)
+	147: ReadRef
+	148: CopyLoc[12](filled_base_quantity#1#0: u64)
+	149: Call custodian::decrease_user_locked_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64): Balance<BaseAsset>
+	150: StLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	151: MutBorrowLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	152: MoveLoc[25](taker_commission#1#0: u64)
+	153: Call balance::split<BaseAsset>(&mut Balance<BaseAsset>, u64): Balance<BaseAsset>
+	154: StLoc[26](taker_commission_balance#1#0: Balance<BaseAsset>)
+	155: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	156: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	157: CopyLoc[16](maker_order#1#0: &Order)
+	158: ImmBorrowField[6](Order.owner: ID)
+	159: ReadRef
+	160: MutBorrowLoc[26](taker_commission_balance#1#0: Balance<BaseAsset>)
+	161: MoveLoc[19](maker_rebate#1#0: u64)
+	162: Call balance::split<BaseAsset>(&mut Balance<BaseAsset>, u64): Balance<BaseAsset>
+	163: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	164: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	165: MutBorrowFieldGeneric[5](Pool.base_asset_trading_fees: Balance<BaseAsset>)
+	166: MoveLoc[26](taker_commission_balance#1#0: Balance<BaseAsset>)
+	167: Call balance::join<BaseAsset>(&mut Balance<BaseAsset>, Balance<BaseAsset>): u64
+	168: Pop
+	169: MutBorrowLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	170: MoveLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	171: Call balance::join<BaseAsset>(&mut Balance<BaseAsset>, Balance<BaseAsset>): u64
+	172: Pop
+	173: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	174: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	175: CopyLoc[16](maker_order#1#0: &Order)
+	176: ImmBorrowField[6](Order.owner: ID)
+	177: ReadRef
+	178: MutBorrowLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	179: MoveLoc[13](filled_quote_quantity#1#0: u64)
+	180: Call balance::split<QuoteAsset>(&mut Balance<QuoteAsset>, u64): Balance<QuoteAsset>
+	181: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+	182: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	183: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	184: Call object::uid_as_inner(&UID): &ID
+	185: ReadRef
+	186: CopyLoc[16](maker_order#1#0: &Order)
+	187: ImmBorrowField[12](Order.order_id: u64)
+	188: ReadRef
+	189: LdFalse
+	190: CopyLoc[16](maker_order#1#0: &Order)
+	191: ImmBorrowField[6](Order.owner: ID)
+	192: ReadRef
+	193: CopyLoc[16](maker_order#1#0: &Order)
+	194: ImmBorrowField[4](Order.quantity: u64)
+	195: ReadRef
+	196: MoveLoc[12](filled_base_quantity#1#0: u64)
+	197: CopyLoc[15](maker_base_quantity#1#0: u64)
+	198: CopyLoc[16](maker_order#1#0: &Order)
+	199: ImmBorrowField[7](Order.price: u64)
+	200: ReadRef
+	201: PackGeneric[1](OrderFilled<BaseAsset, QuoteAsset>)
+	202: Call event::emit<OrderFilled<BaseAsset, QuoteAsset>>(OrderFilled<BaseAsset, QuoteAsset>)
+B23:
+	203: MoveLoc[24](skip_order#1#0: bool)
+	204: BrFalse(208)
+B24:
+	205: LdTrue
+	206: StLoc[7](%#3: bool)
+	207: Branch(212)
+B25:
+	208: CopyLoc[15](maker_base_quantity#1#0: u64)
+	209: LdU64(0)
+	210: Eq
+	211: StLoc[7](%#3: bool)
+B26:
+	212: MoveLoc[7](%#3: bool)
+	213: BrFalse(247)
+B27:
+	214: CopyLoc[22](order_id#1#0: u64)
+	215: StLoc[21](old_order_id#1#0: u64)
+	216: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	217: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	218: CopyLoc[22](order_id#1#0: u64)
+	219: Call linked_table::next<u64, Order>(&LinkedTable<u64, Order>, u64): &Option<u64>
+	220: StLoc[20](maybe_order_id#1#0: &Option<u64>)
+	221: CopyLoc[20](maybe_order_id#1#0: &Option<u64>)
+	222: Call option::is_none<u64>(&Option<u64>): bool
+	223: Not
+	224: BrFalse(230)
+B28:
+	225: MoveLoc[20](maybe_order_id#1#0: &Option<u64>)
+	226: Call option::borrow<u64>(&Option<u64>): &u64
+	227: ReadRef
+	228: StLoc[22](order_id#1#0: u64)
+	229: Branch(232)
+B29:
+	230: MoveLoc[20](maybe_order_id#1#0: &Option<u64>)
+	231: Pop
+B30:
+	232: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	233: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	234: MoveLoc[16](maker_order#1#0: &Order)
+	235: ImmBorrowField[6](Order.owner: ID)
+	236: ReadRef
+	237: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	238: CopyLoc[21](old_order_id#1#0: u64)
+	239: Call linked_table::remove<u64, u64>(&mut LinkedTable<u64, u64>, u64): u64
+	240: Pop
+	241: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	242: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	243: MoveLoc[21](old_order_id#1#0: u64)
+	244: Call linked_table::remove<u64, Order>(&mut LinkedTable<u64, Order>, u64): Order
+	245: Pop
+	246: Branch(258)
+B31:
+	247: MoveLoc[16](maker_order#1#0: &Order)
+	248: Pop
+	249: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	250: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	251: CopyLoc[22](order_id#1#0: u64)
+	252: Call linked_table::borrow_mut<u64, Order>(&mut LinkedTable<u64, Order>, u64): &mut Order
+	253: StLoc[17](maker_order_mut#1#0: &mut Order)
+	254: MoveLoc[15](maker_base_quantity#1#0: u64)
+	255: MoveLoc[17](maker_order_mut#1#0: &mut Order)
+	256: MutBorrowField[4](Order.quantity: u64)
+	257: WriteRef
+B32:
+	258: CopyLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	259: LdU64(0)
+	260: Eq
+	261: BrFalse(263)
+B33:
+	262: Branch(264)
+B34:
+	263: Branch(50)
+B35:
+	264: MoveLoc[29](tick_level#1#0: &mut TickLevel)
+	265: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	266: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	267: BrFalse(288)
+B36:
+	268: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	269: MoveLoc[30](tick_price#1#0: u64)
+	270: StLoc[8](%#5: u64)
+	271: FreezeRef
+	272: MoveLoc[8](%#5: u64)
+	273: Call critbit::next_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): u64 * u64
+	274: Pop
+	275: StLoc[30](tick_price#1#0: u64)
+	276: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	277: MoveLoc[28](tick_index#1#0: u64)
+	278: Call critbit::remove_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): TickLevel
+	279: Call destroy_empty_level(TickLevel)
+	280: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	281: CopyLoc[30](tick_price#1#0: u64)
+	282: StLoc[9](%#7: u64)
+	283: FreezeRef
+	284: MoveLoc[9](%#7: u64)
+	285: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	286: StLoc[28](tick_index#1#0: u64)
+	287: Pop
+B37:
+	288: CopyLoc[27](taker_quote_quantity_remaining#1#0: u64)
+	289: LdU64(0)
+	290: Eq
+	291: BrFalse(297)
+B38:
+	292: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	293: Pop
+	294: MoveLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	295: Pop
+	296: Branch(298)
+B39:
+	297: Branch(25)
+B40:
+	298: MoveLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	299: MoveLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	300: Ret
+}
+match_bid<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, price_limit#0#0: u64, current_timestamp#0#0: u64, quote_balance#0#0: Balance<QuoteAsset>): Balance<BaseAsset> * Balance<QuoteAsset> {
+L0:	all_open_orders#1#0: &mut CritbitTree<TickLevel>
+L1:	base_balance_filled#1#0: Balance<BaseAsset>
+L2:	filled_base_quantity#1#0: u64
+L3:	filled_quote_quantity#1#0: u64
+L4:	locked_base_balance#1#0: Balance<BaseAsset>
+L5:	maker_base_quantity#1#0: u64
+L6:	maker_order#1#0: &Order
+L7:	maker_order_mut#1#0: &mut Order
+L8:	maker_rebate#1#0: u64
+L9:	maybe_order_id#1#0: &Option<u64>
+L10:	old_order_id#1#0: u64
+L11:	order_id#1#0: u64
+L12:	pool_id#1#0: ID
+L13:	quote_balance_left#1#0: Balance<QuoteAsset>
+L14:	skip_order#1#0: bool
+L15:	taker_base_quantity_remaining#1#0: u64
+L16:	taker_commission#1#0: u64
+L17:	taker_commission_balance#1#0: Balance<BaseAsset>
+L18:	tick_index#1#0: u64
+L19:	tick_level#1#0: &mut TickLevel
+L20:	tick_price#1#0: u64
+B0:
+	0: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	2: Call object::uid_as_inner(&UID): &ID
+	3: ReadRef
+	4: StLoc[22](pool_id#1#0: ID)
+	5: MoveLoc[1](quantity#0#0: u64)
+	6: StLoc[25](taker_base_quantity_remaining#1#0: u64)
+	7: Call balance::zero<BaseAsset>(): Balance<BaseAsset>
+	8: StLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	9: MoveLoc[4](quote_balance#0#0: Balance<QuoteAsset>)
+	10: StLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	11: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	12: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	13: StLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	14: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	15: FreezeRef
+	16: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	17: BrFalse(25)
+B1:
+	18: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	19: Pop
+	20: MoveLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	21: Pop
+	22: MoveLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	23: MoveLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	24: Ret
+B2:
+	25: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	26: FreezeRef
+	27: Call critbit::min_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	28: StLoc[28](tick_index#1#0: u64)
+	29: StLoc[30](tick_price#1#0: u64)
+B3:
+	30: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	31: FreezeRef
+	32: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	33: Not
+	34: BrFalse(41)
+B4:
+	35: Branch(36)
+B5:
+	36: CopyLoc[30](tick_price#1#0: u64)
+	37: CopyLoc[2](price_limit#0#0: u64)
+	38: Le
+	39: StLoc[5](%#1: bool)
+	40: Branch(43)
+B6:
+	41: LdFalse
+	42: StLoc[5](%#1: bool)
+B7:
+	43: MoveLoc[5](%#1: bool)
+	44: BrFalse(287)
+B8:
+	45: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	46: CopyLoc[28](tick_index#1#0: u64)
+	47: Call critbit::borrow_mut_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): &mut TickLevel
+	48: StLoc[29](tick_level#1#0: &mut TickLevel)
+	49: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	50: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	51: Call linked_table::front<u64, Order>(&LinkedTable<u64, Order>): &Option<u64>
+	52: Call option::borrow<u64>(&Option<u64>): &u64
+	53: ReadRef
+	54: StLoc[21](order_id#1#0: u64)
+B9:
+	55: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	56: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	57: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	58: Not
+	59: BrFalse(253)
+B10:
+	60: Branch(61)
+B11:
+	61: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	62: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	63: CopyLoc[21](order_id#1#0: u64)
+	64: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	65: StLoc[16](maker_order#1#0: &Order)
+	66: CopyLoc[16](maker_order#1#0: &Order)
+	67: ImmBorrowField[4](Order.quantity: u64)
+	68: ReadRef
+	69: StLoc[15](maker_base_quantity#1#0: u64)
+	70: LdFalse
+	71: StLoc[24](skip_order#1#0: bool)
+	72: CopyLoc[16](maker_order#1#0: &Order)
+	73: ImmBorrowField[5](Order.expire_timestamp: u64)
+	74: ReadRef
+	75: CopyLoc[3](current_timestamp#0#0: u64)
+	76: Le
+	77: BrFalse(93)
+B12:
+	78: LdTrue
+	79: StLoc[24](skip_order#1#0: bool)
+	80: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	81: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	82: CopyLoc[16](maker_order#1#0: &Order)
+	83: ImmBorrowField[6](Order.owner: ID)
+	84: ReadRef
+	85: CopyLoc[16](maker_order#1#0: &Order)
+	86: ImmBorrowField[4](Order.quantity: u64)
+	87: ReadRef
+	88: Call custodian::unlock_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64)
+	89: CopyLoc[22](pool_id#1#0: ID)
+	90: CopyLoc[16](maker_order#1#0: &Order)
+	91: Call emit_order_canceled<BaseAsset, QuoteAsset>(ID, &Order)
+	92: Branch(192)
+B13:
+	93: CopyLoc[25](taker_base_quantity_remaining#1#0: u64)
+	94: CopyLoc[15](maker_base_quantity#1#0: u64)
+	95: Ge
+	96: BrFalse(100)
+B14:
+	97: CopyLoc[15](maker_base_quantity#1#0: u64)
+	98: StLoc[6](%#2: u64)
+	99: Branch(102)
+B15:
+	100: CopyLoc[25](taker_base_quantity_remaining#1#0: u64)
+	101: StLoc[6](%#2: u64)
+B16:
+	102: MoveLoc[6](%#2: u64)
+	103: StLoc[12](filled_base_quantity#1#0: u64)
+	104: CopyLoc[12](filled_base_quantity#1#0: u64)
+	105: CopyLoc[16](maker_order#1#0: &Order)
+	106: ImmBorrowField[7](Order.price: u64)
+	107: ReadRef
+	108: Call math::mul(u64, u64): u64
+	109: StLoc[13](filled_quote_quantity#1#0: u64)
+	110: CopyLoc[12](filled_base_quantity#1#0: u64)
+	111: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	112: ImmBorrowFieldGeneric[3](Pool.maker_rebate_rate: u64)
+	113: ReadRef
+	114: Call math::mul(u64, u64): u64
+	115: StLoc[18](maker_rebate#1#0: u64)
+	116: CopyLoc[12](filled_base_quantity#1#0: u64)
+	117: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	118: ImmBorrowFieldGeneric[4](Pool.taker_fee_rate: u64)
+	119: ReadRef
+	120: Call math::mul_round(u64, u64): bool * u64
+	121: StLoc[26](taker_commission#1#0: u64)
+	122: BrFalse(127)
+B17:
+	123: MoveLoc[26](taker_commission#1#0: u64)
+	124: LdU64(1)
+	125: Add
+	126: StLoc[26](taker_commission#1#0: u64)
+B18:
+	127: MoveLoc[15](maker_base_quantity#1#0: u64)
+	128: CopyLoc[12](filled_base_quantity#1#0: u64)
+	129: Sub
+	130: StLoc[15](maker_base_quantity#1#0: u64)
+	131: MoveLoc[25](taker_base_quantity_remaining#1#0: u64)
+	132: CopyLoc[12](filled_base_quantity#1#0: u64)
+	133: Sub
+	134: StLoc[25](taker_base_quantity_remaining#1#0: u64)
+	135: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	136: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	137: CopyLoc[16](maker_order#1#0: &Order)
+	138: ImmBorrowField[6](Order.owner: ID)
+	139: ReadRef
+	140: CopyLoc[12](filled_base_quantity#1#0: u64)
+	141: Call custodian::decrease_user_locked_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64): Balance<BaseAsset>
+	142: StLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	143: MutBorrowLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	144: MoveLoc[26](taker_commission#1#0: u64)
+	145: Call balance::split<BaseAsset>(&mut Balance<BaseAsset>, u64): Balance<BaseAsset>
+	146: StLoc[27](taker_commission_balance#1#0: Balance<BaseAsset>)
+	147: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	148: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	149: CopyLoc[16](maker_order#1#0: &Order)
+	150: ImmBorrowField[6](Order.owner: ID)
+	151: ReadRef
+	152: MutBorrowLoc[27](taker_commission_balance#1#0: Balance<BaseAsset>)
+	153: MoveLoc[18](maker_rebate#1#0: u64)
+	154: Call balance::split<BaseAsset>(&mut Balance<BaseAsset>, u64): Balance<BaseAsset>
+	155: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	156: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	157: MutBorrowFieldGeneric[5](Pool.base_asset_trading_fees: Balance<BaseAsset>)
+	158: MoveLoc[27](taker_commission_balance#1#0: Balance<BaseAsset>)
+	159: Call balance::join<BaseAsset>(&mut Balance<BaseAsset>, Balance<BaseAsset>): u64
+	160: Pop
+	161: MutBorrowLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	162: MoveLoc[14](locked_base_balance#1#0: Balance<BaseAsset>)
+	163: Call balance::join<BaseAsset>(&mut Balance<BaseAsset>, Balance<BaseAsset>): u64
+	164: Pop
+	165: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	166: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	167: CopyLoc[16](maker_order#1#0: &Order)
+	168: ImmBorrowField[6](Order.owner: ID)
+	169: ReadRef
+	170: MutBorrowLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	171: MoveLoc[13](filled_quote_quantity#1#0: u64)
+	172: Call balance::split<QuoteAsset>(&mut Balance<QuoteAsset>, u64): Balance<QuoteAsset>
+	173: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+	174: CopyLoc[22](pool_id#1#0: ID)
+	175: CopyLoc[16](maker_order#1#0: &Order)
+	176: ImmBorrowField[12](Order.order_id: u64)
+	177: ReadRef
+	178: LdFalse
+	179: CopyLoc[16](maker_order#1#0: &Order)
+	180: ImmBorrowField[6](Order.owner: ID)
+	181: ReadRef
+	182: CopyLoc[16](maker_order#1#0: &Order)
+	183: ImmBorrowField[4](Order.quantity: u64)
+	184: ReadRef
+	185: MoveLoc[12](filled_base_quantity#1#0: u64)
+	186: CopyLoc[15](maker_base_quantity#1#0: u64)
+	187: CopyLoc[16](maker_order#1#0: &Order)
+	188: ImmBorrowField[7](Order.price: u64)
+	189: ReadRef
+	190: PackGeneric[1](OrderFilled<BaseAsset, QuoteAsset>)
+	191: Call event::emit<OrderFilled<BaseAsset, QuoteAsset>>(OrderFilled<BaseAsset, QuoteAsset>)
+B19:
+	192: MoveLoc[24](skip_order#1#0: bool)
+	193: BrFalse(197)
+B20:
+	194: LdTrue
+	195: StLoc[7](%#3: bool)
+	196: Branch(201)
+B21:
+	197: CopyLoc[15](maker_base_quantity#1#0: u64)
+	198: LdU64(0)
+	199: Eq
+	200: StLoc[7](%#3: bool)
+B22:
+	201: MoveLoc[7](%#3: bool)
+	202: BrFalse(236)
+B23:
+	203: CopyLoc[21](order_id#1#0: u64)
+	204: StLoc[20](old_order_id#1#0: u64)
+	205: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	206: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	207: CopyLoc[21](order_id#1#0: u64)
+	208: Call linked_table::next<u64, Order>(&LinkedTable<u64, Order>, u64): &Option<u64>
+	209: StLoc[19](maybe_order_id#1#0: &Option<u64>)
+	210: CopyLoc[19](maybe_order_id#1#0: &Option<u64>)
+	211: Call option::is_none<u64>(&Option<u64>): bool
+	212: Not
+	213: BrFalse(219)
+B24:
+	214: MoveLoc[19](maybe_order_id#1#0: &Option<u64>)
+	215: Call option::borrow<u64>(&Option<u64>): &u64
+	216: ReadRef
+	217: StLoc[21](order_id#1#0: u64)
+	218: Branch(221)
+B25:
+	219: MoveLoc[19](maybe_order_id#1#0: &Option<u64>)
+	220: Pop
+B26:
+	221: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	222: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	223: MoveLoc[16](maker_order#1#0: &Order)
+	224: ImmBorrowField[6](Order.owner: ID)
+	225: ReadRef
+	226: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	227: CopyLoc[20](old_order_id#1#0: u64)
+	228: Call linked_table::remove<u64, u64>(&mut LinkedTable<u64, u64>, u64): u64
+	229: Pop
+	230: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	231: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	232: MoveLoc[20](old_order_id#1#0: u64)
+	233: Call linked_table::remove<u64, Order>(&mut LinkedTable<u64, Order>, u64): Order
+	234: Pop
+	235: Branch(247)
+B27:
+	236: MoveLoc[16](maker_order#1#0: &Order)
+	237: Pop
+	238: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	239: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	240: CopyLoc[21](order_id#1#0: u64)
+	241: Call linked_table::borrow_mut<u64, Order>(&mut LinkedTable<u64, Order>, u64): &mut Order
+	242: StLoc[17](maker_order_mut#1#0: &mut Order)
+	243: MoveLoc[15](maker_base_quantity#1#0: u64)
+	244: MoveLoc[17](maker_order_mut#1#0: &mut Order)
+	245: MutBorrowField[4](Order.quantity: u64)
+	246: WriteRef
+B28:
+	247: CopyLoc[25](taker_base_quantity_remaining#1#0: u64)
+	248: LdU64(0)
+	249: Eq
+	250: BrFalse(252)
+B29:
+	251: Branch(253)
+B30:
+	252: Branch(55)
+B31:
+	253: MoveLoc[29](tick_level#1#0: &mut TickLevel)
+	254: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	255: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	256: BrFalse(277)
+B32:
+	257: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	258: MoveLoc[30](tick_price#1#0: u64)
+	259: StLoc[8](%#5: u64)
+	260: FreezeRef
+	261: MoveLoc[8](%#5: u64)
+	262: Call critbit::next_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): u64 * u64
+	263: Pop
+	264: StLoc[30](tick_price#1#0: u64)
+	265: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	266: MoveLoc[28](tick_index#1#0: u64)
+	267: Call critbit::remove_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): TickLevel
+	268: Call destroy_empty_level(TickLevel)
+	269: CopyLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	270: CopyLoc[30](tick_price#1#0: u64)
+	271: StLoc[9](%#7: u64)
+	272: FreezeRef
+	273: MoveLoc[9](%#7: u64)
+	274: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	275: StLoc[28](tick_index#1#0: u64)
+	276: Pop
+B33:
+	277: CopyLoc[25](taker_base_quantity_remaining#1#0: u64)
+	278: LdU64(0)
+	279: Eq
+	280: BrFalse(286)
+B34:
+	281: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	282: Pop
+	283: MoveLoc[10](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	284: Pop
+	285: Branch(287)
+B35:
+	286: Branch(30)
+B36:
+	287: MoveLoc[11](base_balance_filled#1#0: Balance<BaseAsset>)
+	288: MoveLoc[23](quote_balance_left#1#0: Balance<QuoteAsset>)
+	289: Ret
+}
+match_ask<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, price_limit#0#0: u64, current_timestamp#0#0: u64, base_balance#0#0: Balance<BaseAsset>): Balance<BaseAsset> * Balance<QuoteAsset> {
+L0:	%#7: u64
+L1:	all_open_orders#1#0: &mut CritbitTree<TickLevel>
+L2:	base_balance_left#1#0: Balance<BaseAsset>
+L3:	filled_base_quantity#1#0: u64
+L4:	filled_quote_quantity#1#0: u64
+L5:	locked_quote_balance#1#0: Balance<QuoteAsset>
+L6:	maker_base_quantity#1#0: u64
+L7:	maker_order#1#0: &Order
+L8:	maker_order_mut#1#0: &mut Order
+L9:	maker_quote_quantity#1#0: u64
+L10:	maker_rebate#1#0: u64
+L11:	maybe_order_id#1#0: &Option<u64>
+L12:	old_order_id#1#0: u64
+L13:	order_id#1#0: u64
+L14:	pool_id#1#0: ID
+L15:	quote_balance_filled#1#0: Balance<QuoteAsset>
+L16:	skip_order#1#0: bool
+L17:	taker_base_quantity_remaining#1#0: u64
+L18:	taker_commission#1#0: u64
+L19:	taker_commission_balance#1#0: Balance<QuoteAsset>
+L20:	tick_index#1#0: u64
+L21:	tick_level#1#0: &mut TickLevel
+L22:	tick_price#1#0: u64
+B0:
+	0: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	2: Call object::uid_as_inner(&UID): &ID
+	3: ReadRef
+	4: StLoc[22](pool_id#1#0: ID)
+	5: MoveLoc[3](base_balance#0#0: Balance<BaseAsset>)
+	6: StLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	7: Call balance::zero<QuoteAsset>(): Balance<QuoteAsset>
+	8: StLoc[23](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	9: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	10: MutBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	11: StLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	12: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	13: FreezeRef
+	14: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	15: BrFalse(23)
+B1:
+	16: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	17: Pop
+	18: MoveLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	19: Pop
+	20: MoveLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	21: MoveLoc[23](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	22: Ret
+B2:
+	23: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	24: FreezeRef
+	25: Call critbit::max_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	26: StLoc[28](tick_index#1#0: u64)
+	27: StLoc[30](tick_price#1#0: u64)
+B3:
+	28: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	29: FreezeRef
+	30: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	31: Not
+	32: BrFalse(39)
+B4:
+	33: Branch(34)
+B5:
+	34: CopyLoc[30](tick_price#1#0: u64)
+	35: CopyLoc[1](price_limit#0#0: u64)
+	36: Ge
+	37: StLoc[4](%#1: bool)
+	38: Branch(41)
+B6:
+	39: LdFalse
+	40: StLoc[4](%#1: bool)
+B7:
+	41: MoveLoc[4](%#1: bool)
+	42: BrFalse(295)
+B8:
+	43: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	44: CopyLoc[28](tick_index#1#0: u64)
+	45: Call critbit::borrow_mut_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): &mut TickLevel
+	46: StLoc[29](tick_level#1#0: &mut TickLevel)
+	47: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	48: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	49: Call linked_table::front<u64, Order>(&LinkedTable<u64, Order>): &Option<u64>
+	50: Call option::borrow<u64>(&Option<u64>): &u64
+	51: ReadRef
+	52: StLoc[21](order_id#1#0: u64)
+B9:
+	53: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	54: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	55: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	56: Not
+	57: BrFalse(260)
+B10:
+	58: Branch(59)
+B11:
+	59: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	60: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	61: CopyLoc[21](order_id#1#0: u64)
+	62: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	63: StLoc[15](maker_order#1#0: &Order)
+	64: CopyLoc[15](maker_order#1#0: &Order)
+	65: ImmBorrowField[4](Order.quantity: u64)
+	66: ReadRef
+	67: StLoc[14](maker_base_quantity#1#0: u64)
+	68: LdFalse
+	69: StLoc[24](skip_order#1#0: bool)
+	70: CopyLoc[15](maker_order#1#0: &Order)
+	71: ImmBorrowField[5](Order.expire_timestamp: u64)
+	72: ReadRef
+	73: CopyLoc[2](current_timestamp#0#0: u64)
+	74: Le
+	75: BrFalse(97)
+B12:
+	76: LdTrue
+	77: StLoc[24](skip_order#1#0: bool)
+	78: CopyLoc[15](maker_order#1#0: &Order)
+	79: ImmBorrowField[4](Order.quantity: u64)
+	80: ReadRef
+	81: CopyLoc[15](maker_order#1#0: &Order)
+	82: ImmBorrowField[7](Order.price: u64)
+	83: ReadRef
+	84: Call math::mul(u64, u64): u64
+	85: StLoc[17](maker_quote_quantity#1#0: u64)
+	86: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	87: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	88: CopyLoc[15](maker_order#1#0: &Order)
+	89: ImmBorrowField[6](Order.owner: ID)
+	90: ReadRef
+	91: MoveLoc[17](maker_quote_quantity#1#0: u64)
+	92: Call custodian::unlock_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, u64)
+	93: CopyLoc[22](pool_id#1#0: ID)
+	94: CopyLoc[15](maker_order#1#0: &Order)
+	95: Call emit_order_canceled<BaseAsset, QuoteAsset>(ID, &Order)
+	96: Branch(198)
+B13:
+	97: ImmBorrowLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	98: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	99: StLoc[25](taker_base_quantity_remaining#1#0: u64)
+	100: CopyLoc[25](taker_base_quantity_remaining#1#0: u64)
+	101: CopyLoc[14](maker_base_quantity#1#0: u64)
+	102: Ge
+	103: BrFalse(107)
+B14:
+	104: CopyLoc[14](maker_base_quantity#1#0: u64)
+	105: StLoc[5](%#2: u64)
+	106: Branch(109)
+B15:
+	107: MoveLoc[25](taker_base_quantity_remaining#1#0: u64)
+	108: StLoc[5](%#2: u64)
+B16:
+	109: MoveLoc[5](%#2: u64)
+	110: StLoc[11](filled_base_quantity#1#0: u64)
+	111: CopyLoc[11](filled_base_quantity#1#0: u64)
+	112: CopyLoc[15](maker_order#1#0: &Order)
+	113: ImmBorrowField[7](Order.price: u64)
+	114: ReadRef
+	115: Call math::mul(u64, u64): u64
+	116: StLoc[12](filled_quote_quantity#1#0: u64)
+	117: CopyLoc[12](filled_quote_quantity#1#0: u64)
+	118: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	119: ImmBorrowFieldGeneric[3](Pool.maker_rebate_rate: u64)
+	120: ReadRef
+	121: Call math::mul(u64, u64): u64
+	122: StLoc[18](maker_rebate#1#0: u64)
+	123: CopyLoc[12](filled_quote_quantity#1#0: u64)
+	124: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	125: ImmBorrowFieldGeneric[4](Pool.taker_fee_rate: u64)
+	126: ReadRef
+	127: Call math::mul_round(u64, u64): bool * u64
+	128: StLoc[26](taker_commission#1#0: u64)
+	129: BrFalse(134)
+B17:
+	130: MoveLoc[26](taker_commission#1#0: u64)
+	131: LdU64(1)
+	132: Add
+	133: StLoc[26](taker_commission#1#0: u64)
+B18:
+	134: MoveLoc[14](maker_base_quantity#1#0: u64)
+	135: CopyLoc[11](filled_base_quantity#1#0: u64)
+	136: Sub
+	137: StLoc[14](maker_base_quantity#1#0: u64)
+	138: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	139: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	140: CopyLoc[15](maker_order#1#0: &Order)
+	141: ImmBorrowField[6](Order.owner: ID)
+	142: ReadRef
+	143: MoveLoc[12](filled_quote_quantity#1#0: u64)
+	144: Call custodian::decrease_user_locked_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, u64): Balance<QuoteAsset>
+	145: StLoc[13](locked_quote_balance#1#0: Balance<QuoteAsset>)
+	146: MutBorrowLoc[13](locked_quote_balance#1#0: Balance<QuoteAsset>)
+	147: MoveLoc[26](taker_commission#1#0: u64)
+	148: Call balance::split<QuoteAsset>(&mut Balance<QuoteAsset>, u64): Balance<QuoteAsset>
+	149: StLoc[27](taker_commission_balance#1#0: Balance<QuoteAsset>)
+	150: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	151: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	152: CopyLoc[15](maker_order#1#0: &Order)
+	153: ImmBorrowField[6](Order.owner: ID)
+	154: ReadRef
+	155: MutBorrowLoc[27](taker_commission_balance#1#0: Balance<QuoteAsset>)
+	156: MoveLoc[18](maker_rebate#1#0: u64)
+	157: Call balance::split<QuoteAsset>(&mut Balance<QuoteAsset>, u64): Balance<QuoteAsset>
+	158: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+	159: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	160: MutBorrowFieldGeneric[9](Pool.quote_asset_trading_fees: Balance<QuoteAsset>)
+	161: MoveLoc[27](taker_commission_balance#1#0: Balance<QuoteAsset>)
+	162: Call balance::join<QuoteAsset>(&mut Balance<QuoteAsset>, Balance<QuoteAsset>): u64
+	163: Pop
+	164: MutBorrowLoc[23](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	165: MoveLoc[13](locked_quote_balance#1#0: Balance<QuoteAsset>)
+	166: Call balance::join<QuoteAsset>(&mut Balance<QuoteAsset>, Balance<QuoteAsset>): u64
+	167: Pop
+	168: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	169: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	170: CopyLoc[15](maker_order#1#0: &Order)
+	171: ImmBorrowField[6](Order.owner: ID)
+	172: ReadRef
+	173: MutBorrowLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	174: CopyLoc[11](filled_base_quantity#1#0: u64)
+	175: Call balance::split<BaseAsset>(&mut Balance<BaseAsset>, u64): Balance<BaseAsset>
+	176: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	177: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	178: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	179: Call object::uid_as_inner(&UID): &ID
+	180: ReadRef
+	181: CopyLoc[15](maker_order#1#0: &Order)
+	182: ImmBorrowField[12](Order.order_id: u64)
+	183: ReadRef
+	184: LdTrue
+	185: CopyLoc[15](maker_order#1#0: &Order)
+	186: ImmBorrowField[6](Order.owner: ID)
+	187: ReadRef
+	188: CopyLoc[15](maker_order#1#0: &Order)
+	189: ImmBorrowField[4](Order.quantity: u64)
+	190: ReadRef
+	191: MoveLoc[11](filled_base_quantity#1#0: u64)
+	192: CopyLoc[14](maker_base_quantity#1#0: u64)
+	193: CopyLoc[15](maker_order#1#0: &Order)
+	194: ImmBorrowField[7](Order.price: u64)
+	195: ReadRef
+	196: PackGeneric[1](OrderFilled<BaseAsset, QuoteAsset>)
+	197: Call event::emit<OrderFilled<BaseAsset, QuoteAsset>>(OrderFilled<BaseAsset, QuoteAsset>)
+B19:
+	198: MoveLoc[24](skip_order#1#0: bool)
+	199: BrFalse(203)
+B20:
+	200: LdTrue
+	201: StLoc[6](%#3: bool)
+	202: Branch(207)
+B21:
+	203: CopyLoc[14](maker_base_quantity#1#0: u64)
+	204: LdU64(0)
+	205: Eq
+	206: StLoc[6](%#3: bool)
+B22:
+	207: MoveLoc[6](%#3: bool)
+	208: BrFalse(242)
+B23:
+	209: CopyLoc[21](order_id#1#0: u64)
+	210: StLoc[20](old_order_id#1#0: u64)
+	211: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	212: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	213: CopyLoc[21](order_id#1#0: u64)
+	214: Call linked_table::next<u64, Order>(&LinkedTable<u64, Order>, u64): &Option<u64>
+	215: StLoc[19](maybe_order_id#1#0: &Option<u64>)
+	216: CopyLoc[19](maybe_order_id#1#0: &Option<u64>)
+	217: Call option::is_none<u64>(&Option<u64>): bool
+	218: Not
+	219: BrFalse(225)
+B24:
+	220: MoveLoc[19](maybe_order_id#1#0: &Option<u64>)
+	221: Call option::borrow<u64>(&Option<u64>): &u64
+	222: ReadRef
+	223: StLoc[21](order_id#1#0: u64)
+	224: Branch(227)
+B25:
+	225: MoveLoc[19](maybe_order_id#1#0: &Option<u64>)
+	226: Pop
+B26:
+	227: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	228: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	229: MoveLoc[15](maker_order#1#0: &Order)
+	230: ImmBorrowField[6](Order.owner: ID)
+	231: ReadRef
+	232: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	233: CopyLoc[20](old_order_id#1#0: u64)
+	234: Call linked_table::remove<u64, u64>(&mut LinkedTable<u64, u64>, u64): u64
+	235: Pop
+	236: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	237: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	238: MoveLoc[20](old_order_id#1#0: u64)
+	239: Call linked_table::remove<u64, Order>(&mut LinkedTable<u64, Order>, u64): Order
+	240: Pop
+	241: Branch(253)
+B27:
+	242: MoveLoc[15](maker_order#1#0: &Order)
+	243: Pop
+	244: CopyLoc[29](tick_level#1#0: &mut TickLevel)
+	245: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	246: CopyLoc[21](order_id#1#0: u64)
+	247: Call linked_table::borrow_mut<u64, Order>(&mut LinkedTable<u64, Order>, u64): &mut Order
+	248: StLoc[16](maker_order_mut#1#0: &mut Order)
+	249: MoveLoc[14](maker_base_quantity#1#0: u64)
+	250: MoveLoc[16](maker_order_mut#1#0: &mut Order)
+	251: MutBorrowField[4](Order.quantity: u64)
+	252: WriteRef
+B28:
+	253: ImmBorrowLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	254: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	255: LdU64(0)
+	256: Eq
+	257: BrFalse(259)
+B29:
+	258: Branch(260)
+B30:
+	259: Branch(53)
+B31:
+	260: MoveLoc[29](tick_level#1#0: &mut TickLevel)
+	261: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	262: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	263: BrFalse(284)
+B32:
+	264: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	265: MoveLoc[30](tick_price#1#0: u64)
+	266: StLoc[7](%#5: u64)
+	267: FreezeRef
+	268: MoveLoc[7](%#5: u64)
+	269: Call critbit::previous_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): u64 * u64
+	270: Pop
+	271: StLoc[30](tick_price#1#0: u64)
+	272: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	273: MoveLoc[28](tick_index#1#0: u64)
+	274: Call critbit::remove_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): TickLevel
+	275: Call destroy_empty_level(TickLevel)
+	276: CopyLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	277: CopyLoc[30](tick_price#1#0: u64)
+	278: StLoc[8](%#7: u64)
+	279: FreezeRef
+	280: MoveLoc[8](%#7: u64)
+	281: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	282: StLoc[28](tick_index#1#0: u64)
+	283: Pop
+B33:
+	284: ImmBorrowLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	285: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	286: LdU64(0)
+	287: Eq
+	288: BrFalse(294)
+B34:
+	289: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	290: Pop
+	291: MoveLoc[9](all_open_orders#1#0: &mut CritbitTree<TickLevel>)
+	292: Pop
+	293: Branch(295)
+B35:
+	294: Branch(28)
+B36:
+	295: MoveLoc[10](base_balance_left#1#0: Balance<BaseAsset>)
+	296: MoveLoc[23](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	297: Ret
+}
+public place_market_order<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, quantity#0#0: u64, is_bid#0#0: bool, base_coin#0#0: Coin<BaseAsset>, quote_coin#0#0: Coin<QuoteAsset>, clock#0#0: &Clock, ctx#0#0: &mut TxContext): Coin<BaseAsset> * Coin<QuoteAsset> {
+B0:
+	0: CopyLoc[1](quantity#0#0: u64)
+	1: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	2: ImmBorrowFieldGeneric[10](Pool.lot_size: u64)
+	3: ReadRef
+	4: Mod
+	5: LdU64(0)
+	6: Eq
+	7: BrFalse(9)
+B1:
+	8: Branch(17)
+B2:
+	9: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	10: Pop
+	11: MoveLoc[6](ctx#0#0: &mut TxContext)
+	12: Pop
+	13: MoveLoc[5](clock#0#0: &Clock)
+	14: Pop
+	15: LdConst[5](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	16: Abort
+B3:
+	17: MoveLoc[2](is_bid#0#0: bool)
+	18: BrFalse(39)
+B4:
+	19: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	20: MoveLoc[1](quantity#0#0: u64)
+	21: LdConst[27](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	22: MoveLoc[5](clock#0#0: &Clock)
+	23: Call clock::timestamp_ms(&Clock): u64
+	24: MoveLoc[4](quote_coin#0#0: Coin<QuoteAsset>)
+	25: Call coin::into_balance<QuoteAsset>(Coin<QuoteAsset>): Balance<QuoteAsset>
+	26: Call match_bid<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, u64, Balance<QuoteAsset>): Balance<BaseAsset> * Balance<QuoteAsset>
+	27: StLoc[9](quote_balance_left#1#0: Balance<QuoteAsset>)
+	28: StLoc[7](base_balance_filled#1#0: Balance<BaseAsset>)
+	29: MutBorrowLoc[3](base_coin#0#0: Coin<BaseAsset>)
+	30: MoveLoc[7](base_balance_filled#1#0: Balance<BaseAsset>)
+	31: CopyLoc[6](ctx#0#0: &mut TxContext)
+	32: Call coin::from_balance<BaseAsset>(Balance<BaseAsset>, &mut TxContext): Coin<BaseAsset>
+	33: Call coin::join<BaseAsset>(&mut Coin<BaseAsset>, Coin<BaseAsset>)
+	34: MoveLoc[9](quote_balance_left#1#0: Balance<QuoteAsset>)
+	35: MoveLoc[6](ctx#0#0: &mut TxContext)
+	36: Call coin::from_balance<QuoteAsset>(Balance<QuoteAsset>, &mut TxContext): Coin<QuoteAsset>
+	37: StLoc[4](quote_coin#0#0: Coin<QuoteAsset>)
+	38: Branch(69)
+B5:
+	39: MoveLoc[1](quantity#0#0: u64)
+	40: ImmBorrowLoc[3](base_coin#0#0: Coin<BaseAsset>)
+	41: Call coin::value<BaseAsset>(&Coin<BaseAsset>): u64
+	42: Le
+	43: BrFalse(45)
+B6:
+	44: Branch(53)
+B7:
+	45: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	46: Pop
+	47: MoveLoc[6](ctx#0#0: &mut TxContext)
+	48: Pop
+	49: MoveLoc[5](clock#0#0: &Clock)
+	50: Pop
+	51: LdConst[17](U64: [19, 0, 0, 0, 0, 0, 0, 0])
+	52: Abort
+B8:
+	53: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	54: LdConst[26](U64: [0, 0, 0, 0, 0, 0, 0, 0])
+	55: MoveLoc[5](clock#0#0: &Clock)
+	56: Call clock::timestamp_ms(&Clock): u64
+	57: MoveLoc[3](base_coin#0#0: Coin<BaseAsset>)
+	58: Call coin::into_balance<BaseAsset>(Coin<BaseAsset>): Balance<BaseAsset>
+	59: Call match_ask<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, Balance<BaseAsset>): Balance<BaseAsset> * Balance<QuoteAsset>
+	60: StLoc[8](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	61: CopyLoc[6](ctx#0#0: &mut TxContext)
+	62: Call coin::from_balance<BaseAsset>(Balance<BaseAsset>, &mut TxContext): Coin<BaseAsset>
+	63: StLoc[3](base_coin#0#0: Coin<BaseAsset>)
+	64: MutBorrowLoc[4](quote_coin#0#0: Coin<QuoteAsset>)
+	65: MoveLoc[8](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	66: MoveLoc[6](ctx#0#0: &mut TxContext)
+	67: Call coin::from_balance<QuoteAsset>(Balance<QuoteAsset>, &mut TxContext): Coin<QuoteAsset>
+	68: Call coin::join<QuoteAsset>(&mut Coin<QuoteAsset>, Coin<QuoteAsset>)
+B9:
+	69: MoveLoc[3](base_coin#0#0: Coin<BaseAsset>)
+	70: MoveLoc[4](quote_coin#0#0: Coin<QuoteAsset>)
+	71: Ret
+}
+inject_limit_order<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, price#0#0: u64, quantity#0#0: u64, is_bid#0#0: bool, expire_timestamp#0#0: u64, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): u64 {
+B0:
+	0: CopyLoc[5](account_cap#0#0: &AccountCap)
+	1: Call object::id<AccountCap>(&AccountCap): ID
+	2: StLoc[13](user#1#0: ID)
+	3: CopyLoc[3](is_bid#0#0: bool)
+	4: BrFalse(30)
+B1:
+	5: CopyLoc[2](quantity#0#0: u64)
+	6: CopyLoc[1](price#0#0: u64)
+	7: Call math::mul(u64, u64): u64
+	8: StLoc[11](quote_quantity#1#0: u64)
+	9: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	10: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	11: MoveLoc[5](account_cap#0#0: &AccountCap)
+	12: MoveLoc[11](quote_quantity#1#0: u64)
+	13: Call custodian::lock_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, &AccountCap, u64)
+	14: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	15: ImmBorrowFieldGeneric[11](Pool.next_bid_order_id: u64)
+	16: ReadRef
+	17: StLoc[10](order_id#1#0: u64)
+	18: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	19: ImmBorrowFieldGeneric[11](Pool.next_bid_order_id: u64)
+	20: ReadRef
+	21: LdU64(1)
+	22: Add
+	23: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	24: MutBorrowFieldGeneric[11](Pool.next_bid_order_id: u64)
+	25: WriteRef
+	26: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	27: MutBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	28: StLoc[8](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	29: Branch(50)
+B2:
+	30: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	31: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	32: MoveLoc[5](account_cap#0#0: &AccountCap)
+	33: CopyLoc[2](quantity#0#0: u64)
+	34: Call custodian::lock_balance<BaseAsset>(&mut Custodian<BaseAsset>, &AccountCap, u64)
+	35: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	36: ImmBorrowFieldGeneric[12](Pool.next_ask_order_id: u64)
+	37: ReadRef
+	38: StLoc[10](order_id#1#0: u64)
+	39: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	40: ImmBorrowFieldGeneric[12](Pool.next_ask_order_id: u64)
+	41: ReadRef
+	42: LdU64(1)
+	43: Add
+	44: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	45: MutBorrowFieldGeneric[12](Pool.next_ask_order_id: u64)
+	46: WriteRef
+	47: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	48: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	49: StLoc[8](open_orders#1#0: &mut CritbitTree<TickLevel>)
+B3:
+	50: CopyLoc[10](order_id#1#0: u64)
+	51: CopyLoc[1](price#0#0: u64)
+	52: CopyLoc[2](quantity#0#0: u64)
+	53: CopyLoc[3](is_bid#0#0: bool)
+	54: CopyLoc[13](user#1#0: ID)
+	55: MoveLoc[4](expire_timestamp#0#0: u64)
+	56: Pack[4](Order)
+	57: StLoc[9](order#1#0: Order)
+	58: CopyLoc[8](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	59: CopyLoc[1](price#0#0: u64)
+	60: StLoc[7](%#2: u64)
+	61: FreezeRef
+	62: MoveLoc[7](%#2: u64)
+	63: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	64: StLoc[12](tick_index#1#0: u64)
+	65: Not
+	66: BrFalse(75)
+B4:
+	67: CopyLoc[8](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	68: CopyLoc[1](price#0#0: u64)
+	69: CopyLoc[1](price#0#0: u64)
+	70: CopyLoc[6](ctx#0#0: &mut TxContext)
+	71: Call linked_table::new<u64, Order>(&mut TxContext): LinkedTable<u64, Order>
+	72: Pack[5](TickLevel)
+	73: Call critbit::insert_leaf<TickLevel>(&mut CritbitTree<TickLevel>, u64, TickLevel): u64
+	74: StLoc[12](tick_index#1#0: u64)
+B5:
+	75: MoveLoc[8](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	76: MoveLoc[12](tick_index#1#0: u64)
+	77: Call critbit::borrow_mut_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): &mut TickLevel
+	78: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	79: CopyLoc[10](order_id#1#0: u64)
+	80: MoveLoc[9](order#1#0: Order)
+	81: Call linked_table::push_back<u64, Order>(&mut LinkedTable<u64, Order>, u64, Order)
+	82: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	83: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	84: Call object::uid_as_inner(&UID): &ID
+	85: ReadRef
+	86: CopyLoc[10](order_id#1#0: u64)
+	87: MoveLoc[3](is_bid#0#0: bool)
+	88: CopyLoc[13](user#1#0: ID)
+	89: MoveLoc[2](quantity#0#0: u64)
+	90: CopyLoc[1](price#0#0: u64)
+	91: PackGeneric[2](OrderPlaced<BaseAsset, QuoteAsset>)
+	92: Call event::emit<OrderPlaced<BaseAsset, QuoteAsset>>(OrderPlaced<BaseAsset, QuoteAsset>)
+	93: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	94: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	95: CopyLoc[13](user#1#0: ID)
+	96: Call table::contains<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): bool
+	97: Not
+	98: BrFalse(106)
+B6:
+	99: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	100: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	101: CopyLoc[13](user#1#0: ID)
+	102: MoveLoc[6](ctx#0#0: &mut TxContext)
+	103: Call linked_table::new<u64, u64>(&mut TxContext): LinkedTable<u64, u64>
+	104: Call table::add<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID, LinkedTable<u64, u64>)
+	105: Branch(108)
+B7:
+	106: MoveLoc[6](ctx#0#0: &mut TxContext)
+	107: Pop
+B8:
+	108: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	109: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	110: MoveLoc[13](user#1#0: ID)
+	111: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	112: CopyLoc[10](order_id#1#0: u64)
+	113: MoveLoc[1](price#0#0: u64)
+	114: Call linked_table::push_back<u64, u64>(&mut LinkedTable<u64, u64>, u64, u64)
+	115: MoveLoc[10](order_id#1#0: u64)
+	116: Ret
+}
+public place_limit_order<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, price#0#0: u64, quantity#0#0: u64, is_bid#0#0: bool, expire_timestamp#0#0: u64, restriction#0#0: u8, clock#0#0: &Clock, account_cap#0#0: &AccountCap, ctx#0#0: &mut TxContext): u64 * u64 * bool * u64 {
+L0:	quote_quantity_original#1#0: u64
+L1:	user#1#0: ID
+B0:
+	0: CopyLoc[2](quantity#0#0: u64)
+	1: LdU64(0)
+	2: Gt
+	3: BrFalse(5)
+B1:
+	4: Branch(15)
+B2:
+	5: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	6: Pop
+	7: MoveLoc[8](ctx#0#0: &mut TxContext)
+	8: Pop
+	9: MoveLoc[6](clock#0#0: &Clock)
+	10: Pop
+	11: MoveLoc[7](account_cap#0#0: &AccountCap)
+	12: Pop
+	13: LdConst[5](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	14: Abort
+B3:
+	15: CopyLoc[1](price#0#0: u64)
+	16: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	17: ImmBorrowFieldGeneric[13](Pool.tick_size: u64)
+	18: ReadRef
+	19: Mod
+	20: LdU64(0)
+	21: Eq
+	22: BrFalse(24)
+B4:
+	23: Branch(34)
+B5:
+	24: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	25: Pop
+	26: MoveLoc[8](ctx#0#0: &mut TxContext)
+	27: Pop
+	28: MoveLoc[6](clock#0#0: &Clock)
+	29: Pop
+	30: MoveLoc[7](account_cap#0#0: &AccountCap)
+	31: Pop
+	32: LdConst[4](U64: [5, 0, 0, 0, 0, 0, 0, 0])
+	33: Abort
+B6:
+	34: CopyLoc[2](quantity#0#0: u64)
+	35: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	36: ImmBorrowFieldGeneric[10](Pool.lot_size: u64)
+	37: ReadRef
+	38: Mod
+	39: LdU64(0)
+	40: Eq
+	41: BrFalse(43)
+B7:
+	42: Branch(53)
+B8:
+	43: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	44: Pop
+	45: MoveLoc[8](ctx#0#0: &mut TxContext)
+	46: Pop
+	47: MoveLoc[6](clock#0#0: &Clock)
+	48: Pop
+	49: MoveLoc[7](account_cap#0#0: &AccountCap)
+	50: Pop
+	51: LdConst[5](U64: [6, 0, 0, 0, 0, 0, 0, 0])
+	52: Abort
+B9:
+	53: CopyLoc[4](expire_timestamp#0#0: u64)
+	54: CopyLoc[6](clock#0#0: &Clock)
+	55: Call clock::timestamp_ms(&Clock): u64
+	56: Gt
+	57: BrFalse(59)
+B10:
+	58: Branch(69)
+B11:
+	59: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	60: Pop
+	61: MoveLoc[8](ctx#0#0: &mut TxContext)
+	62: Pop
+	63: MoveLoc[6](clock#0#0: &Clock)
+	64: Pop
+	65: MoveLoc[7](account_cap#0#0: &AccountCap)
+	66: Pop
+	67: LdConst[20](U64: [22, 0, 0, 0, 0, 0, 0, 0])
+	68: Abort
+B12:
+	69: CopyLoc[7](account_cap#0#0: &AccountCap)
+	70: Call object::id<AccountCap>(&AccountCap): ID
+	71: StLoc[19](user#1#0: ID)
+	72: CopyLoc[3](is_bid#0#0: bool)
+	73: BrFalse(113)
+B13:
+	74: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	75: ImmBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	76: CopyLoc[19](user#1#0: ID)
+	77: Call custodian::account_available_balance<QuoteAsset>(&Custodian<QuoteAsset>, ID): u64
+	78: StLoc[18](quote_quantity_original#1#0: u64)
+	79: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	80: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	81: CopyLoc[7](account_cap#0#0: &AccountCap)
+	82: CopyLoc[18](quote_quantity_original#1#0: u64)
+	83: Call custodian::decrease_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, &AccountCap, u64): Balance<QuoteAsset>
+	84: StLoc[14](quote_balance#1#0: Balance<QuoteAsset>)
+	85: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	86: CopyLoc[2](quantity#0#0: u64)
+	87: CopyLoc[1](price#0#0: u64)
+	88: MoveLoc[6](clock#0#0: &Clock)
+	89: Call clock::timestamp_ms(&Clock): u64
+	90: MoveLoc[14](quote_balance#1#0: Balance<QuoteAsset>)
+	91: Call match_bid<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, u64, Balance<QuoteAsset>): Balance<BaseAsset> * Balance<QuoteAsset>
+	92: StLoc[16](quote_balance_left#1#0: Balance<QuoteAsset>)
+	93: StLoc[10](base_balance_filled#1#0: Balance<BaseAsset>)
+	94: ImmBorrowLoc[10](base_balance_filled#1#0: Balance<BaseAsset>)
+	95: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	96: StLoc[12](base_quantity_filled#1#0: u64)
+	97: MoveLoc[18](quote_quantity_original#1#0: u64)
+	98: ImmBorrowLoc[16](quote_balance_left#1#0: Balance<QuoteAsset>)
+	99: Call balance::value<QuoteAsset>(&Balance<QuoteAsset>): u64
+	100: Sub
+	101: StLoc[17](quote_quantity_filled#1#0: u64)
+	102: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	103: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	104: CopyLoc[19](user#1#0: ID)
+	105: MoveLoc[10](base_balance_filled#1#0: Balance<BaseAsset>)
+	106: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	107: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	108: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	109: MoveLoc[19](user#1#0: ID)
+	110: MoveLoc[16](quote_balance_left#1#0: Balance<QuoteAsset>)
+	111: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+	112: Branch(145)
+B14:
+	113: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	114: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	115: CopyLoc[7](account_cap#0#0: &AccountCap)
+	116: CopyLoc[2](quantity#0#0: u64)
+	117: Call custodian::decrease_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, &AccountCap, u64): Balance<BaseAsset>
+	118: StLoc[9](base_balance#1#0: Balance<BaseAsset>)
+	119: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	120: CopyLoc[1](price#0#0: u64)
+	121: MoveLoc[6](clock#0#0: &Clock)
+	122: Call clock::timestamp_ms(&Clock): u64
+	123: MoveLoc[9](base_balance#1#0: Balance<BaseAsset>)
+	124: Call match_ask<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, Balance<BaseAsset>): Balance<BaseAsset> * Balance<QuoteAsset>
+	125: StLoc[15](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	126: StLoc[11](base_balance_left#1#0: Balance<BaseAsset>)
+	127: CopyLoc[2](quantity#0#0: u64)
+	128: ImmBorrowLoc[11](base_balance_left#1#0: Balance<BaseAsset>)
+	129: Call balance::value<BaseAsset>(&Balance<BaseAsset>): u64
+	130: Sub
+	131: StLoc[12](base_quantity_filled#1#0: u64)
+	132: ImmBorrowLoc[15](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	133: Call balance::value<QuoteAsset>(&Balance<QuoteAsset>): u64
+	134: StLoc[17](quote_quantity_filled#1#0: u64)
+	135: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	136: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	137: CopyLoc[19](user#1#0: ID)
+	138: MoveLoc[11](base_balance_left#1#0: Balance<BaseAsset>)
+	139: Call custodian::increase_user_available_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, Balance<BaseAsset>)
+	140: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	141: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	142: MoveLoc[19](user#1#0: ID)
+	143: MoveLoc[15](quote_balance_filled#1#0: Balance<QuoteAsset>)
+	144: Call custodian::increase_user_available_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, Balance<QuoteAsset>)
+B15:
+	145: CopyLoc[5](restriction#0#0: u8)
+	146: LdConst[23](U8: [1])
+	147: Eq
+	148: BrFalse(160)
+B16:
+	149: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	150: Pop
+	151: MoveLoc[8](ctx#0#0: &mut TxContext)
+	152: Pop
+	153: MoveLoc[7](account_cap#0#0: &AccountCap)
+	154: Pop
+	155: MoveLoc[12](base_quantity_filled#1#0: u64)
+	156: MoveLoc[17](quote_quantity_filled#1#0: u64)
+	157: LdFalse
+	158: LdU64(0)
+	159: Ret
+B17:
+	160: CopyLoc[5](restriction#0#0: u8)
+	161: LdConst[24](U8: [2])
+	162: Eq
+	163: BrFalse(182)
+B18:
+	164: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	165: Pop
+	166: MoveLoc[8](ctx#0#0: &mut TxContext)
+	167: Pop
+	168: MoveLoc[7](account_cap#0#0: &AccountCap)
+	169: Pop
+	170: CopyLoc[12](base_quantity_filled#1#0: u64)
+	171: MoveLoc[2](quantity#0#0: u64)
+	172: Eq
+	173: BrFalse(175)
+B19:
+	174: Branch(177)
+B20:
+	175: LdConst[8](U64: [9, 0, 0, 0, 0, 0, 0, 0])
+	176: Abort
+B21:
+	177: MoveLoc[12](base_quantity_filled#1#0: u64)
+	178: MoveLoc[17](quote_quantity_filled#1#0: u64)
+	179: LdFalse
+	180: LdU64(0)
+	181: Ret
+B22:
+	182: CopyLoc[5](restriction#0#0: u8)
+	183: LdConst[25](U8: [3])
+	184: Eq
+	185: BrFalse(213)
+B23:
+	186: CopyLoc[12](base_quantity_filled#1#0: u64)
+	187: LdU64(0)
+	188: Eq
+	189: BrFalse(191)
+B24:
+	190: Branch(199)
+B25:
+	191: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	192: Pop
+	193: MoveLoc[8](ctx#0#0: &mut TxContext)
+	194: Pop
+	195: MoveLoc[7](account_cap#0#0: &AccountCap)
+	196: Pop
+	197: LdConst[9](U64: [10, 0, 0, 0, 0, 0, 0, 0])
+	198: Abort
+B26:
+	199: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	200: MoveLoc[1](price#0#0: u64)
+	201: MoveLoc[2](quantity#0#0: u64)
+	202: MoveLoc[3](is_bid#0#0: bool)
+	203: MoveLoc[4](expire_timestamp#0#0: u64)
+	204: MoveLoc[7](account_cap#0#0: &AccountCap)
+	205: MoveLoc[8](ctx#0#0: &mut TxContext)
+	206: Call inject_limit_order<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, bool, u64, &AccountCap, &mut TxContext): u64
+	207: StLoc[13](order_id#1#0: u64)
+	208: MoveLoc[12](base_quantity_filled#1#0: u64)
+	209: MoveLoc[17](quote_quantity_filled#1#0: u64)
+	210: LdTrue
+	211: MoveLoc[13](order_id#1#0: u64)
+	212: Ret
+B27:
+	213: MoveLoc[5](restriction#0#0: u8)
+	214: LdConst[22](U8: [0])
+	215: Eq
+	216: BrFalse(218)
+B28:
+	217: Branch(226)
+B29:
+	218: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	219: Pop
+	220: MoveLoc[8](ctx#0#0: &mut TxContext)
+	221: Pop
+	222: MoveLoc[7](account_cap#0#0: &AccountCap)
+	223: Pop
+	224: LdConst[13](U64: [15, 0, 0, 0, 0, 0, 0, 0])
+	225: Abort
+B30:
+	226: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	227: MoveLoc[1](price#0#0: u64)
+	228: MoveLoc[2](quantity#0#0: u64)
+	229: CopyLoc[12](base_quantity_filled#1#0: u64)
+	230: Sub
+	231: MoveLoc[3](is_bid#0#0: bool)
+	232: MoveLoc[4](expire_timestamp#0#0: u64)
+	233: MoveLoc[7](account_cap#0#0: &AccountCap)
+	234: MoveLoc[8](ctx#0#0: &mut TxContext)
+	235: Call inject_limit_order<BaseAsset, QuoteAsset>(&mut Pool<BaseAsset, QuoteAsset>, u64, u64, bool, u64, &AccountCap, &mut TxContext): u64
+	236: StLoc[13](order_id#1#0: u64)
+	237: MoveLoc[12](base_quantity_filled#1#0: u64)
+	238: MoveLoc[17](quote_quantity_filled#1#0: u64)
+	239: LdTrue
+	240: MoveLoc[13](order_id#1#0: u64)
+	241: Ret
+}
+order_is_bid(order_id#0#0: u64): bool {
+B0:
+	0: MoveLoc[0](order_id#0#0: u64)
+	1: LdConst[27](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	2: Lt
+	3: Ret
+}
+emit_order_canceled<BaseAsset, QuoteAsset>(pool_id#0#0: ID, order#0#0: &Order) {
+B0:
+	0: MoveLoc[0](pool_id#0#0: ID)
+	1: CopyLoc[1](order#0#0: &Order)
+	2: ImmBorrowField[12](Order.order_id: u64)
+	3: ReadRef
+	4: CopyLoc[1](order#0#0: &Order)
+	5: ImmBorrowField[20](Order.is_bid: bool)
+	6: ReadRef
+	7: CopyLoc[1](order#0#0: &Order)
+	8: ImmBorrowField[6](Order.owner: ID)
+	9: ReadRef
+	10: CopyLoc[1](order#0#0: &Order)
+	11: ImmBorrowField[4](Order.quantity: u64)
+	12: ReadRef
+	13: MoveLoc[1](order#0#0: &Order)
+	14: ImmBorrowField[7](Order.price: u64)
+	15: ReadRef
+	16: PackGeneric[3](OrderCanceled<BaseAsset, QuoteAsset>)
+	17: Call event::emit<OrderCanceled<BaseAsset, QuoteAsset>>(OrderCanceled<BaseAsset, QuoteAsset>)
+	18: Ret
+}
+public cancel_order<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, order_id#0#0: u64, account_cap#0#0: &AccountCap) {
+L0:	%#6: &mut CritbitTree<TickLevel>
+L1:	balance_locked#1#0: u64
+L2:	is_bid#1#0: bool
+L3:	order#1#0: Order
+L4:	tick_index#1#0: u64
+L5:	tick_price#1#0: u64
+L6:	user#1#0: ID
+L7:	usr_open_orders#1#0: &mut LinkedTable<u64, u64>
+B0:
+	0: MoveLoc[2](account_cap#0#0: &AccountCap)
+	1: Call object::id<AccountCap>(&AccountCap): ID
+	2: StLoc[12](user#1#0: ID)
+	3: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	4: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	5: CopyLoc[12](user#1#0: ID)
+	6: Call table::contains<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): bool
+	7: BrFalse(9)
+B1:
+	8: Branch(13)
+B2:
+	9: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	10: Pop
+	11: LdConst[11](U64: [12, 0, 0, 0, 0, 0, 0, 0])
+	12: Abort
+B3:
+	13: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	14: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	15: CopyLoc[12](user#1#0: ID)
+	16: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	17: StLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	18: CopyLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	19: CopyLoc[1](order_id#0#0: u64)
+	20: StLoc[3](%#2: u64)
+	21: FreezeRef
+	22: MoveLoc[3](%#2: u64)
+	23: Call linked_table::contains<u64, u64>(&LinkedTable<u64, u64>, u64): bool
+	24: BrFalse(26)
+B4:
+	25: Branch(32)
+B5:
+	26: MoveLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	27: Pop
+	28: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	29: Pop
+	30: LdConst[2](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	31: Abort
+B6:
+	32: CopyLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	33: CopyLoc[1](order_id#0#0: u64)
+	34: StLoc[4](%#4: u64)
+	35: FreezeRef
+	36: MoveLoc[4](%#4: u64)
+	37: Call linked_table::borrow<u64, u64>(&LinkedTable<u64, u64>, u64): &u64
+	38: ReadRef
+	39: StLoc[11](tick_price#1#0: u64)
+	40: CopyLoc[1](order_id#0#0: u64)
+	41: Call order_is_bid(u64): bool
+	42: StLoc[8](is_bid#1#0: bool)
+	43: CopyLoc[8](is_bid#1#0: bool)
+	44: BrFalse(49)
+B7:
+	45: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	46: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	47: StLoc[5](%#5: &CritbitTree<TickLevel>)
+	48: Branch(52)
+B8:
+	49: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	50: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	51: StLoc[5](%#5: &CritbitTree<TickLevel>)
+B9:
+	52: MoveLoc[5](%#5: &CritbitTree<TickLevel>)
+	53: MoveLoc[11](tick_price#1#0: u64)
+	54: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	55: StLoc[10](tick_index#1#0: u64)
+	56: BrFalse(58)
+B10:
+	57: Branch(64)
+B11:
+	58: MoveLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	59: Pop
+	60: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	61: Pop
+	62: LdConst[2](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	63: Abort
+B12:
+	64: CopyLoc[8](is_bid#1#0: bool)
+	65: BrFalse(70)
+B13:
+	66: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	67: MutBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	68: StLoc[6](%#6: &mut CritbitTree<TickLevel>)
+	69: Branch(73)
+B14:
+	70: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	71: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	72: StLoc[6](%#6: &mut CritbitTree<TickLevel>)
+B15:
+	73: MoveLoc[6](%#6: &mut CritbitTree<TickLevel>)
+	74: MoveLoc[13](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	75: MoveLoc[10](tick_index#1#0: u64)
+	76: MoveLoc[1](order_id#0#0: u64)
+	77: CopyLoc[12](user#1#0: ID)
+	78: Call remove_order<BaseAsset, QuoteAsset>(&mut CritbitTree<TickLevel>, &mut LinkedTable<u64, u64>, u64, u64, ID): Order
+	79: StLoc[9](order#1#0: Order)
+	80: MoveLoc[8](is_bid#1#0: bool)
+	81: BrFalse(96)
+B16:
+	82: ImmBorrowLoc[9](order#1#0: Order)
+	83: ImmBorrowField[4](Order.quantity: u64)
+	84: ReadRef
+	85: ImmBorrowLoc[9](order#1#0: Order)
+	86: ImmBorrowField[7](Order.price: u64)
+	87: ReadRef
+	88: Call math::mul(u64, u64): u64
+	89: StLoc[7](balance_locked#1#0: u64)
+	90: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	91: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	92: MoveLoc[12](user#1#0: ID)
+	93: MoveLoc[7](balance_locked#1#0: u64)
+	94: Call custodian::unlock_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, u64)
+	95: Branch(103)
+B17:
+	96: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	97: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	98: MoveLoc[12](user#1#0: ID)
+	99: ImmBorrowLoc[9](order#1#0: Order)
+	100: ImmBorrowField[4](Order.quantity: u64)
+	101: ReadRef
+	102: Call custodian::unlock_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64)
+B18:
+	103: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	104: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	105: Call object::uid_as_inner(&UID): &ID
+	106: ReadRef
+	107: ImmBorrowLoc[9](order#1#0: Order)
+	108: Call emit_order_canceled<BaseAsset, QuoteAsset>(ID, &Order)
+	109: Ret
+}
+remove_order<BaseAsset, QuoteAsset>(open_orders#0#0: &mut CritbitTree<TickLevel>, usr_open_orders#0#0: &mut LinkedTable<u64, u64>, tick_index#0#0: u64, order_id#0#0: u64, user#0#0: ID): Order {
+B0:
+	0: MoveLoc[1](usr_open_orders#0#0: &mut LinkedTable<u64, u64>)
+	1: CopyLoc[3](order_id#0#0: u64)
+	2: Call linked_table::remove<u64, u64>(&mut LinkedTable<u64, u64>, u64): u64
+	3: Pop
+	4: CopyLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	5: CopyLoc[2](tick_index#0#0: u64)
+	6: StLoc[5](%#2: u64)
+	7: FreezeRef
+	8: MoveLoc[5](%#2: u64)
+	9: Call critbit::borrow_leaf_by_index<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	10: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	11: CopyLoc[3](order_id#0#0: u64)
+	12: Call linked_table::contains<u64, Order>(&LinkedTable<u64, Order>, u64): bool
+	13: BrFalse(15)
+B1:
+	14: Branch(19)
+B2:
+	15: MoveLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	16: Pop
+	17: LdConst[2](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	18: Abort
+B3:
+	19: CopyLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	20: CopyLoc[2](tick_index#0#0: u64)
+	21: Call critbit::borrow_mut_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): &mut TickLevel
+	22: StLoc[6](mut_tick_level#1#0: &mut TickLevel)
+	23: CopyLoc[6](mut_tick_level#1#0: &mut TickLevel)
+	24: MutBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	25: MoveLoc[3](order_id#0#0: u64)
+	26: Call linked_table::remove<u64, Order>(&mut LinkedTable<u64, Order>, u64): Order
+	27: StLoc[7](order#1#0: Order)
+	28: ImmBorrowLoc[7](order#1#0: Order)
+	29: ImmBorrowField[6](Order.owner: ID)
+	30: ReadRef
+	31: MoveLoc[4](user#0#0: ID)
+	32: Eq
+	33: BrFalse(35)
+B4:
+	34: Branch(41)
+B5:
+	35: MoveLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	36: Pop
+	37: MoveLoc[6](mut_tick_level#1#0: &mut TickLevel)
+	38: Pop
+	39: LdConst[3](U64: [4, 0, 0, 0, 0, 0, 0, 0])
+	40: Abort
+B6:
+	41: MoveLoc[6](mut_tick_level#1#0: &mut TickLevel)
+	42: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	43: Call linked_table::is_empty<u64, Order>(&LinkedTable<u64, Order>): bool
+	44: BrFalse(50)
+B7:
+	45: MoveLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	46: MoveLoc[2](tick_index#0#0: u64)
+	47: Call critbit::remove_leaf_by_index<TickLevel>(&mut CritbitTree<TickLevel>, u64): TickLevel
+	48: Call destroy_empty_level(TickLevel)
+	49: Branch(52)
+B8:
+	50: MoveLoc[0](open_orders#0#0: &mut CritbitTree<TickLevel>)
+	51: Pop
+B9:
+	52: MoveLoc[7](order#1#0: Order)
+	53: Ret
+}
+public cancel_all_orders<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, account_cap#0#0: &AccountCap) {
+L0:	%#5: u64
+L1:	balance_locked#1#0: u64
+L2:	is_bid#1#0: bool
+L3:	open_orders#1#0: &mut CritbitTree<TickLevel>
+L4:	order#1#0: Order
+L5:	order_id#1#0: u64
+L6:	order_price#1#0: u64
+L7:	pool_id#1#0: ID
+L8:	tick_index#1#0: u64
+L9:	user#1#0: ID
+L10:	usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>
+B0:
+	0: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	2: Call object::uid_as_inner(&UID): &ID
+	3: ReadRef
+	4: StLoc[11](pool_id#1#0: ID)
+	5: MoveLoc[1](account_cap#0#0: &AccountCap)
+	6: Call object::id<AccountCap>(&AccountCap): ID
+	7: StLoc[13](user#1#0: ID)
+	8: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	9: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	10: CopyLoc[13](user#1#0: ID)
+	11: Call table::contains<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): bool
+	12: BrFalse(14)
+B1:
+	13: Branch(18)
+B2:
+	14: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	15: Pop
+	16: LdU64(0)
+	17: Abort
+B3:
+	18: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	19: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	20: CopyLoc[13](user#1#0: ID)
+	21: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	22: StLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+B4:
+	23: CopyLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+	24: FreezeRef
+	25: Call linked_table::is_empty<u64, u64>(&LinkedTable<u64, u64>): bool
+	26: Not
+	27: BrFalse(99)
+B5:
+	28: Branch(29)
+B6:
+	29: CopyLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+	30: FreezeRef
+	31: Call linked_table::back<u64, u64>(&LinkedTable<u64, u64>): &Option<u64>
+	32: Call option::borrow<u64>(&Option<u64>): &u64
+	33: ReadRef
+	34: StLoc[9](order_id#1#0: u64)
+	35: CopyLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+	36: CopyLoc[9](order_id#1#0: u64)
+	37: StLoc[2](%#2: u64)
+	38: FreezeRef
+	39: MoveLoc[2](%#2: u64)
+	40: Call linked_table::borrow<u64, u64>(&LinkedTable<u64, u64>, u64): &u64
+	41: ReadRef
+	42: StLoc[10](order_price#1#0: u64)
+	43: CopyLoc[9](order_id#1#0: u64)
+	44: Call order_is_bid(u64): bool
+	45: StLoc[6](is_bid#1#0: bool)
+	46: CopyLoc[6](is_bid#1#0: bool)
+	47: BrFalse(52)
+B7:
+	48: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	49: MutBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	50: StLoc[3](%#3: &mut CritbitTree<TickLevel>)
+	51: Branch(55)
+B8:
+	52: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	53: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	54: StLoc[3](%#3: &mut CritbitTree<TickLevel>)
+B9:
+	55: MoveLoc[3](%#3: &mut CritbitTree<TickLevel>)
+	56: StLoc[7](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	57: CopyLoc[7](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	58: MoveLoc[10](order_price#1#0: u64)
+	59: StLoc[4](%#5: u64)
+	60: FreezeRef
+	61: MoveLoc[4](%#5: u64)
+	62: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	63: StLoc[12](tick_index#1#0: u64)
+	64: Pop
+	65: MoveLoc[7](open_orders#1#0: &mut CritbitTree<TickLevel>)
+	66: CopyLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+	67: MoveLoc[12](tick_index#1#0: u64)
+	68: MoveLoc[9](order_id#1#0: u64)
+	69: CopyLoc[13](user#1#0: ID)
+	70: Call remove_order<BaseAsset, QuoteAsset>(&mut CritbitTree<TickLevel>, &mut LinkedTable<u64, u64>, u64, u64, ID): Order
+	71: StLoc[8](order#1#0: Order)
+	72: MoveLoc[6](is_bid#1#0: bool)
+	73: BrFalse(88)
+B10:
+	74: ImmBorrowLoc[8](order#1#0: Order)
+	75: ImmBorrowField[4](Order.quantity: u64)
+	76: ReadRef
+	77: ImmBorrowLoc[8](order#1#0: Order)
+	78: ImmBorrowField[7](Order.price: u64)
+	79: ReadRef
+	80: Call math::mul(u64, u64): u64
+	81: StLoc[5](balance_locked#1#0: u64)
+	82: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	83: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	84: CopyLoc[13](user#1#0: ID)
+	85: MoveLoc[5](balance_locked#1#0: u64)
+	86: Call custodian::unlock_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, u64)
+	87: Branch(95)
+B11:
+	88: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	89: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	90: CopyLoc[13](user#1#0: ID)
+	91: ImmBorrowLoc[8](order#1#0: Order)
+	92: ImmBorrowField[4](Order.quantity: u64)
+	93: ReadRef
+	94: Call custodian::unlock_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64)
+B12:
+	95: CopyLoc[11](pool_id#1#0: ID)
+	96: ImmBorrowLoc[8](order#1#0: Order)
+	97: Call emit_order_canceled<BaseAsset, QuoteAsset>(ID, &Order)
+	98: Branch(23)
+B13:
+	99: MoveLoc[14](usr_open_order_ids#1#0: &mut LinkedTable<u64, u64>)
+	100: Pop
+	101: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	102: Pop
+	103: Ret
+}
+public batch_cancel_order<BaseAsset, QuoteAsset>(pool#0#0: &mut Pool<BaseAsset, QuoteAsset>, order_ids#0#0: vector<u64>, account_cap#0#0: &AccountCap) {
+L0:	%#6: &CritbitTree<TickLevel>
+L1:	%#7: &mut CritbitTree<TickLevel>
+L2:	balance_locked#1#0: u64
+L3:	i_order#1#0: u64
+L4:	is_bid#1#0: bool
+L5:	n_order#1#0: u64
+L6:	new_tick_index#1#0: u64
+L7:	new_tick_price#1#0: u64
+L8:	order#1#0: Order
+L9:	order_id#1#0: u64
+L10:	pool_id#1#0: ID
+L11:	tick_index#1#0: u64
+L12:	tick_price#1#0: u64
+L13:	user#1#0: ID
+L14:	usr_open_orders#1#0: &mut LinkedTable<u64, u64>
+B0:
+	0: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[6](Pool.id: UID)
+	2: Call object::uid_as_inner(&UID): &ID
+	3: ReadRef
+	4: StLoc[16](pool_id#1#0: ID)
+	5: MoveLoc[2](account_cap#0#0: &AccountCap)
+	6: Call object::id<AccountCap>(&AccountCap): ID
+	7: StLoc[19](user#1#0: ID)
+	8: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	9: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	10: CopyLoc[19](user#1#0: ID)
+	11: Call table::contains<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): bool
+	12: BrFalse(14)
+B1:
+	13: Branch(18)
+B2:
+	14: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	15: Pop
+	16: LdU64(0)
+	17: Abort
+B3:
+	18: LdU64(0)
+	19: StLoc[17](tick_index#1#0: u64)
+	20: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	21: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	22: Call critbit::is_empty<TickLevel>(&CritbitTree<TickLevel>): bool
+	23: Not
+	24: BrFalse(29)
+B4:
+	25: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	26: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	27: StLoc[3](%#1: &CritbitTree<TickLevel>)
+	28: Branch(32)
+B5:
+	29: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	30: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	31: StLoc[3](%#1: &CritbitTree<TickLevel>)
+B6:
+	32: MoveLoc[3](%#1: &CritbitTree<TickLevel>)
+	33: CopyLoc[17](tick_index#1#0: u64)
+	34: Call critbit::borrow_leaf_by_index<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	35: ImmBorrowField[21](TickLevel.price: u64)
+	36: ReadRef
+	37: StLoc[18](tick_price#1#0: u64)
+	38: ImmBorrowLoc[1](order_ids#0#0: vector<u64>)
+	39: VecLen(20)
+	40: StLoc[11](n_order#1#0: u64)
+	41: LdU64(0)
+	42: StLoc[9](i_order#1#0: u64)
+	43: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	44: MutBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	45: CopyLoc[19](user#1#0: ID)
+	46: Call table::borrow_mut<ID, LinkedTable<u64, u64>>(&mut Table<ID, LinkedTable<u64, u64>>, ID): &mut LinkedTable<u64, u64>
+	47: StLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+B7:
+	48: CopyLoc[9](i_order#1#0: u64)
+	49: CopyLoc[11](n_order#1#0: u64)
+	50: Lt
+	51: BrFalse(159)
+B8:
+	52: Branch(53)
+B9:
+	53: ImmBorrowLoc[1](order_ids#0#0: vector<u64>)
+	54: CopyLoc[9](i_order#1#0: u64)
+	55: VecImmBorrow(20)
+	56: ReadRef
+	57: StLoc[15](order_id#1#0: u64)
+	58: CopyLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	59: CopyLoc[15](order_id#1#0: u64)
+	60: StLoc[4](%#3: u64)
+	61: FreezeRef
+	62: MoveLoc[4](%#3: u64)
+	63: Call linked_table::contains<u64, u64>(&LinkedTable<u64, u64>, u64): bool
+	64: BrFalse(66)
+B10:
+	65: Branch(72)
+B11:
+	66: MoveLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	67: Pop
+	68: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	69: Pop
+	70: LdConst[2](U64: [3, 0, 0, 0, 0, 0, 0, 0])
+	71: Abort
+B12:
+	72: CopyLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	73: CopyLoc[15](order_id#1#0: u64)
+	74: StLoc[5](%#5: u64)
+	75: FreezeRef
+	76: MoveLoc[5](%#5: u64)
+	77: Call linked_table::borrow<u64, u64>(&LinkedTable<u64, u64>, u64): &u64
+	78: ReadRef
+	79: StLoc[13](new_tick_price#1#0: u64)
+	80: CopyLoc[15](order_id#1#0: u64)
+	81: Call order_is_bid(u64): bool
+	82: StLoc[10](is_bid#1#0: bool)
+	83: CopyLoc[13](new_tick_price#1#0: u64)
+	84: CopyLoc[18](tick_price#1#0: u64)
+	85: Neq
+	86: BrFalse(112)
+B13:
+	87: MoveLoc[13](new_tick_price#1#0: u64)
+	88: StLoc[18](tick_price#1#0: u64)
+	89: CopyLoc[10](is_bid#1#0: bool)
+	90: BrFalse(95)
+B14:
+	91: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	92: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	93: StLoc[6](%#6: &CritbitTree<TickLevel>)
+	94: Branch(98)
+B15:
+	95: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	96: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	97: StLoc[6](%#6: &CritbitTree<TickLevel>)
+B16:
+	98: MoveLoc[6](%#6: &CritbitTree<TickLevel>)
+	99: CopyLoc[18](tick_price#1#0: u64)
+	100: Call critbit::find_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): bool * u64
+	101: StLoc[12](new_tick_index#1#0: u64)
+	102: BrFalse(104)
+B17:
+	103: Branch(110)
+B18:
+	104: MoveLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	105: Pop
+	106: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	107: Pop
+	108: LdConst[10](U64: [11, 0, 0, 0, 0, 0, 0, 0])
+	109: Abort
+B19:
+	110: MoveLoc[12](new_tick_index#1#0: u64)
+	111: StLoc[17](tick_index#1#0: u64)
+B20:
+	112: CopyLoc[10](is_bid#1#0: bool)
+	113: BrFalse(118)
+B21:
+	114: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	115: MutBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	116: StLoc[7](%#7: &mut CritbitTree<TickLevel>)
+	117: Branch(121)
+B22:
+	118: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	119: MutBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	120: StLoc[7](%#7: &mut CritbitTree<TickLevel>)
+B23:
+	121: MoveLoc[7](%#7: &mut CritbitTree<TickLevel>)
+	122: CopyLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	123: CopyLoc[17](tick_index#1#0: u64)
+	124: MoveLoc[15](order_id#1#0: u64)
+	125: CopyLoc[19](user#1#0: ID)
+	126: Call remove_order<BaseAsset, QuoteAsset>(&mut CritbitTree<TickLevel>, &mut LinkedTable<u64, u64>, u64, u64, ID): Order
+	127: StLoc[14](order#1#0: Order)
+	128: MoveLoc[10](is_bid#1#0: bool)
+	129: BrFalse(144)
+B24:
+	130: ImmBorrowLoc[14](order#1#0: Order)
+	131: ImmBorrowField[4](Order.quantity: u64)
+	132: ReadRef
+	133: ImmBorrowLoc[14](order#1#0: Order)
+	134: ImmBorrowField[7](Order.price: u64)
+	135: ReadRef
+	136: Call math::mul(u64, u64): u64
+	137: StLoc[8](balance_locked#1#0: u64)
+	138: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	139: MutBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	140: CopyLoc[19](user#1#0: ID)
+	141: MoveLoc[8](balance_locked#1#0: u64)
+	142: Call custodian::unlock_balance<QuoteAsset>(&mut Custodian<QuoteAsset>, ID, u64)
+	143: Branch(151)
+B25:
+	144: CopyLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	145: MutBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	146: CopyLoc[19](user#1#0: ID)
+	147: ImmBorrowLoc[14](order#1#0: Order)
+	148: ImmBorrowField[4](Order.quantity: u64)
+	149: ReadRef
+	150: Call custodian::unlock_balance<BaseAsset>(&mut Custodian<BaseAsset>, ID, u64)
+B26:
+	151: CopyLoc[16](pool_id#1#0: ID)
+	152: ImmBorrowLoc[14](order#1#0: Order)
+	153: Call emit_order_canceled<BaseAsset, QuoteAsset>(ID, &Order)
+	154: MoveLoc[9](i_order#1#0: u64)
+	155: LdU64(1)
+	156: Add
+	157: StLoc[9](i_order#1#0: u64)
+	158: Branch(48)
+B27:
+	159: MoveLoc[20](usr_open_orders#1#0: &mut LinkedTable<u64, u64>)
+	160: Pop
+	161: MoveLoc[0](pool#0#0: &mut Pool<BaseAsset, QuoteAsset>)
+	162: Pop
+	163: Ret
+}
+public list_open_orders<BaseAsset, QuoteAsset>(pool#0#0: &Pool<BaseAsset, QuoteAsset>, account_cap#0#0: &AccountCap): vector<Order> {
+L0:	order#1#0: &Order
+L1:	order_id#1#0: &Option<u64>
+L2:	order_price#1#0: u64
+L3:	user#1#0: ID
+L4:	usr_open_order_ids#1#0: &LinkedTable<u64, u64>
+B0:
+	0: MoveLoc[1](account_cap#0#0: &AccountCap)
+	1: Call object::id<AccountCap>(&AccountCap): ID
+	2: StLoc[7](user#1#0: ID)
+	3: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	4: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	5: MoveLoc[7](user#1#0: ID)
+	6: Call table::borrow<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): &LinkedTable<u64, u64>
+	7: StLoc[8](usr_open_order_ids#1#0: &LinkedTable<u64, u64>)
+	8: VecPack(27, 0)
+	9: StLoc[3](open_orders#1#0: vector<Order>)
+	10: CopyLoc[8](usr_open_order_ids#1#0: &LinkedTable<u64, u64>)
+	11: Call linked_table::front<u64, u64>(&LinkedTable<u64, u64>): &Option<u64>
+	12: StLoc[5](order_id#1#0: &Option<u64>)
+B1:
+	13: CopyLoc[5](order_id#1#0: &Option<u64>)
+	14: Call option::is_none<u64>(&Option<u64>): bool
+	15: Not
+	16: BrFalse(76)
+B2:
+	17: Branch(18)
+B3:
+	18: CopyLoc[8](usr_open_order_ids#1#0: &LinkedTable<u64, u64>)
+	19: CopyLoc[5](order_id#1#0: &Option<u64>)
+	20: Call option::borrow<u64>(&Option<u64>): &u64
+	21: ReadRef
+	22: Call linked_table::borrow<u64, u64>(&LinkedTable<u64, u64>, u64): &u64
+	23: ReadRef
+	24: StLoc[6](order_price#1#0: u64)
+	25: CopyLoc[5](order_id#1#0: &Option<u64>)
+	26: Call option::borrow<u64>(&Option<u64>): &u64
+	27: ReadRef
+	28: Call order_is_bid(u64): bool
+	29: BrFalse(36)
+B4:
+	30: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	31: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	32: MoveLoc[6](order_price#1#0: u64)
+	33: Call critbit::borrow_leaf_by_key<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	34: StLoc[2](%#1: &TickLevel)
+	35: Branch(41)
+B5:
+	36: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	37: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	38: MoveLoc[6](order_price#1#0: u64)
+	39: Call critbit::borrow_leaf_by_key<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	40: StLoc[2](%#1: &TickLevel)
+B6:
+	41: MoveLoc[2](%#1: &TickLevel)
+	42: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	43: CopyLoc[5](order_id#1#0: &Option<u64>)
+	44: Call option::borrow<u64>(&Option<u64>): &u64
+	45: ReadRef
+	46: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	47: StLoc[4](order#1#0: &Order)
+	48: MutBorrowLoc[3](open_orders#1#0: vector<Order>)
+	49: CopyLoc[4](order#1#0: &Order)
+	50: ImmBorrowField[12](Order.order_id: u64)
+	51: ReadRef
+	52: CopyLoc[4](order#1#0: &Order)
+	53: ImmBorrowField[7](Order.price: u64)
+	54: ReadRef
+	55: CopyLoc[4](order#1#0: &Order)
+	56: ImmBorrowField[4](Order.quantity: u64)
+	57: ReadRef
+	58: CopyLoc[4](order#1#0: &Order)
+	59: ImmBorrowField[20](Order.is_bid: bool)
+	60: ReadRef
+	61: CopyLoc[4](order#1#0: &Order)
+	62: ImmBorrowField[6](Order.owner: ID)
+	63: ReadRef
+	64: MoveLoc[4](order#1#0: &Order)
+	65: ImmBorrowField[5](Order.expire_timestamp: u64)
+	66: ReadRef
+	67: Pack[4](Order)
+	68: VecPushBack(27)
+	69: CopyLoc[8](usr_open_order_ids#1#0: &LinkedTable<u64, u64>)
+	70: MoveLoc[5](order_id#1#0: &Option<u64>)
+	71: Call option::borrow<u64>(&Option<u64>): &u64
+	72: ReadRef
+	73: Call linked_table::next<u64, u64>(&LinkedTable<u64, u64>, u64): &Option<u64>
+	74: StLoc[5](order_id#1#0: &Option<u64>)
+	75: Branch(13)
+B7:
+	76: MoveLoc[8](usr_open_order_ids#1#0: &LinkedTable<u64, u64>)
+	77: Pop
+	78: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	79: Pop
+	80: MoveLoc[5](order_id#1#0: &Option<u64>)
+	81: Pop
+	82: MoveLoc[3](open_orders#1#0: vector<Order>)
+	83: Ret
+}
+public account_balance<BaseAsset, QuoteAsset>(pool#0#0: &Pool<BaseAsset, QuoteAsset>, account_cap#0#0: &AccountCap): u64 * u64 * u64 * u64 {
+L0:	quote_avail#1#0: u64
+L1:	quote_locked#1#0: u64
+L2:	user#1#0: ID
+B0:
+	0: MoveLoc[1](account_cap#0#0: &AccountCap)
+	1: Call object::id<AccountCap>(&AccountCap): ID
+	2: StLoc[6](user#1#0: ID)
+	3: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	4: ImmBorrowFieldGeneric[0](Pool.base_custodian: Custodian<BaseAsset>)
+	5: CopyLoc[6](user#1#0: ID)
+	6: Call custodian::account_balance<BaseAsset>(&Custodian<BaseAsset>, ID): u64 * u64
+	7: StLoc[3](base_locked#1#0: u64)
+	8: StLoc[2](base_avail#1#0: u64)
+	9: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	10: ImmBorrowFieldGeneric[1](Pool.quote_custodian: Custodian<QuoteAsset>)
+	11: MoveLoc[6](user#1#0: ID)
+	12: Call custodian::account_balance<QuoteAsset>(&Custodian<QuoteAsset>, ID): u64 * u64
+	13: StLoc[5](quote_locked#1#0: u64)
+	14: StLoc[4](quote_avail#1#0: u64)
+	15: MoveLoc[2](base_avail#1#0: u64)
+	16: MoveLoc[3](base_locked#1#0: u64)
+	17: MoveLoc[4](quote_avail#1#0: u64)
+	18: MoveLoc[5](quote_locked#1#0: u64)
+	19: Ret
+}
+public get_level2_book_status_bid_side<BaseAsset, QuoteAsset>(pool#0#0: &Pool<BaseAsset, QuoteAsset>, price_low#0#0: u64, price_high#0#0: u64, clock#0#0: &Clock): vector<u64> * vector<u64> {
+L0:	price_low_#1#0: u64
+L1:	price_vec#1#0: vector<u64>
+B0:
+	0: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	2: Call critbit::min_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	3: Pop
+	4: StLoc[8](price_low_#1#0: u64)
+	5: CopyLoc[1](price_low#0#0: u64)
+	6: CopyLoc[8](price_low_#1#0: u64)
+	7: Lt
+	8: BrFalse(11)
+B1:
+	9: MoveLoc[8](price_low_#1#0: u64)
+	10: StLoc[1](price_low#0#0: u64)
+B2:
+	11: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	12: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	13: Call critbit::max_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	14: Pop
+	15: StLoc[7](price_high_#1#0: u64)
+	16: CopyLoc[2](price_high#0#0: u64)
+	17: CopyLoc[7](price_high_#1#0: u64)
+	18: Gt
+	19: BrFalse(22)
+B3:
+	20: MoveLoc[7](price_high_#1#0: u64)
+	21: StLoc[2](price_high#0#0: u64)
+B4:
+	22: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	23: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	24: MoveLoc[1](price_low#0#0: u64)
+	25: Call critbit::find_closest_key<TickLevel>(&CritbitTree<TickLevel>, u64): u64
+	26: StLoc[1](price_low#0#0: u64)
+	27: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	28: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	29: MoveLoc[2](price_high#0#0: u64)
+	30: Call critbit::find_closest_key<TickLevel>(&CritbitTree<TickLevel>, u64): u64
+	31: StLoc[2](price_high#0#0: u64)
+	32: VecPack(20, 0)
+	33: StLoc[9](price_vec#1#0: vector<u64>)
+	34: VecPack(20, 0)
+	35: StLoc[5](depth_vec#1#0: vector<u64>)
+	36: CopyLoc[1](price_low#0#0: u64)
+	37: LdU64(0)
+	38: Eq
+	39: BrFalse(47)
+B5:
+	40: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	41: Pop
+	42: MoveLoc[3](clock#0#0: &Clock)
+	43: Pop
+	44: MoveLoc[9](price_vec#1#0: vector<u64>)
+	45: MoveLoc[5](depth_vec#1#0: vector<u64>)
+	46: Ret
+B6:
+	47: CopyLoc[1](price_low#0#0: u64)
+	48: CopyLoc[2](price_high#0#0: u64)
+	49: Le
+	50: BrFalse(83)
+B7:
+	51: Branch(52)
+B8:
+	52: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	53: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	54: CopyLoc[1](price_low#0#0: u64)
+	55: CopyLoc[3](clock#0#0: &Clock)
+	56: Call clock::timestamp_ms(&Clock): u64
+	57: Call get_level2_book_status<BaseAsset, QuoteAsset>(&CritbitTree<TickLevel>, u64, u64): u64
+	58: StLoc[4](depth#1#0: u64)
+	59: MutBorrowLoc[9](price_vec#1#0: vector<u64>)
+	60: CopyLoc[1](price_low#0#0: u64)
+	61: VecPushBack(20)
+	62: MutBorrowLoc[5](depth_vec#1#0: vector<u64>)
+	63: MoveLoc[4](depth#1#0: u64)
+	64: VecPushBack(20)
+	65: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	66: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	67: MoveLoc[1](price_low#0#0: u64)
+	68: Call critbit::next_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): u64 * u64
+	69: Pop
+	70: StLoc[6](next_price#1#0: u64)
+	71: CopyLoc[6](next_price#1#0: u64)
+	72: LdU64(0)
+	73: Eq
+	74: BrFalse(80)
+B9:
+	75: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	76: Pop
+	77: MoveLoc[3](clock#0#0: &Clock)
+	78: Pop
+	79: Branch(83)
+B10:
+	80: MoveLoc[6](next_price#1#0: u64)
+	81: StLoc[1](price_low#0#0: u64)
+	82: Branch(47)
+B11:
+	83: MoveLoc[9](price_vec#1#0: vector<u64>)
+	84: MoveLoc[5](depth_vec#1#0: vector<u64>)
+	85: Ret
+}
+public get_level2_book_status_ask_side<BaseAsset, QuoteAsset>(pool#0#0: &Pool<BaseAsset, QuoteAsset>, price_low#0#0: u64, price_high#0#0: u64, clock#0#0: &Clock): vector<u64> * vector<u64> {
+L0:	price_low_#1#0: u64
+L1:	price_vec#1#0: vector<u64>
+B0:
+	0: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	1: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	2: Call critbit::min_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	3: Pop
+	4: StLoc[8](price_low_#1#0: u64)
+	5: CopyLoc[1](price_low#0#0: u64)
+	6: CopyLoc[8](price_low_#1#0: u64)
+	7: Lt
+	8: BrFalse(11)
+B1:
+	9: MoveLoc[8](price_low_#1#0: u64)
+	10: StLoc[1](price_low#0#0: u64)
+B2:
+	11: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	12: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	13: Call critbit::max_leaf<TickLevel>(&CritbitTree<TickLevel>): u64 * u64
+	14: Pop
+	15: StLoc[7](price_high_#1#0: u64)
+	16: CopyLoc[2](price_high#0#0: u64)
+	17: CopyLoc[7](price_high_#1#0: u64)
+	18: Gt
+	19: BrFalse(22)
+B3:
+	20: MoveLoc[7](price_high_#1#0: u64)
+	21: StLoc[2](price_high#0#0: u64)
+B4:
+	22: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	23: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	24: MoveLoc[1](price_low#0#0: u64)
+	25: Call critbit::find_closest_key<TickLevel>(&CritbitTree<TickLevel>, u64): u64
+	26: StLoc[1](price_low#0#0: u64)
+	27: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	28: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	29: MoveLoc[2](price_high#0#0: u64)
+	30: Call critbit::find_closest_key<TickLevel>(&CritbitTree<TickLevel>, u64): u64
+	31: StLoc[2](price_high#0#0: u64)
+	32: VecPack(20, 0)
+	33: StLoc[9](price_vec#1#0: vector<u64>)
+	34: VecPack(20, 0)
+	35: StLoc[5](depth_vec#1#0: vector<u64>)
+	36: CopyLoc[1](price_low#0#0: u64)
+	37: LdU64(0)
+	38: Eq
+	39: BrFalse(47)
+B5:
+	40: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	41: Pop
+	42: MoveLoc[3](clock#0#0: &Clock)
+	43: Pop
+	44: MoveLoc[9](price_vec#1#0: vector<u64>)
+	45: MoveLoc[5](depth_vec#1#0: vector<u64>)
+	46: Ret
+B6:
+	47: CopyLoc[1](price_low#0#0: u64)
+	48: CopyLoc[2](price_high#0#0: u64)
+	49: Le
+	50: BrFalse(83)
+B7:
+	51: Branch(52)
+B8:
+	52: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	53: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	54: CopyLoc[1](price_low#0#0: u64)
+	55: CopyLoc[3](clock#0#0: &Clock)
+	56: Call clock::timestamp_ms(&Clock): u64
+	57: Call get_level2_book_status<BaseAsset, QuoteAsset>(&CritbitTree<TickLevel>, u64, u64): u64
+	58: StLoc[4](depth#1#0: u64)
+	59: MutBorrowLoc[9](price_vec#1#0: vector<u64>)
+	60: CopyLoc[1](price_low#0#0: u64)
+	61: VecPushBack(20)
+	62: MutBorrowLoc[5](depth_vec#1#0: vector<u64>)
+	63: MoveLoc[4](depth#1#0: u64)
+	64: VecPushBack(20)
+	65: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	66: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	67: MoveLoc[1](price_low#0#0: u64)
+	68: Call critbit::next_leaf<TickLevel>(&CritbitTree<TickLevel>, u64): u64 * u64
+	69: Pop
+	70: StLoc[6](next_price#1#0: u64)
+	71: CopyLoc[6](next_price#1#0: u64)
+	72: LdU64(0)
+	73: Eq
+	74: BrFalse(80)
+B9:
+	75: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	76: Pop
+	77: MoveLoc[3](clock#0#0: &Clock)
+	78: Pop
+	79: Branch(83)
+B10:
+	80: MoveLoc[6](next_price#1#0: u64)
+	81: StLoc[1](price_low#0#0: u64)
+	82: Branch(47)
+B11:
+	83: MoveLoc[9](price_vec#1#0: vector<u64>)
+	84: MoveLoc[5](depth_vec#1#0: vector<u64>)
+	85: Ret
+}
+get_level2_book_status<BaseAsset, QuoteAsset>(open_orders#0#0: &CritbitTree<TickLevel>, price#0#0: u64, time_stamp#0#0: u64): u64 {
+L0:	tick_open_orders#1#0: &LinkedTable<u64, Order>
+B0:
+	0: MoveLoc[0](open_orders#0#0: &CritbitTree<TickLevel>)
+	1: MoveLoc[1](price#0#0: u64)
+	2: Call critbit::borrow_leaf_by_key<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	3: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	4: StLoc[6](tick_open_orders#1#0: &LinkedTable<u64, Order>)
+	5: LdU64(0)
+	6: StLoc[3](depth#1#0: u64)
+	7: CopyLoc[6](tick_open_orders#1#0: &LinkedTable<u64, Order>)
+	8: Call linked_table::front<u64, Order>(&LinkedTable<u64, Order>): &Option<u64>
+	9: StLoc[5](order_id#1#0: &Option<u64>)
+B1:
+	10: CopyLoc[5](order_id#1#0: &Option<u64>)
+	11: Call option::is_none<u64>(&Option<u64>): bool
+	12: Not
+	13: BrFalse(43)
+B2:
+	14: Branch(15)
+B3:
+	15: CopyLoc[6](tick_open_orders#1#0: &LinkedTable<u64, Order>)
+	16: CopyLoc[5](order_id#1#0: &Option<u64>)
+	17: Call option::borrow<u64>(&Option<u64>): &u64
+	18: ReadRef
+	19: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	20: StLoc[4](order#1#0: &Order)
+	21: CopyLoc[4](order#1#0: &Order)
+	22: ImmBorrowField[5](Order.expire_timestamp: u64)
+	23: ReadRef
+	24: CopyLoc[2](time_stamp#0#0: u64)
+	25: Gt
+	26: BrFalse(34)
+B4:
+	27: MoveLoc[3](depth#1#0: u64)
+	28: MoveLoc[4](order#1#0: &Order)
+	29: ImmBorrowField[4](Order.quantity: u64)
+	30: ReadRef
+	31: Add
+	32: StLoc[3](depth#1#0: u64)
+	33: Branch(36)
+B5:
+	34: MoveLoc[4](order#1#0: &Order)
+	35: Pop
+B6:
+	36: CopyLoc[6](tick_open_orders#1#0: &LinkedTable<u64, Order>)
+	37: MoveLoc[5](order_id#1#0: &Option<u64>)
+	38: Call option::borrow<u64>(&Option<u64>): &u64
+	39: ReadRef
+	40: Call linked_table::next<u64, Order>(&LinkedTable<u64, Order>, u64): &Option<u64>
+	41: StLoc[5](order_id#1#0: &Option<u64>)
+	42: Branch(10)
+B7:
+	43: MoveLoc[6](tick_open_orders#1#0: &LinkedTable<u64, Order>)
+	44: Pop
+	45: MoveLoc[5](order_id#1#0: &Option<u64>)
+	46: Pop
+	47: MoveLoc[3](depth#1#0: u64)
+	48: Ret
+}
+public get_order_status<BaseAsset, QuoteAsset>(pool#0#0: &Pool<BaseAsset, QuoteAsset>, order_id#0#0: u64, account_cap#0#0: &AccountCap): &Order {
+B0:
+	0: MoveLoc[2](account_cap#0#0: &AccountCap)
+	1: Call object::id<AccountCap>(&AccountCap): ID
+	2: StLoc[5](user#1#0: ID)
+	3: CopyLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	4: ImmBorrowFieldGeneric[7](Pool.usr_open_orders: Table<ID, LinkedTable<u64, u64>>)
+	5: MoveLoc[5](user#1#0: ID)
+	6: Call table::borrow<ID, LinkedTable<u64, u64>>(&Table<ID, LinkedTable<u64, u64>>, ID): &LinkedTable<u64, u64>
+	7: CopyLoc[1](order_id#0#0: u64)
+	8: Call linked_table::borrow<u64, u64>(&LinkedTable<u64, u64>, u64): &u64
+	9: ReadRef
+	10: StLoc[4](order_price#1#0: u64)
+	11: CopyLoc[1](order_id#0#0: u64)
+	12: LdConst[27](U64: [0, 0, 0, 0, 0, 0, 0, 128])
+	13: Lt
+	14: BrFalse(19)
+B1:
+	15: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	16: ImmBorrowFieldGeneric[8](Pool.bids: CritbitTree<TickLevel>)
+	17: StLoc[3](%#1: &CritbitTree<TickLevel>)
+	18: Branch(22)
+B2:
+	19: MoveLoc[0](pool#0#0: &Pool<BaseAsset, QuoteAsset>)
+	20: ImmBorrowFieldGeneric[2](Pool.asks: CritbitTree<TickLevel>)
+	21: StLoc[3](%#1: &CritbitTree<TickLevel>)
+B3:
+	22: MoveLoc[3](%#1: &CritbitTree<TickLevel>)
+	23: MoveLoc[4](order_price#1#0: u64)
+	24: Call critbit::borrow_leaf_by_key<TickLevel>(&CritbitTree<TickLevel>, u64): &TickLevel
+	25: ImmBorrowField[3](TickLevel.open_orders: LinkedTable<u64, Order>)
+	26: MoveLoc[1](order_id#0#0: u64)
+	27: Call linked_table::borrow<u64, Order>(&LinkedTable<u64, Order>, u64): &Order
+	28: Ret
+}
+}
